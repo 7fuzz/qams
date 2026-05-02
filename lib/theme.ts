@@ -33,4 +33,4 @@ export const unifiedGridTheme = themeQuartz.withParams(baseGridParams).withParam
     popupBackgroundColor: 'var(--color-bg-popover, #ffffff)',
 });
 
-export const GRID_CONTAINER_CLASS = "w-full h-full border dark:border-gray-800 rounded-lg overflow-hidden bg-white dark:bg-gray-950 shadow-sm";
+export const GRID_CONTAINER_CLASS = "w-full border dark:border-gray-800 rounded-lg overflow-hidden bg-white dark:bg-gray-950 shadow-sm";

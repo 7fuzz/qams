@@ -134,15 +134,14 @@ export default function TestRunsPage() {
         </Link>
       </div>
 
-      <div className={GRID_CONTAINER_CLASS}>
-        <div className="w-full h-[650px]">
+      <div className="w-full border dark:border-gray-800 rounded-lg overflow-hidden bg-white dark:bg-gray-950 shadow-sm">
           <AgGridReact
             theme={unifiedGridTheme}
             rowData={runs}
             columnDefs={columnDefs}
             animateRows={true}
+            domLayout="autoHeight"
           />
-        </div>
       </div>
 
       <RunDetailDialog 

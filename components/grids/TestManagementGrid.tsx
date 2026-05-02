@@ -333,7 +333,7 @@ export const TestManagementGrid = ({ moduleId }: TestManagementGridProps) => {
   if (loading) return <div className="p-8 text-center text-gray-500 text-sm font-bold uppercase tracking-widest animate-pulse">Syncing Library...</div>;
 
   return (
-    <div className="flex flex-col h-[calc(100vh-320px)] min-w-[1000px]">
+    <div className="flex flex-col min-w-[1000px]">
       <div className="flex justify-between items-center px-6 py-3 border-b dark:border-gray-800 bg-gray-50/50 dark:bg-gray-900/50">
         <div className="flex items-center gap-6 text-black dark:text-white">
             <h3 className="text-sm font-bold text-gray-500 uppercase tracking-widest flex items-center gap-2">
@@ -378,7 +378,7 @@ export const TestManagementGrid = ({ moduleId }: TestManagementGridProps) => {
         </div>
       </div>
       
-      <div className={GRID_CONTAINER_CLASS}>
+      <div className="w-full border dark:border-gray-800 rounded-lg overflow-hidden bg-white dark:bg-gray-950 shadow-sm">
         <AgGridReact
           ref={gridRef}
           theme={unifiedGridTheme}
@@ -388,6 +388,7 @@ export const TestManagementGrid = ({ moduleId }: TestManagementGridProps) => {
           onCellValueChanged={onCellValueChanged}
           rowSelection="multiple"
           animateRows={true}
+          domLayout="autoHeight"
           rowClassRules={{
             'bg-gray-50/30 dark:bg-gray-900/20': 'node.rowIndex % 2 !== 0',
           }}

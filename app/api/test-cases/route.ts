@@ -8,19 +8,44 @@ import { logActivity } from '@/lib/logger';
 export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const scenarioId = searchParams.get('scenarioId');
+    const projectId = searchParams.get('projectId');
+    const moduleId = searchParams.get('moduleId');
 
     try {
-        let query = 'SELECT * FROM test_cases';
+        let query = `
+            SELECT 
+                tc.*, 
+                s.name as scenario_name, 
+                m.name as module_name, 
+                p.name as project_name,
+                p.project_id,
+                m.module_id,
+                u.name as owner_name,
+                (SELECT COUNT(*) FROM issues i WHERE i.test_case_id = tc.test_case_id AND i.status != 'Closed') as open_issues_count
+            FROM test_cases tc
+            JOIN scenarios s ON tc.scenario_id = s.scenario_id
+            JOIN modules m ON s.module_id = m.module_id
+            JOIN projects p ON m.project_id = p.project_id
+            JOIN users u ON p.owner_id = u.user_id
+            WHERE 1=1
+        `;
         const params: string[] = [];
 
         if (scenarioId) {
-            query += ' WHERE scenario_id = ?';
+            query += ' AND tc.scenario_id = ?';
             params.push(scenarioId);
+        } else if (moduleId) {
+            query += ' AND m.module_id = ?';
+            params.push(moduleId);
+        } else if (projectId) {
+            query += ' AND p.project_id = ?';
+            params.push(projectId);
         }
 
         const testCases = db.prepare(query).all(...params);
         return NextResponse.json(testCases);
-    } catch {
+    } catch (error) {
+        console.error(error);
         return NextResponse.json({ error: 'Failed to fetch test cases' }, { status: 500 });
     }
 }

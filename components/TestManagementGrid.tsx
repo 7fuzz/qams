@@ -10,7 +10,7 @@ import {
   themeQuartz
 } from 'ag-grid-community';
 import { Button } from './ui/Button';
-import { Trash2, Plus, Copy } from 'lucide-react';
+import { Trash2, Plus, Copy, AlertCircle } from 'lucide-react';
 import { TEST_CASE_TYPE, TEST_CASE_TYPE_OPTIONS } from '@/lib/constants';
 import { GRID_CONTAINER_CLASS } from '@/lib/theme';
 
@@ -25,16 +25,33 @@ interface TestCase {
   steps: string;
   test_data: string;
   expected_result: string;
+  project_name?: string;
+  module_name?: string;
+  scenario_name?: string;
+  owner_name?: string;
+  open_issues_count?: number;
 }
 
-export const TestManagementGrid = ({ scenarioId }: { scenarioId: number }) => {
+interface TestManagementGridProps {
+  scenarioId?: number | null;
+  projectId?: number | null;
+  moduleId?: number | null;
+  quickSearch?: string;
+}
+
+export const TestManagementGrid = ({ scenarioId, projectId, moduleId, quickSearch }: TestManagementGridProps) => {
   const gridRef = useRef<AgGridReact>(null);
   const [rowData, setRowData] = useState<TestCase[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchTestCases = () => {
     setLoading(true);
-    fetch(`/api/test-cases?scenarioId=${scenarioId}`)
+    let url = '/api/test-cases';
+    if (scenarioId) url += `?scenarioId=${scenarioId}`;
+    else if (moduleId) url += `?moduleId=${moduleId}`;
+    else if (projectId) url += `?projectId=${projectId}`;
+
+    fetch(url)
       .then(res => res.json())
       .then(data => {
         setRowData(data);
@@ -44,21 +61,49 @@ export const TestManagementGrid = ({ scenarioId }: { scenarioId: number }) => {
 
   useEffect(() => {
     fetchTestCases();
-  }, [scenarioId]);
+  }, [scenarioId, projectId, moduleId]);
+
+  useEffect(() => {
+    if (gridRef.current?.api) {
+        gridRef.current.api.setGridOption('quickFilterText', quickSearch);
+    }
+  }, [quickSearch]);
 
   const columnDefs = useMemo<ColDef[]>(() => [
     { 
       field: 'title', 
       headerName: 'Case Title', 
-      width: 250, 
+      width: 200, 
       checkboxSelection: true, 
       headerCheckboxSelection: true,
-      pinned: 'left'
+      pinned: 'left',
+      filter: true
+    },
+    { 
+        field: 'project_name', 
+        headerName: 'Project', 
+        width: 150, 
+        hide: !!scenarioId || !!projectId || !!moduleId,
+        filter: true 
+    },
+    { 
+        field: 'module_name', 
+        headerName: 'Module', 
+        width: 150, 
+        hide: !!scenarioId || !!moduleId,
+        filter: true 
+    },
+    { 
+        field: 'scenario_name', 
+        headerName: 'Scenario', 
+        width: 150, 
+        hide: !!scenarioId,
+        filter: true 
     },
     { 
       field: 'type', 
       headerName: 'Type', 
-      width: 130,
+      width: 120,
       cellEditor: 'agSelectCellEditor',
       cellEditorParams: {
         values: TEST_CASE_TYPE_OPTIONS.map(o => o.value),
@@ -69,11 +114,24 @@ export const TestManagementGrid = ({ scenarioId }: { scenarioId: number }) => {
         'text-orange-600 font-medium': `x === "${TEST_CASE_TYPE.EDGE_CASE}"`,
       }
     },
+    { 
+        field: 'open_issues_count', 
+        headerName: 'Issues', 
+        width: 100,
+        cellRenderer: (params: any) => {
+            if (!params.value) return null;
+            return (
+                <div className="flex items-center gap-1 text-red-500 font-bold">
+                    <AlertCircle size={14} /> {params.value}
+                </div>
+            );
+        }
+    },
+    { field: 'owner_name', headerName: 'Owner', width: 120 },
     { field: 'precondition', headerName: 'Precondition', width: 200 },
     { field: 'steps', headerName: 'Test Steps', width: 300, autoHeight: true, wrapText: true, cellEditor: 'agLargeTextCellEditor' },
-    { field: 'test_data', headerName: 'Test Data', width: 150 },
     { field: 'expected_result', headerName: 'Expected Result', width: 250 },
-  ], []);
+  ], [scenarioId, projectId, moduleId]);
 
   const defaultColDef = useMemo<ColDef>(() => ({
     resizable: true,
@@ -81,9 +139,14 @@ export const TestManagementGrid = ({ scenarioId }: { scenarioId: number }) => {
     sortable: true,
     filter: true,
     suppressHeaderMenuButton: true,
+    minWidth: 100,
   }), []);
 
   const addRow = () => {
+    if (!scenarioId) {
+        alert("Please select a specific Scenario to add a new test case.");
+        return;
+    }
     const newRow: TestCase = {
       scenario_id: scenarioId,
       title: 'New Test Case',
@@ -100,8 +163,8 @@ export const TestManagementGrid = ({ scenarioId }: { scenarioId: number }) => {
       body: JSON.stringify(newRow),
     })
     .then(res => res.json())
-    .then(savedRow => {
-      setRowData([...rowData, savedRow]);
+    .then(() => {
+      fetchTestCases();
     });
   };
 
@@ -148,12 +211,17 @@ export const TestManagementGrid = ({ scenarioId }: { scenarioId: number }) => {
     }
   };
 
-  if (loading) return <div className="p-8 text-center text-gray-500 text-sm">Loading test cases...</div>;
+  if (loading) return <div className="p-8 text-center text-gray-500 text-sm">Loading library data...</div>;
 
   return (
-    <div className="flex flex-col h-[calc(100vh-450px)]">
+    <div className="flex flex-col h-[calc(100vh-280px)] min-w-[800px]">
       <div className="flex justify-between items-center px-6 py-3 border-b dark:border-gray-800 bg-gray-50/50 dark:bg-gray-900/50">
-        <h3 className="text-sm font-bold text-gray-500 uppercase tracking-widest">Test Cases</h3>
+        <h3 className="text-sm font-bold text-gray-500 uppercase tracking-widest flex items-center gap-2">
+            Library
+            <span className="bg-gray-200 dark:bg-gray-800 text-gray-600 dark:text-gray-400 px-2 py-0.5 rounded-full text-[10px] font-bold">
+                {rowData.length} Cases
+            </span>
+        </h3>
         <div className="flex gap-2">
           <Button onClick={deleteSelected} variant="ghost" size="sm" className="h-8 text-red-600 hover:bg-red-50">
             <Trash2 size={16} className="mr-2" /> Delete
@@ -161,7 +229,7 @@ export const TestManagementGrid = ({ scenarioId }: { scenarioId: number }) => {
           <Button onClick={duplicateSelected} variant="ghost" size="sm" className="h-8 text-blue-600 hover:bg-blue-50">
             <Copy size={16} className="mr-2" /> Duplicate
           </Button>
-          <Button onClick={addRow} size="sm" className="h-8">
+          <Button onClick={addRow} size="sm" className="h-8" disabled={!scenarioId}>
             <Plus size={16} className="mr-2" /> Add Case
           </Button>
         </div>

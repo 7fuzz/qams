@@ -189,6 +189,8 @@ export default function UserManagementPage() {
                 rowData={users}
                 columnDefs={columnDefs}
                 animateRows={true}
+                pagination={true}
+                paginationPageSize={20}
                 domLayout="autoHeight"
               />
           </div>

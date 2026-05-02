@@ -24,6 +24,10 @@ export const baseGridParams = {
   popupBackgroundColor: '#ffffff', // Will be overridden by dark mode logic if needed
   inputBackgroundColor: '#ffffff',
   inputBorderColor: 'rgba(128, 128, 128, 0.3)',
+
+  // Pagination Styles
+  rowHeight: '42px',
+  headerHeight: '48px',
 };
 
 // Re-export the theme object with our params

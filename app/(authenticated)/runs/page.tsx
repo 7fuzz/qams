@@ -140,6 +140,8 @@ export default function TestRunsPage() {
             rowData={runs}
             columnDefs={columnDefs}
             animateRows={true}
+            pagination={true}
+            paginationPageSize={20}
             domLayout="autoHeight"
           />
       </div>

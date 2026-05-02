@@ -388,6 +388,9 @@ export const TestManagementGrid = ({ moduleId }: TestManagementGridProps) => {
           onCellValueChanged={onCellValueChanged}
           rowSelection="multiple"
           animateRows={true}
+          pagination={true}
+          paginationPageSize={50}
+          paginationPageSizeSelector={[20, 50, 100]}
           domLayout="autoHeight"
           rowClassRules={{
             'bg-gray-50/30 dark:bg-gray-900/20': 'node.rowIndex % 2 !== 0',

@@ -13,9 +13,9 @@ export default function RunExecutionPage({ params }: { params: Promise<{ id: str
   const [run, setRun] = useState<any>(null);
 
   const fetchRun = async () => {
-    const res = await fetch('/api/test-runs');
-    const data = await res.json();
-    const currentRun = data.find((r: any) => r.run_id === id);
+    const res = await fetch('/api/test-runs?limit=1000');
+    const resData = await res.json();
+    const currentRun = (resData.data || []).find((r: any) => r.run_id === id);
     setRun(currentRun);
   };
 

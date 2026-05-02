@@ -4,10 +4,15 @@ import React, { useState, useEffect } from 'react';
 import { 
   Card, CardHeader, CardTitle, CardContent, Button, Modal, Input, Label, Textarea, Combobox, Table, TableHeader, TableRow, TableHead, TableBody, TableCell
 } from "@/components/ui";
-import { Tag, Plus, Calendar, Clock, GitCommit, CheckCircle2, AlertCircle, Trash2, Edit2, Info, ArrowRight, LayoutPanelTop, Link as LinkIcon } from 'lucide-react';
+import { Tag, Plus, Calendar, Clock, GitCommit, CheckCircle2, AlertCircle, Trash2, Edit2, Info, ArrowRight, LayoutPanelTop, Link as LinkIcon, Layers } from 'lucide-react';
 
 interface Project {
   project_id: string;
+  name: string;
+}
+
+interface Module {
+  module_id: string;
   name: string;
 }
 
@@ -28,6 +33,8 @@ interface Issue {
 interface ReleaseChange {
   change_id: string;
   release_id: string;
+  module_id: string | null;
+  module_name?: string;
   type: 'Feature' | 'Bugfix' | 'Enhancement';
   title: string;
   description: string;
@@ -54,6 +61,7 @@ export default function ReleasesPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [releases, setReleases] = useState<Release[]>([]);
   const [projectIssues, setProjectIssues] = useState<Issue[]>([]);
+  const [projectModules, setProjectModules] = useState<Module[]>([]);
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [selectedReleaseId, setSelectedReleaseId] = useState<string | null>(null);
   const [changes, setChanges] = useState<ReleaseChange[]>([]);
@@ -62,7 +70,7 @@ export default function ReleasesPage() {
   const [isChangeModalOpen, setIsChangeModalOpen] = useState(false);
   
   const [releaseForm, setReleaseForm] = useState<Partial<Release>>({ version_name: '', status: 'Planning', description: '' });
-  const [changeForm, setChangeForm] = useState<Partial<ReleaseChange>>({ type: 'Feature', title: '', description: '', issue_id: null });
+  const [changeForm, setChangeForm] = useState<Partial<ReleaseChange>>({ type: 'Feature', title: '', description: '', issue_id: null, module_id: null });
 
   const fetchProjects = () => fetch('/api/projects').then(res => res.json()).then(setProjects);
   
@@ -79,6 +87,10 @@ export default function ReleasesPage() {
       fetch(`/api/issues?projectId=${pid}`).then(res => res.json()).then(setProjectIssues);
   };
 
+  const fetchModules = (pid: string) => {
+      fetch(`/api/modules?projectId=${pid}`).then(res => res.json()).then(setProjectModules);
+  };
+
   const fetchChanges = (rid: string) => {
       fetch(`/api/releases/changes?releaseId=${rid}`).then(res => res.json()).then(setChanges);
   };
@@ -89,10 +101,12 @@ export default function ReleasesPage() {
     if (selectedProjectId) {
         fetchReleases(selectedProjectId);
         fetchIssues(selectedProjectId);
+        fetchModules(selectedProjectId);
     } else {
         setReleases([]);
         setSelectedReleaseId(null);
         setProjectIssues([]);
+        setProjectModules([]);
     }
   }, [selectedProjectId]);
 
@@ -145,7 +159,7 @@ export default function ReleasesPage() {
     <div className="container mx-auto p-4 md:p-8 flex flex-col gap-8 max-w-full text-black dark:text-white">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="space-y-1">
-          <h1 className="text-3xl font-bold tracking-tight flex items-center gap-3 text-black dark:text-white">
+          <h1 className="text-3xl font-bold tracking-tight flex items-center gap-3">
               <Tag size={32} className="text-indigo-500" /> Release Version Tracker
           </h1>
           <p className="text-gray-500 font-medium uppercase tracking-wider text-[10px]">
@@ -188,7 +202,7 @@ export default function ReleasesPage() {
                                 : "bg-white dark:bg-gray-950 hover:bg-gray-50 dark:hover:bg-gray-900 border-transparent"
                             }`}
                         >
-                            <div className="flex justify-between items-start mb-1 text-black dark:text-white">
+                            <div className="flex justify-between items-start mb-1">
                                 <span className="font-bold text-sm">{release.version_name}</span>
                                 <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold uppercase ${
                                     release.status === 'Released' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'
@@ -210,7 +224,7 @@ export default function ReleasesPage() {
                 {selectedRelease ? (
                     <>
                         <Card className="shadow-lg border-0 bg-white dark:bg-gray-950">
-                            <CardHeader className="flex flex-row items-center justify-between border-b dark:border-gray-800 pb-6 text-black dark:text-white">
+                            <CardHeader className="flex flex-row items-center justify-between border-b dark:border-gray-800 pb-6">
                                 <div className="space-y-1">
                                     <CardTitle className="text-2xl font-bold flex items-center gap-2">
                                         Release {selectedRelease.version_name}
@@ -231,7 +245,7 @@ export default function ReleasesPage() {
                                         <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-gray-500 flex items-center gap-2">
                                             <GitCommit size={14} /> Changelog ({changes.length})
                                         </h3>
-                                        <Button size="sm" className="h-7 text-[10px] uppercase font-bold text-black dark:text-white" onClick={() => { setChangeForm({ type: 'Feature', title: '', issue_id: null }); setIsChangeModalOpen(true); }}>
+                                        <Button size="sm" className="h-7 text-[10px] uppercase font-bold text-black dark:text-white" onClick={() => { setChangeForm({ type: 'Feature', title: '', issue_id: null, module_id: null }); setIsChangeModalOpen(true); }}>
                                             <Plus size={14} className="mr-1" /> Add Item
                                         </Button>
                                     </div>
@@ -246,9 +260,14 @@ export default function ReleasesPage() {
                                                             change.type === 'Bugfix' ? 'bg-red-500' : 'bg-green-500'
                                                         }`} />
                                                         <div className="space-y-1">
-                                                            <div className="flex items-center gap-2 text-black dark:text-white">
+                                                            <div className="flex items-center gap-2">
                                                                 <span className="text-[9px] font-black uppercase tracking-widest text-gray-400">{change.type}</span>
                                                                 <span className="font-bold text-sm">{change.title}</span>
+                                                                {change.module_name && (
+                                                                    <span className="flex items-center gap-1 text-[9px] bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 px-1.5 py-0.5 rounded-full font-bold uppercase">
+                                                                        <Layers size={10} /> {change.module_name}
+                                                                    </span>
+                                                                )}
                                                             </div>
                                                             <p className="text-xs text-gray-500 leading-relaxed">{change.description}</p>
                                                             {change.issue_id && (
@@ -290,21 +309,21 @@ export default function ReleasesPage() {
       <Modal isOpen={isReleaseModalOpen} onClose={() => setIsReleaseModalOpen(false)} title={releaseForm.release_id ? "Edit Release" : "New Release"}>
           <div className="space-y-4">
               <div className="space-y-2">
-                  <Label className="text-black dark:text-white">Version Name</Label>
+                  <Label>Version Name</Label>
                   <Input placeholder="e.g. v1.0.0" value={releaseForm.version_name} onChange={e => setReleaseForm({...releaseForm, version_name: e.target.value})} className="bg-white dark:bg-gray-950 text-black dark:text-white"/>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                    <Label className="text-black dark:text-white">Status</Label>
+                    <Label>Status</Label>
                     <Combobox options={RELEASE_STATUS_OPTIONS} value={releaseForm.status} onChange={val => setReleaseForm({...releaseForm, status: val as string})} />
                 </div>
                 <div className="space-y-2">
-                    <Label className="text-black dark:text-white">Target Date</Label>
+                    <Label>Target Date</Label>
                     <Input type="date" value={releaseForm.target_date?.split(' ')[0] || ''} onChange={e => setReleaseForm({...releaseForm, target_date: e.target.value})} className="bg-white dark:bg-gray-950 text-black dark:text-white" />
                 </div>
               </div>
               <div className="space-y-2">
-                  <Label className="text-black dark:text-white">Description</Label>
+                  <Label>Description</Label>
                   <Textarea value={releaseForm.description || ''} onChange={e => setReleaseForm({...releaseForm, description: e.target.value})} placeholder="Focus areas for this release..." className="bg-white dark:bg-gray-950 text-black dark:text-white" />
               </div>
               <Button onClick={handleSaveRelease} className="w-full mt-4 shadow-lg shadow-indigo-500/20 py-6 font-bold">{releaseForm.release_id ? 'Update Release' : 'Create Release'}</Button>
@@ -315,25 +334,34 @@ export default function ReleasesPage() {
           <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                    <Label className="text-black dark:text-white">Change Type</Label>
+                    <Label>Change Type</Label>
                     <Combobox options={CHANGE_TYPE_OPTIONS} value={changeForm.type} onChange={val => setChangeForm({...changeForm, type: val as any})} />
                 </div>
                 <div className="space-y-2">
-                    <Label className="text-black dark:text-white flex items-center gap-1.5"><LinkIcon size={12}/> Link Issue</Label>
+                    <Label className="flex items-center gap-1.5"><Layers size={12}/> Link Module</Label>
                     <Combobox 
-                        options={projectIssues.map(i => ({ value: i.issue_id, label: i.title }))} 
-                        value={changeForm.issue_id || undefined} 
-                        onChange={val => setChangeForm({...changeForm, issue_id: val as string})}
+                        options={projectModules.map(m => ({ value: m.module_id, label: m.name }))} 
+                        value={changeForm.module_id || undefined} 
+                        onChange={val => setChangeForm({...changeForm, module_id: val as string})}
                         placeholder="Optional..."
                     />
                 </div>
               </div>
               <div className="space-y-2">
-                  <Label className="text-black dark:text-white">Title</Label>
+                  <Label className="flex items-center gap-1.5"><LinkIcon size={12}/> Link Issue</Label>
+                  <Combobox 
+                      options={projectIssues.map(i => ({ value: i.issue_id, label: i.title }))} 
+                      value={changeForm.issue_id || undefined} 
+                      onChange={val => setChangeForm({...changeForm, issue_id: val as string})}
+                      placeholder="Optional..."
+                  />
+              </div>
+              <div className="space-y-2">
+                  <Label>Title</Label>
                   <Input placeholder="What was changed?" value={changeForm.title} onChange={e => setChangeForm({...changeForm, title: e.target.value})} className="bg-white dark:bg-gray-950 text-black dark:text-white"/>
               </div>
               <div className="space-y-2">
-                  <Label className="text-black dark:text-white">Detailed Description</Label>
+                  <Label>Detailed Description</Label>
                   <Textarea value={changeForm.description || ''} onChange={e => setChangeForm({...changeForm, description: e.target.value})} placeholder="Context or technical details..." className="bg-white dark:bg-gray-950 text-black dark:text-white" />
               </div>
               <Button onClick={handleSaveChange} className="w-full mt-4 shadow-lg shadow-indigo-500/20 py-6 font-bold text-white">{changeForm.change_id ? 'Update Item' : 'Add to Changelog'}</Button>

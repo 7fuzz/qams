@@ -87,12 +87,14 @@ CREATE TABLE IF NOT EXISTS releases (
 CREATE TABLE IF NOT EXISTS release_changes (
     change_id TEXT PRIMARY KEY,
     release_id TEXT NOT NULL,
+    module_id TEXT, -- Link to the module/feature being changed
     type TEXT NOT NULL, -- 'Feature', 'Bugfix', 'Enhancement'
     title TEXT NOT NULL,
     description TEXT,
     issue_id TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (release_id) REFERENCES releases(release_id) ON DELETE CASCADE,
+    FOREIGN KEY (module_id) REFERENCES modules(module_id) ON DELETE SET NULL,
     FOREIGN KEY (issue_id) REFERENCES issues(issue_id) ON DELETE SET NULL
 );
 

@@ -11,9 +11,10 @@ export async function GET(request: Request) {
 
     try {
         const changes = db.prepare(`
-            SELECT rc.*, i.title as issue_title, i.status as issue_status
+            SELECT rc.*, i.title as issue_title, i.status as issue_status, m.name as module_name
             FROM release_changes rc
             LEFT JOIN issues i ON rc.issue_id = i.issue_id
+            LEFT JOIN modules m ON rc.module_id = m.module_id
             WHERE rc.release_id = ?
             ORDER BY rc.created_at ASC
         `).all(releaseId);
@@ -28,13 +29,13 @@ export async function POST(request: Request) {
     if (!session.isLoggedIn) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     try {
-        const { release_id, type, title, description, issue_id } = await request.json();
+        const { release_id, module_id, type, title, description, issue_id } = await request.json();
         const changeId = generateId();
         
         db.prepare(`
-            INSERT INTO release_changes (change_id, release_id, type, title, description, issue_id)
-            VALUES (?, ?, ?, ?, ?, ?)
-        `).run(changeId, release_id, type, title, description || null, issue_id || null);
+            INSERT INTO release_changes (change_id, release_id, module_id, type, title, description, issue_id)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        `).run(changeId, release_id, module_id || null, type, title, description || null, issue_id || null);
         
         return NextResponse.json({ change_id: changeId, title });
     } catch {
@@ -47,13 +48,13 @@ export async function PUT(request: Request) {
     if (!session.isLoggedIn) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     try {
-        const { change_id, type, title, description, issue_id } = await request.json();
+        const { change_id, module_id, type, title, description, issue_id } = await request.json();
         
         db.prepare(`
             UPDATE release_changes 
-            SET type = ?, title = ?, description = ?, issue_id = ?
+            SET module_id = ?, type = ?, title = ?, description = ?, issue_id = ?
             WHERE change_id = ?
-        `).run(type, title, description || null, issue_id || null, change_id);
+        `).run(module_id || null, type, title, description || null, issue_id || null, change_id);
         
         return NextResponse.json({ success: true });
     } catch {

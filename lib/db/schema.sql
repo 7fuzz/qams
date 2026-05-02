@@ -19,6 +19,7 @@ CREATE TABLE IF NOT EXISTS users (
 CREATE TABLE IF NOT EXISTS projects (
     project_id TEXT PRIMARY KEY,
     name TEXT NOT NULL,
+    description TEXT,
     version TEXT,
     owner_id TEXT NOT NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -32,7 +33,9 @@ CREATE TABLE IF NOT EXISTS modules (
     project_id TEXT NOT NULL,
     name TEXT NOT NULL,
     description TEXT,
-    FOREIGN KEY (project_id) REFERENCES projects(project_id) ON DELETE CASCADE
+    responsible_id TEXT, -- The developer responsible for this module
+    FOREIGN KEY (project_id) REFERENCES projects(project_id) ON DELETE CASCADE,
+    FOREIGN KEY (responsible_id) REFERENCES users(user_id)
 );
 
 -- Scenarios Table
@@ -92,7 +95,8 @@ CREATE TABLE IF NOT EXISTS issues (
     test_case_id TEXT NOT NULL,
     snapshot_execution_id TEXT, -- The execution where this issue was FIRST reported/linked
     reporter_id TEXT NOT NULL,
-    developer_id TEXT,
+    developer_id TEXT, -- Assigned developer
+    solved_by_id TEXT, -- Developer who solved it
     title TEXT NOT NULL,
     description TEXT,
     severity TEXT,
@@ -101,7 +105,8 @@ CREATE TABLE IF NOT EXISTS issues (
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (test_case_id) REFERENCES test_cases(test_case_id) ON DELETE CASCADE,
     FOREIGN KEY (reporter_id) REFERENCES users(user_id),
-    FOREIGN KEY (developer_id) REFERENCES users(user_id)
+    FOREIGN KEY (developer_id) REFERENCES users(user_id),
+    FOREIGN KEY (solved_by_id) REFERENCES users(user_id)
 );
 
 -- Issue Notes Table
@@ -144,7 +149,7 @@ CREATE TABLE IF NOT EXISTS activity_log (
 -- Attachments Table
 CREATE TABLE IF NOT EXISTS attachments (
     attachment_id TEXT PRIMARY KEY,
-    entity_type TEXT NOT NULL, -- 'TEST_CASE' or 'ISSUE'
+    entity_type TEXT NOT NULL, -- 'PROJECT', 'TEST_CASE' or 'ISSUE'
     entity_id TEXT NOT NULL,
     url TEXT NOT NULL,
     name TEXT,

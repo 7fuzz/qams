@@ -31,15 +31,16 @@ export async function POST(request: Request) {
     if (!session.isLoggedIn) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     try {
-        const { name, version } = await request.json();
+        const { name, version, description } = await request.json();
         const projectId = generateId();
-        db.prepare('INSERT INTO projects (project_id, name, version, owner_id) VALUES (?, ?, ?, ?)')
-            .run(projectId, name, version || '1.0.0', session.user_id);
+        db.prepare('INSERT INTO projects (project_id, name, version, description, owner_id) VALUES (?, ?, ?, ?, ?)')
+            .run(projectId, name, version || '1.0.0', description || null, session.user_id);
         
         logActivity(session.user_id, 'CREATE', 'PROJECT', projectId, { name, version });
         
-        return NextResponse.json({ project_id: projectId, name, version });
-    } catch {
+        return NextResponse.json({ project_id: projectId, name, version, description });
+    } catch (error) {
+        console.error(error);
         return NextResponse.json({ error: 'Failed to create project' }, { status: 500 });
     }
 }
@@ -49,9 +50,9 @@ export async function PUT(request: Request) {
     if (!session.isLoggedIn) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     try {
-        const { project_id, name, version } = await request.json();
-        db.prepare('UPDATE projects SET name = ?, version = ?, updated_at = CURRENT_TIMESTAMP WHERE project_id = ?')
-            .run(name, version, project_id);
+        const { project_id, name, version, description } = await request.json();
+        db.prepare('UPDATE projects SET name = ?, version = ?, description = ?, updated_at = CURRENT_TIMESTAMP WHERE project_id = ?')
+            .run(name, version, description, project_id);
         
         logActivity(session.user_id, 'UPDATE', 'PROJECT', project_id, { name, version });
         

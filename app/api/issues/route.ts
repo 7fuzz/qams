@@ -17,11 +17,12 @@ export async function GET(request: Request) {
         const params: string[] = [];
 
         if (runId) {
-            // Fetch issues with status as it was during/at the end of this specific run
             query = `
                 SELECT 
-                    i.issue_id, i.test_case_id, i.snapshot_execution_id, i.reporter_id, i.developer_id, i.title, i.description, i.severity, i.created_at, i.updated_at,
+                    i.*,
                     u.name as reporter_name,
+                    d.name as developer_name,
+                    s.name as solver_name,
                     COALESCE(
                         (SELECT status FROM issue_history h 
                          WHERE h.issue_id = i.issue_id 
@@ -31,14 +32,18 @@ export async function GET(request: Request) {
                     ) as status
                 FROM issues i 
                 JOIN users u ON i.reporter_id = u.user_id
+                LEFT JOIN users d ON i.developer_id = d.user_id
+                LEFT JOIN users s ON i.solved_by_id = s.user_id
                 WHERE i.test_case_id IN (SELECT test_case_id FROM test_executions WHERE run_id = ?)
             `;
             params.push(runId, runId);
         } else {
             query = `
-                SELECT i.*, u.name as reporter_name 
+                SELECT i.*, u.name as reporter_name, d.name as developer_name, s.name as solver_name 
                 FROM issues i 
                 JOIN users u ON i.reporter_id = u.user_id
+                LEFT JOIN users d ON i.developer_id = d.user_id
+                LEFT JOIN users s ON i.solved_by_id = s.user_id
                 WHERE 1=1
             `;
             if (testCaseId) {
@@ -47,7 +52,7 @@ export async function GET(request: Request) {
             }
         }
 
-        query += ' ORDER BY created_at DESC';
+        query += ' ORDER BY i.created_at DESC';
         const issues = db.prepare(query).all(...params);
         return NextResponse.json(issues);
     } catch (error) {
@@ -61,17 +66,15 @@ export async function POST(request: Request) {
   if (!session.isLoggedIn) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   try {
-    const { test_case_id, title, description, severity, execution_id } = await request.json();
+    const { test_case_id, title, description, severity, execution_id, developer_id } = await request.json();
     const issueId = generateId();
     
     const createTransaction = db.transaction(() => {
-        // 1. Create Issue
         db.prepare(`
-            INSERT INTO issues (issue_id, test_case_id, snapshot_execution_id, reporter_id, title, description, severity, status)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        `).run(issueId, test_case_id, execution_id || null, session.user_id, title, description, severity, ISSUE_STATUS.OPEN);
+            INSERT INTO issues (issue_id, test_case_id, snapshot_execution_id, reporter_id, developer_id, title, description, severity, status)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `).run(issueId, test_case_id, execution_id || null, session.user_id, developer_id || null, title, description, severity, ISSUE_STATUS.OPEN);
 
-        // 2. Log History
         let runId = null;
         if (execution_id) {
             const exec = db.prepare('SELECT run_id FROM test_executions WHERE execution_id = ?').get(execution_id) as { run_id: string };
@@ -101,17 +104,20 @@ export async function PUT(request: Request) {
   if (!session.isLoggedIn) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   try {
-    const { issue_id, status, severity, title, description, execution_id } = await request.json();
+    const { issue_id, status, severity, title, description, execution_id, developer_id } = await request.json();
     
     const updateTransaction = db.transaction(() => {
-        // 1. Update Issue
+        let solved_by_id = null;
+        if (status === ISSUE_STATUS.CLOSED) {
+            solved_by_id = session.user_id;
+        }
+
         db.prepare(`
             UPDATE issues 
-            SET status = ?, severity = ?, title = ?, description = ?, updated_at = CURRENT_TIMESTAMP
+            SET status = ?, severity = ?, title = ?, description = ?, developer_id = ?, solved_by_id = COALESCE(?, solved_by_id), updated_at = CURRENT_TIMESTAMP
             WHERE issue_id = ?
-        `).run(status, severity, title, description, issue_id);
+        `).run(status, severity, title, description, developer_id || null, solved_by_id, issue_id);
 
-        // 2. Log History entry for status update
         let runId = null;
         if (execution_id) {
             const exec = db.prepare('SELECT run_id FROM test_executions WHERE execution_id = ?').get(execution_id) as { run_id: string };

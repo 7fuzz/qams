@@ -11,10 +11,14 @@ export async function GET(request: Request) {
     const projectId = searchParams.get('projectId');
 
     try {
-        let query = 'SELECT * FROM modules';
+        let query = `
+            SELECT m.*, u.name as responsible_name 
+            FROM modules m 
+            LEFT JOIN users u ON m.responsible_id = u.user_id
+        `;
         const params: string[] = [];
         if (projectId) {
-            query += ' WHERE project_id = ?';
+            query += ' WHERE m.project_id = ?';
             params.push(projectId);
         }
         const modules = db.prepare(query).all(...params);
@@ -29,10 +33,10 @@ export async function POST(request: Request) {
     if (!session.isLoggedIn) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     try {
-        const { project_id, name, description } = await request.json();
+        const { project_id, name, description, responsible_id } = await request.json();
         const moduleId = generateId();
-        db.prepare('INSERT INTO modules (module_id, project_id, name, description) VALUES (?, ?, ?, ?)')
-            .run(moduleId, project_id, name, description);
+        db.prepare('INSERT INTO modules (module_id, project_id, name, description, responsible_id) VALUES (?, ?, ?, ?, ?)')
+            .run(moduleId, project_id, name, description || null, responsible_id || null);
         
         logActivity(session.user_id, 'CREATE', 'MODULE', moduleId, { name, project_id });
         
@@ -47,8 +51,10 @@ export async function PUT(request: Request) {
     if (!session.isLoggedIn) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     try {
-        const { module_id, name, description } = await request.json();
-        db.prepare('UPDATE modules SET name = ?, description = ? WHERE module_id = ?').run(name, description, module_id);
+        const { module_id, name, description, responsible_id } = await request.json();
+        db.prepare('UPDATE modules SET name = ?, description = ?, responsible_id = ? WHERE module_id = ?')
+            .run(name, description || null, responsible_id || null, module_id);
+        
         logActivity(session.user_id, 'UPDATE', 'MODULE', module_id, { name });
         return NextResponse.json({ success: true });
     } catch {

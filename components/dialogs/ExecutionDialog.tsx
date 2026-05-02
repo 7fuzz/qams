@@ -79,9 +79,9 @@ export const ExecutionDialog = ({ execution, isOpen, onClose, onSave }: Executio
 
   const fetchIssues = async () => {
     if (!execution) return;
-    const res = await fetch(`/api/issues?testCaseId=${execution.test_case_id}`);
-    const data = await res.json();
-    setExistingIssues(data);
+    const res = await fetch(`/api/issues?testCaseId=${execution.test_case_id}&limit=1000`);
+    const resData = await res.json();
+    setExistingIssues(resData.data || []);
   };
 
   const fetchUsers = async () => {

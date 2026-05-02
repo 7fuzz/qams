@@ -35,9 +35,8 @@ export async function GET(request: Request) {
         const params: any[] = [];
 
         if (runId) {
-            // This is a special snapshot lookup - we keep the old logic for runs
-            // to maintain the temporal integrity user asked for before.
-            const data = db.prepare(`
+            // Keep the special snapshot logic but wrap in paginated structure for consistency
+            const issues = db.prepare(`
                 SELECT 
                     i.*,
                     u.name as reporter_name,
@@ -63,7 +62,12 @@ export async function GET(request: Request) {
                 WHERE i.test_case_id IN (SELECT test_case_id FROM test_executions WHERE run_id = ?)
                 ORDER BY i.created_at DESC
             `).all(runId, runId);
-            return NextResponse.json(data);
+            
+            return NextResponse.json({
+                data: issues,
+                total: issues.length,
+                totalPages: 1
+            });
         }
 
         if (testCaseId) {
@@ -88,7 +92,8 @@ export async function GET(request: Request) {
         }
 
         // 1. Total
-        const total = (db.prepare(`SELECT COUNT(*) as total ${baseQuery}`).get(...params) as any).total;
+        const totalResult = db.prepare(`SELECT COUNT(*) as total ${baseQuery}`).get(...params) as any;
+        const total = totalResult ? totalResult.total : 0;
 
         // 2. Data
         const query = `

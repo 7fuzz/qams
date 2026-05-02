@@ -43,8 +43,8 @@ export const RunDetailDialog = ({ run, isOpen, onClose }: RunDetailDialogProps) 
       setLoading(true);
       fetch(`/api/issues?runId=${run.run_id}`)
         .then(res => res.json())
-        .then(data => {
-          setIssues(data);
+        .then(res => {
+          setIssues(res.data || []);
           setLoading(false);
         });
     }

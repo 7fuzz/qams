@@ -12,7 +12,7 @@ import {
 import { Button, Input, Pagination } from '../ui';
 import { Trash2, Plus, Copy, AlertCircle, Edit2, CheckCircle2, ExternalLink, Download, Upload } from 'lucide-react';
 import { TEST_CASE_TYPE, TEST_CASE_TYPE_OPTIONS, TEST_PRIORITY, TEST_PRIORITY_OPTIONS, AUTOMATION_STATUS, AUTOMATION_STATUS_OPTIONS } from '@/lib/constants';
-import { GRID_CONTAINER_CLASS, unifiedGridTheme } from '@/lib/theme';
+import { unifiedGridTheme } from '@/lib/theme';
 import { EditTestCaseDialog } from '../dialogs/EditTestCaseDialog';
 import { IssuesListDialog } from '../dialogs/IssuesListDialog';
 import * as XLSX from 'xlsx';
@@ -112,7 +112,9 @@ export const TestManagementGrid = ({ moduleId }: TestManagementGridProps) => {
   }, [fetchScenarios]);
 
   useEffect(() => {
-      fetchTestCases();
+    queueMicrotask(() => {
+        fetchTestCases();
+    });
   }, [fetchTestCases]);
 
   const handleAddScenario = async () => {

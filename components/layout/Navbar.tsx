@@ -16,7 +16,9 @@ export const Navbar = () => {
   };
 
   useEffect(() => {
-    fetchUser();
+    queueMicrotask(() => {
+      fetchUser();
+    });
   }, []);
 
   const handleLogout = async () => {

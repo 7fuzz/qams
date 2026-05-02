@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter, Label, Input, Button, Checkbox } from "@/components/ui";
 
@@ -30,28 +30,33 @@ export default function NewRunPage() {
   const [runName, setRunName] = useState('');
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    fetch('/api/projects').then(res => res.json()).then(setProjects);
+  const fetchProjects = useCallback(() => {
+      fetch('/api/projects').then(res => res.json()).then(setProjects);
   }, []);
 
   useEffect(() => {
-    if (selectedProjectId) {
-      fetch(`/api/modules?projectId=${selectedProjectId}`)
-        .then(res => res.json())
-        .then(async (modules: Module[]) => {
-          const allScenarios: Scenario[] = [];
-          for (const mod of modules) {
-            const res = await fetch(`/api/scenarios?moduleId=${mod.module_id}`);
-            const data: Scenario[] = await res.json();
-            allScenarios.push(...data.map((s) => ({ ...s, module_name: mod.name })));
-          }
-          setScenarios(allScenarios);
-          setSelectedScenarioIds(allScenarios.map(s => s.scenario_id));
-        });
+    fetchProjects();
+  }, [fetchProjects]);
+
+  const handleProjectChange = async (pid: string) => {
+    setSelectedProjectId(pid);
+    if (pid) {
+      const res = await fetch(`/api/modules?projectId=${pid}`);
+      const modules: Module[] = await res.json();
+      
+      const allScenarios: Scenario[] = [];
+      for (const mod of modules) {
+        const sRes = await fetch(`/api/scenarios?moduleId=${mod.module_id}`);
+        const data: Scenario[] = await sRes.json();
+        allScenarios.push(...data.map((s) => ({ ...s, module_name: mod.name })));
+      }
+      setScenarios(allScenarios);
+      setSelectedScenarioIds(allScenarios.map(s => s.scenario_id));
     } else {
       setScenarios([]);
+      setSelectedScenarioIds([]);
     }
-  }, [selectedProjectId]);
+  };
 
   const toggleScenario = (id: string) => {
     setSelectedScenarioIds(prev => 
@@ -102,9 +107,9 @@ export default function NewRunPage() {
               <Label htmlFor="project">Project</Label>
               <select 
                 id="project"
-                className="w-full rounded-md border border-gray-300 dark:border-gray-800 bg-transparent p-2 text-sm"
+                className="w-full rounded-md border border-gray-300 dark:border-gray-800 bg-transparent p-2 text-sm text-black dark:text-white"
                 value={selectedProjectId || ''}
-                onChange={e => setSelectedProjectId(e.target.value)}
+                onChange={e => handleProjectChange(e.target.value)}
               >
                 <option value="">Select a project...</option>
                 {projects.map(p => <option key={p.project_id} value={p.project_id}>{p.name}</option>)}
@@ -117,6 +122,7 @@ export default function NewRunPage() {
                 placeholder="e.g., Regression Q1 2024" 
                 value={runName}
                 onChange={e => setRunName(e.target.value)}
+                className="text-black dark:text-white bg-white dark:bg-gray-950"
               />
             </div>
           </CardContent>
@@ -125,7 +131,7 @@ export default function NewRunPage() {
         {scenarios.length > 0 && (
           <Card>
             <CardHeader>
-              <CardTitle>Select Scenarios</CardTitle>
+              <CardTitle className="text-black dark:text-white">Select Scenarios</CardTitle>
               <CardDescription>Pick the feature scenarios you want to include in this run.</CardDescription>
             </CardHeader>
             <CardContent>
@@ -140,7 +146,7 @@ export default function NewRunPage() {
                     <div className="grid gap-1.5 leading-none">
                       <label 
                         htmlFor={`s-${s.scenario_id}`}
-                        className="text-sm font-medium leading-none cursor-pointer"
+                        className="text-sm font-medium leading-none cursor-pointer text-black dark:text-white"
                       >
                         {s.name}
                       </label>

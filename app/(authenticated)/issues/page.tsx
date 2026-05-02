@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { 
-  Card, CardHeader, CardTitle, CardContent, Button, Combobox, Table, TableHeader, TableRow, TableHead, TableBody, TableCell, Pagination, Label
+  Card, CardContent, Button, Combobox, Table, TableHeader, TableRow, TableHead, TableBody, TableCell, Pagination, Label
 } from "@/components/ui";
 import { AlertTriangle, UserCheck, ShieldCheck, ExternalLink, LayoutPanelTop, Layers } from 'lucide-react';
 import { ISSUE_STATUS_OPTIONS, ISSUE_STATUS } from '@/lib/constants';
@@ -88,7 +88,6 @@ export default function IssueManagementPage() {
   const fetchModules = useCallback((pid: string) => {
     if (pid === 'all') {
       setModules([]);
-      setSelectedModuleId('all');
       return;
     }
     fetch(`/api/modules?projectId=${pid}`).then(res => res.json()).then(setModules);
@@ -109,18 +108,31 @@ export default function IssueManagementPage() {
         setTotal(res.total || 0);
         setTotalPages(res.totalPages || 1);
         setLoading(false);
+      })
+      .catch(() => {
+          setIssues([]);
+          setLoading(false);
       });
   }, [page, limit, selectedProjectId, selectedModuleId, selectedStatus, selectedDevId]);
 
-  useEffect(() => { fetchBaseData(); }, [fetchBaseData]);
+  useEffect(() => { 
+    queueMicrotask(() => {
+      fetchBaseData(); 
+    });
+  }, [fetchBaseData]);
   
   useEffect(() => {
-    if (selectedProjectId) fetchModules(selectedProjectId);
-  }, [selectedProjectId, fetchModules]);
-
-  useEffect(() => {
-    fetchIssues();
+    queueMicrotask(() => {
+      fetchIssues();
+    });
   }, [fetchIssues]);
+
+  const handleProjectChange = (pid: string) => {
+      setSelectedProjectId(pid);
+      setSelectedModuleId('all');
+      setPage(1);
+      fetchModules(pid);
+  };
 
   const handleOpenIssue = (issue: Issue) => {
       setSelectedTestCase({ id: issue.test_case_id, title: issue.title });
@@ -148,7 +160,11 @@ export default function IssueManagementPage() {
             <Button 
                 variant={selectedDevId === currentUser?.user_id ? 'primary' : 'outline'} 
                 size="sm"
-                onClick={() => setSelectedDevId(selectedDevId === currentUser?.user_id ? 'all' : (currentUser?.user_id || 'all'))}
+                onClick={() => {
+                    const nextId = selectedDevId === currentUser?.user_id ? 'all' : (currentUser?.user_id || 'all');
+                    setSelectedDevId(nextId);
+                    setPage(1);
+                }}
             >
                 <UserCheck size={16} className="mr-2" /> Assigned to Me
             </Button>
@@ -163,7 +179,7 @@ export default function IssueManagementPage() {
                     <Combobox 
                         options={[{ value: 'all', label: 'All Projects' }, ...projects.map(p => ({ value: p.project_id, label: p.name }))]}
                         value={selectedProjectId}
-                        onChange={val => { setSelectedProjectId(val as string); setPage(1); }}
+                        onChange={val => handleProjectChange(val as string)}
                     />
                 </div>
                 <div className="space-y-1.5">

@@ -11,7 +11,7 @@ export async function GET(request: Request) {
 
     try {
         let query = 'SELECT * FROM releases';
-        const params: any[] = [];
+        const params: string[] = [];
 
         if (projectId) {
             query += ' WHERE project_id = ?';
@@ -72,6 +72,7 @@ export async function DELETE(request: Request) {
     const id = searchParams.get('id');
     
     try {
+        if (!id) return NextResponse.json({ error: "Missing ID" }, { status: 400 });
         db.prepare('DELETE FROM releases WHERE release_id = ?').run(id);
         return NextResponse.json({ success: true });
     } catch {

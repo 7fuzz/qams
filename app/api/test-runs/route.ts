@@ -6,6 +6,14 @@ import db from '@/lib/db';
 import { logActivity } from '@/lib/logger';
 import { generateId } from '@/lib/id-utils';
 
+interface CountResult {
+    total: number;
+}
+
+interface TestCaseId {
+    test_case_id: string;
+}
+
 export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const projectId = searchParams.get('projectId');
@@ -20,14 +28,15 @@ export async function GET(request: Request) {
             JOIN projects p ON tr.project_id = p.project_id
             JOIN users po ON p.owner_id = po.user_id
         `;
-        const params: any[] = [];
+        const params: string[] = [];
         if (projectId) {
             baseQuery += ' WHERE tr.project_id = ?';
             params.push(projectId);
         }
 
         // 1. Get total
-        const countRes = db.prepare(`SELECT COUNT(*) as total ${baseQuery}`).get(...params) as { total: number };
+        const countRes = db.prepare(`SELECT COUNT(*) as total ${baseQuery}`).get(...params) as CountResult | undefined;
+        const total = countRes ? countRes.total : 0;
         
         // 2. Get data
         const runs = db.prepare(`
@@ -47,8 +56,8 @@ export async function GET(request: Request) {
 
         return NextResponse.json({
             data: runs,
-            total: countRes.total,
-            totalPages: Math.ceil(countRes.total / limit)
+            total,
+            totalPages: Math.ceil(total / limit)
         });
     } catch {
         return NextResponse.json({ error: 'Failed to fetch test runs' }, { status: 500 });
@@ -69,7 +78,7 @@ export async function POST(request: Request) {
 
             const placeholders = scenario_ids.map(() => '?').join(',');
             const testCases = db.prepare(`SELECT test_case_id FROM test_cases WHERE scenario_id IN (${placeholders})`)
-                .all(...scenario_ids) as { test_case_id: string }[];
+                .all(...scenario_ids) as TestCaseId[];
 
             const insertExecution = db.prepare('INSERT INTO test_executions (execution_id, run_id, test_case_id, status) VALUES (?, ?, ?, ?)');
             for (const tc of testCases) {
@@ -83,8 +92,7 @@ export async function POST(request: Request) {
         logActivity(session.user_id, 'CREATE', 'TEST_RUN', runId, { name, project_id });
         
         return NextResponse.json({ run_id: runId, name });
-    } catch (error) {
-        console.error(error);
+    } catch {
         return NextResponse.json({ error: 'Failed to create test run' }, { status: 500 });
     }
 }
@@ -97,7 +105,7 @@ export async function PUT(request: Request) {
         const { run_id, status } = await request.json();
         
         let updateQuery = 'UPDATE test_runs SET status = ?';
-        const params = [status];
+        const params: string[] = [status];
 
         if (status === 'Completed') {
             updateQuery += ', completed_at = CURRENT_TIMESTAMP';
@@ -123,8 +131,9 @@ export async function DELETE(request: Request) {
     const id = searchParams.get('id');
     
     try {
+        if (!id) return NextResponse.json({ error: 'Missing ID' }, { status: 400 });
         db.prepare('DELETE FROM test_runs WHERE run_id = ?').run(id);
-        logActivity(session.user_id, 'DELETE', 'TEST_RUN', id!);
+        logActivity(session.user_id, 'DELETE', 'TEST_RUN', id);
         return NextResponse.json({ success: true });
     } catch {
         return NextResponse.json({ error: 'Failed to delete test run' }, { status: 500 });

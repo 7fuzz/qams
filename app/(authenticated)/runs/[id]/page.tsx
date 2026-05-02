@@ -26,7 +26,9 @@ export default function RunExecutionPage({ params }: { params: Promise<{ id: str
   }, [id]);
 
   useEffect(() => {
-    fetchRun();
+    queueMicrotask(() => {
+        fetchRun();
+    });
   }, [fetchRun]);
 
   const completeRun = async () => {

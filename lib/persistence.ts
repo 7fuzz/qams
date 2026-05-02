@@ -1,7 +1,7 @@
 /**
  * Simple persistent state helper with 5-minute expiration.
  */
-export const saveState = (key: string, value: any) => {
+export const saveState = (key: string, value: unknown) => {
   if (typeof window === 'undefined') return;
   const data = {
     value,

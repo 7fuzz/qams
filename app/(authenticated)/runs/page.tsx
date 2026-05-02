@@ -66,7 +66,9 @@ export default function TestRunsPage() {
   }, [page, limit]);
 
   useEffect(() => {
-    fetchRuns();
+    queueMicrotask(() => {
+        fetchRuns();
+    });
   }, [fetchRuns]);
 
   useEffect(() => {

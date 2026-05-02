@@ -49,8 +49,9 @@ export async function POST(request: Request) {
             .run(userId, name, email, hashed, role_id);
         
         return NextResponse.json({ user_id: userId, name, email });
-    } catch (error: any) {
-        if (error.code === 'SQLITE_CONSTRAINT_UNIQUE') {
+    } catch (error: unknown) {
+        const err = error as { code?: string };
+        if (err.code === 'SQLITE_CONSTRAINT_UNIQUE') {
             return NextResponse.json({ error: 'Email already exists' }, { status: 400 });
         }
         return NextResponse.json({ error: 'Failed to create user' }, { status: 500 });

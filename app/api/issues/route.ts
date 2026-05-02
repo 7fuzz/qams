@@ -7,6 +7,18 @@ import { logActivity } from '@/lib/logger';
 import { ISSUE_STATUS } from '@/lib/constants';
 import { generateId } from '@/lib/id-utils';
 
+interface CountResult {
+    total: number;
+}
+
+interface IssueRecord {
+    solved_by_id: string | null;
+}
+
+interface RunRecord {
+    run_id: string;
+}
+
 export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const testCaseId = searchParams.get('testCaseId');
@@ -32,10 +44,9 @@ export async function GET(request: Request) {
             JOIN projects p ON m.project_id = p.project_id
             WHERE 1=1
         `;
-        const params: any[] = [];
+        const params: string[] = [];
 
         if (runId) {
-            // Keep the special snapshot logic but wrap in paginated structure for consistency
             const issues = db.prepare(`
                 SELECT 
                     i.*,
@@ -92,7 +103,7 @@ export async function GET(request: Request) {
         }
 
         // 1. Total
-        const totalResult = db.prepare(`SELECT COUNT(*) as total ${baseQuery}`).get(...params) as any;
+        const totalResult = db.prepare(`SELECT COUNT(*) as total ${baseQuery}`).get(...params) as CountResult | undefined;
         const total = totalResult ? totalResult.total : 0;
 
         // 2. Data
@@ -110,7 +121,7 @@ export async function GET(request: Request) {
             ORDER BY i.updated_at DESC
             LIMIT ? OFFSET ?
         `;
-        const issues = db.prepare(query).all(...params, limit, offset);
+        const issues = db.prepare(query).all(...params, limit.toString(), offset.toString());
 
         return NextResponse.json({
             data: issues,
@@ -139,8 +150,8 @@ export async function POST(request: Request) {
 
         let runId = null;
         if (execution_id) {
-            const exec = db.prepare('SELECT run_id FROM test_executions WHERE execution_id = ?').get(execution_id) as { run_id: string };
-            runId = exec.run_id;
+            const exec = db.prepare('SELECT run_id FROM test_executions WHERE execution_id = ?').get(execution_id) as RunRecord | undefined;
+            if (exec) runId = exec.run_id;
         }
 
         db.prepare(`
@@ -155,8 +166,7 @@ export async function POST(request: Request) {
     logActivity(session.user_id, 'CREATE', 'TEST_CASE', test_case_id, { issue_id: id, title });
     
     return NextResponse.json({ issue_id: id, title, status: ISSUE_STATUS.OPEN });
-  } catch (error) {
-    console.error(error);
+  } catch {
     return NextResponse.json({ error: 'Failed to create issue' }, { status: 500 });
   }
 }
@@ -171,7 +181,7 @@ export async function PUT(request: Request) {
     const updateTransaction = db.transaction(() => {
         let solved_by_id = null;
         if (status === ISSUE_STATUS.CLOSED) {
-            const currentIssue = db.prepare('SELECT solved_by_id FROM issues WHERE issue_id = ?').get(issue_id) as any;
+            const currentIssue = db.prepare('SELECT solved_by_id FROM issues WHERE issue_id = ?').get(issue_id) as IssueRecord | undefined;
             solved_by_id = currentIssue?.solved_by_id || session.user_id;
         }
 
@@ -183,8 +193,8 @@ export async function PUT(request: Request) {
 
         let runId = null;
         if (execution_id) {
-            const exec = db.prepare('SELECT run_id FROM test_executions WHERE execution_id = ?').get(execution_id) as { run_id: string };
-            runId = exec.run_id;
+            const exec = db.prepare('SELECT run_id FROM test_executions WHERE execution_id = ?').get(execution_id) as RunRecord | undefined;
+            if (exec) runId = exec.run_id;
         }
 
         db.prepare(`
@@ -195,8 +205,7 @@ export async function PUT(request: Request) {
 
     updateTransaction();
     return NextResponse.json({ success: true });
-  } catch (error) {
-    console.error(error);
+  } catch {
     return NextResponse.json({ error: 'Failed to update issue' }, { status: 500 });
   }
 }

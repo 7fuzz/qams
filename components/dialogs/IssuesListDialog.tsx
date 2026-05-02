@@ -90,12 +90,14 @@ export const IssuesListDialog = ({ testCaseId, testCaseTitle, isOpen, onClose, o
   }, []);
 
   useEffect(() => {
-    if (testCaseId && isOpen) {
-      fetchIssues();
-      fetchUsers();
-      setShowNewIssueForm(false);
-      setExpandedIssueId(null);
-    }
+    queueMicrotask(() => {
+        if (testCaseId && isOpen) {
+            fetchIssues();
+            fetchUsers();
+            setShowNewIssueForm(false);
+            setExpandedIssueId(null);
+        }
+    });
   }, [testCaseId, isOpen, fetchIssues, fetchUsers]);
 
   const handleCreateIssue = async () => {

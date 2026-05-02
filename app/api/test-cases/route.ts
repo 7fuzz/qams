@@ -6,6 +6,24 @@ import db from '@/lib/db';
 import { logActivity } from '@/lib/logger';
 import { generateId } from '@/lib/id-utils';
 
+interface CountResult {
+    total: number;
+}
+
+interface TestCaseSource {
+    scenario_id: string;
+    title: string;
+    type: string;
+    priority: string;
+    automation_status: string;
+    requirement_link: string;
+    estimated_duration: number;
+    precondition: string;
+    steps: string;
+    test_data: string;
+    expected_result: string;
+}
+
 export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const scenarioId = searchParams.get('scenarioId');
@@ -18,7 +36,7 @@ export async function GET(request: Request) {
 
     try {
         let whereClause = 'WHERE 1=1';
-        const params: any[] = [];
+        const params: string[] = [];
 
         if (scenarioId) {
             whereClause += ' AND tc.scenario_id = ?';
@@ -39,10 +57,9 @@ export async function GET(request: Request) {
             JOIN projects p ON m.project_id = p.project_id
             ${whereClause}
         `;
-        const countRes = db.prepare(countQuery).get(...params) as any;
+        const countRes = db.prepare(countQuery).get(...params) as CountResult | undefined;
         const total = countRes ? countRes.total : 0;
 
-        // Removing tc.created_at prefix just in case, or using tc.test_case_id
         const dataQuery = `
             SELECT 
                 tc.*, 
@@ -96,8 +113,7 @@ export async function POST(request: Request) {
         logActivity(session.user_id, 'CREATE', 'TEST_CASE', testCaseId, { title, scenario_id });
         
         return NextResponse.json({ test_case_id: testCaseId, ...body });
-    } catch (error) {
-        console.error(error);
+    } catch {
         return NextResponse.json({ error: 'Failed to create test case' }, { status: 500 });
     }
 }
@@ -119,8 +135,7 @@ export async function PUT(request: Request) {
         logActivity(session.user_id, 'UPDATE', 'TEST_CASE', test_case_id, { title });
         
         return NextResponse.json({ success: true, ...body });
-    } catch (error) {
-        console.error(error);
+    } catch {
         return NextResponse.json({ error: 'Failed to update test case' }, { status: 500 });
     }
 }
@@ -133,8 +148,9 @@ export async function DELETE(request: Request) {
     const id = searchParams.get('id');
     
     try {
+        if (!id) return NextResponse.json({ error: 'Missing ID' }, { status: 400 });
         db.prepare('DELETE FROM test_cases WHERE test_case_id = ?').run(id);
-        logActivity(session.user_id, 'DELETE', 'TEST_CASE', id!);
+        logActivity(session.user_id, 'DELETE', 'TEST_CASE', id);
         return NextResponse.json({ success: true });
     } catch {
         return NextResponse.json({ error: 'Failed to delete test case' }, { status: 500 });
@@ -148,7 +164,7 @@ export async function PATCH(request: Request) {
     try {
         const { test_case_id } = await request.json();
         
-        const source = db.prepare('SELECT * FROM test_cases WHERE test_case_id = ?').get(test_case_id) as any;
+        const source = db.prepare('SELECT * FROM test_cases WHERE test_case_id = ?').get(test_case_id) as TestCaseSource | undefined;
         if (!source) return NextResponse.json({ error: "Source not found" }, { status: 404 });
 
         const newId = generateId();
@@ -173,8 +189,7 @@ export async function PATCH(request: Request) {
         logActivity(session.user_id, 'CREATE', 'TEST_CASE', newId, { title: source.title + ' (Copy)', original_id: test_case_id });
         
         return NextResponse.json({ success: true });
-    } catch (error) {
-        console.error(error);
+    } catch {
         return NextResponse.json({ error: 'Failed to duplicate test case' }, { status: 500 });
     }
 }

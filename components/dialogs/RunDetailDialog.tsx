@@ -51,9 +51,11 @@ export const RunDetailDialog = ({ run, isOpen, onClose }: RunDetailDialogProps) 
   }, [run]);
 
   useEffect(() => {
-    if (run && isOpen) {
-      fetchIssues();
-    }
+    queueMicrotask(() => {
+        if (run && isOpen) {
+            fetchIssues();
+        }
+    });
   }, [run, isOpen, fetchIssues]);
 
   if (!run) return null;

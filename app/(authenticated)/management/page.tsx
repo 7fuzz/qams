@@ -91,8 +91,10 @@ export default function ManagementPage() {
   }, []);
 
   useEffect(() => { 
-    fetchProjects(); 
-    fetchUsers(); 
+    queueMicrotask(() => {
+      fetchProjects(); 
+      fetchUsers(); 
+    });
   }, [fetchProjects, fetchUsers]);
 
   const handleProjectSelect = (projectId: string) => {

@@ -37,7 +37,11 @@ export const EditTestCaseDialog = ({ testCase, scenarios, isOpen, onClose, onSav
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (testCase) setFormData(testCase);
+    queueMicrotask(() => {
+        if (isOpen && testCase) {
+            setFormData(testCase);
+        }
+    });
   }, [testCase, isOpen]);
 
   const handleSave = async () => {
@@ -59,84 +63,84 @@ export const EditTestCaseDialog = ({ testCase, scenarios, isOpen, onClose, onSav
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={`Edit: ${testCase.title}`}>
-      <div className="space-y-6">
+      <div className="space-y-6 text-black dark:text-white">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2 col-span-2">
-                <Label>Scenario</Label>
+                <Label className="text-black dark:text-white">Scenario</Label>
                 <Combobox 
                     options={scenarios.map(s => ({ value: s.scenario_id, label: s.name }))}
                     value={formData.scenario_id}
-                    onChange={val => setFormData({...formData, scenario_id: val as string})}
+                    onChange={val => setFormData(prev => ({...prev, scenario_id: val as string}))}
                 />
             </div>
             <div className="space-y-2 col-span-2">
-                <Label>Case Title</Label>
-                <Input value={formData.title || ''} onChange={e => setFormData({...formData, title: e.target.value})} />
+                <Label className="text-black dark:text-white">Case Title</Label>
+                <Input value={formData.title || ''} onChange={e => setFormData(prev => ({...prev, title: e.target.value}))} className="bg-white dark:bg-gray-950 text-black dark:text-white" />
             </div>
             <div className="space-y-2">
-                <Label>Type</Label>
+                <Label className="text-black dark:text-white">Type</Label>
                 <Combobox 
                     options={TEST_CASE_TYPE_OPTIONS} 
                     value={formData.type} 
-                    onChange={val => setFormData({...formData, type: val as string})} 
+                    onChange={val => setFormData(prev => ({...prev, type: val as string}))} 
                 />
             </div>
             <div className="space-y-2">
-                <Label>Priority</Label>
+                <Label className="text-black dark:text-white">Priority</Label>
                 <Combobox 
                     options={TEST_PRIORITY_OPTIONS} 
                     value={formData.priority} 
-                    onChange={val => setFormData({...formData, priority: val as string})} 
+                    onChange={val => setFormData(prev => ({...prev, priority: val as string}))} 
                 />
             </div>
             <div className="space-y-2">
-                <Label>Automation</Label>
+                <Label className="text-black dark:text-white">Automation</Label>
                 <Combobox 
                     options={AUTOMATION_STATUS_OPTIONS} 
                     value={formData.automation_status} 
-                    onChange={val => setFormData({...formData, automation_status: val as string})} 
+                    onChange={val => setFormData(prev => ({...prev, automation_status: val as string}))} 
                 />
             </div>
             <div className="space-y-2">
-                <Label>Duration (Min)</Label>
-                <Input type="number" value={formData.estimated_duration || 0} onChange={e => setFormData({...formData, estimated_duration: parseInt(e.target.value)})} />
+                <Label className="text-black dark:text-white">Duration (Min)</Label>
+                <Input type="number" value={formData.estimated_duration || 0} onChange={e => setFormData(prev => ({...prev, estimated_duration: parseInt(e.target.value)}))} className="bg-white dark:bg-gray-950 text-black dark:text-white" />
             </div>
             <div className="space-y-2 col-span-2">
-                <Label>Requirement Link (Jira/Doc)</Label>
-                <Input placeholder="https://..." value={formData.requirement_link || ''} onChange={e => setFormData({...formData, requirement_link: e.target.value})} />
+                <Label className="text-black dark:text-white">Requirement Link (Jira/Doc)</Label>
+                <Input placeholder="https://..." value={formData.requirement_link || ''} onChange={e => setFormData(prev => ({...prev, requirement_link: e.target.value}))} className="bg-white dark:bg-gray-950 text-black dark:text-white" />
             </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-6">
                 <div className="space-y-2">
-                    <Label>Precondition</Label>
-                    <Textarea value={formData.precondition || ''} onChange={e => setFormData({...formData, precondition: e.target.value})} />
+                    <Label className="text-black dark:text-white">Precondition</Label>
+                    <Textarea value={formData.precondition || ''} onChange={e => setFormData(prev => ({...prev, precondition: e.target.value}))} className="bg-white dark:bg-gray-950 text-black dark:text-white" />
                 </div>
 
                 <div className="space-y-2">
-                    <Label>Test Steps</Label>
+                    <Label className="text-black dark:text-white">Test Steps</Label>
                     <Textarea 
                         value={formData.steps || ''} 
-                        onChange={e => setFormData({...formData, steps: e.target.value})} 
-                        className="min-h-[150px]"
+                        onChange={e => setFormData(prev => ({...prev, steps: e.target.value}))} 
+                        className="min-h-[150px] bg-white dark:bg-gray-950 text-black dark:text-white"
                     />
                 </div>
 
                 <div className="space-y-2">
-                    <Label>Expected Result</Label>
-                    <Textarea value={formData.expected_result || ''} onChange={e => setFormData({...formData, expected_result: e.target.value})} />
+                    <Label className="text-black dark:text-white">Expected Result</Label>
+                    <Textarea value={formData.expected_result || ''} onChange={e => setFormData(prev => ({...prev, expected_result: e.target.value}))} className="bg-white dark:bg-gray-950 text-black dark:text-white" />
                 </div>
             </div>
 
             <div className="space-y-6 border-l dark:border-gray-800 pl-6">
                 <div className="space-y-2">
-                    <Label>Test Data (JSON/Complex)</Label>
+                    <Label className="text-black dark:text-white">Test Data (JSON/Complex)</Label>
                     <Textarea 
                         placeholder='{"key": "value"} or csv data...'
                         value={formData.test_data || ''} 
-                        onChange={e => setFormData({...formData, test_data: e.target.value})} 
-                        className="min-h-[200px] font-mono text-[11px]"
+                        onChange={e => setFormData(prev => ({...prev, test_data: e.target.value}))} 
+                        className="min-h-[200px] font-mono text-[11px] bg-white dark:bg-gray-950 text-black dark:text-white"
                     />
                 </div>
 
@@ -145,8 +149,8 @@ export const EditTestCaseDialog = ({ testCase, scenarios, isOpen, onClose, onSav
         </div>
 
         <div className="flex justify-end gap-3 border-t dark:border-gray-800 pt-6">
-          <Button variant="outline" onClick={onClose}>Cancel</Button>
-          <Button onClick={handleSave} disabled={loading} className="bg-blue-600 text-white hover:bg-blue-700">
+          <Button variant="outline" onClick={onClose} className="text-black dark:text-white border-black dark:border-white">Cancel</Button>
+          <Button onClick={handleSave} disabled={loading} className="bg-blue-600 text-white hover:bg-blue-700 border-0 shadow-lg shadow-blue-500/20 px-8 font-bold">
             {loading ? 'Saving...' : 'Save Changes'}
           </Button>
         </div>

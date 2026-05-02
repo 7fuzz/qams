@@ -82,7 +82,9 @@ export default function UserManagementPage() {
   }, []);
 
   useEffect(() => {
-    fetchUsers();
+    queueMicrotask(() => {
+      fetchUsers();
+    });
   }, [fetchUsers]);
 
   useEffect(() => {
@@ -94,7 +96,9 @@ export default function UserManagementPage() {
   }, []);
 
   useEffect(() => {
-    fetchRoles();
+    queueMicrotask(() => {
+      fetchRoles();
+    });
   }, [fetchRoles]);
 
   const handleOpenCreate = () => {
@@ -130,7 +134,7 @@ export default function UserManagementPage() {
     }
   };
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = useCallback(async (id: string) => {
     if (!confirm('Are you sure you want to delete this user?')) return;
     const res = await fetch(`/api/users?id=${id}`, { method: 'DELETE' });
     if (res.ok) {
@@ -139,7 +143,7 @@ export default function UserManagementPage() {
         const data = await res.json();
         alert(data.error || 'Delete failed');
     }
-  };
+  }, [fetchUsers]);
 
   const columnDefs = useMemo<ColDef<User>[]>(() => [
     { 

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { AgGridReact } from 'ag-grid-react';
 import { 
   ColDef, 
@@ -20,21 +20,34 @@ interface LogEntry {
 }
 
 export const ActivityLog = () => {
+  const gridRef = useRef<AgGridReact>(null);
   const [rowData, setRowData] = useState<LogEntry[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchLogs = useCallback(() => {
     fetch('/api/logs')
       .then(res => res.json())
-      .then(data => {
+      .then((data: LogEntry[]) => {
         setRowData(data);
         setLoading(false);
+      })
+      .catch(() => {
+          setRowData([]);
+          setLoading(false);
       });
   }, []);
 
   useEffect(() => {
     fetchLogs();
   }, [fetchLogs]);
+
+  useEffect(() => {
+    const handleResize = () => {
+        gridRef.current?.api?.sizeColumnsToFit();
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const columnDefs = useMemo<ColDef<LogEntry>[]>(() => [
     { field: 'timestamp', headerName: 'Time', width: 180, sort: 'desc' },
@@ -44,15 +57,17 @@ export const ActivityLog = () => {
     { field: 'details', headerName: 'Details', flex: 1 },
   ], []);
 
-  if (loading) return <div>Loading logs...</div>;
+  if (loading) return <div className="p-4 text-center text-gray-500 uppercase tracking-widest text-[10px] font-bold animate-pulse">Retrieving System Logs...</div>;
 
   return (
     <div className={GRID_CONTAINER_CLASS}>
       <div className="w-full h-[400px]">
         <AgGridReact
+          ref={gridRef}
           theme={unifiedGridTheme}
           rowData={rowData}
           columnDefs={columnDefs}
+          onGridReady={(params) => params.api.sizeColumnsToFit()}
         />
       </div>
     </div>

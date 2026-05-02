@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
-import { Button, Input, Label } from '.';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Button, Input } from '.';
 import { Link as LinkIcon, Trash2, Plus, ExternalLink } from 'lucide-react';
 
 interface Attachment {
@@ -12,7 +12,7 @@ interface Attachment {
 
 interface AttachmentManagerProps {
   entityId: string;
-  entityType: 'TEST_CASE' | 'ISSUE';
+  entityType: 'TEST_CASE' | 'ISSUE' | 'PROJECT';
 }
 
 export const AttachmentManager = ({ entityId, entityType }: AttachmentManagerProps) => {
@@ -21,15 +21,19 @@ export const AttachmentManager = ({ entityId, entityType }: AttachmentManagerPro
   const [newName, setNewName] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const fetchAttachments = async () => {
+  const fetchAttachments = useCallback(async () => {
     const res = await fetch(`/api/attachments?entityId=${entityId}&entityType=${entityType}`);
     const data = await res.json();
     setAttachments(data);
-  };
+  }, [entityId, entityType]);
 
   useEffect(() => {
-    if (entityId) fetchAttachments();
-  }, [entityId, entityType]);
+    if (entityId) {
+      queueMicrotask(() => {
+        fetchAttachments();
+      });
+    }
+  }, [entityId, fetchAttachments]);
 
   const handleAdd = async () => {
     if (!newUrl) return;

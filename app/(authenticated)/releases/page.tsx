@@ -97,27 +97,35 @@ export default function ReleasesPage() {
       fetch(`/api/releases/changes?releaseId=${rid}`).then(res => res.json()).then(setChanges);
   }, []);
 
-  useEffect(() => { fetchProjects(); }, [fetchProjects]);
+  useEffect(() => { 
+    queueMicrotask(() => {
+        fetchProjects(); 
+    });
+  }, [fetchProjects]);
 
   useEffect(() => {
-    if (selectedProjectId) {
-        fetchReleases(selectedProjectId);
-        fetchIssues(selectedProjectId);
-        fetchModules(selectedProjectId);
-    } else {
-        setReleases([]);
-        setSelectedReleaseId(null);
-        setProjectIssues([]);
-        setProjectModules([]);
-    }
+    queueMicrotask(() => {
+        if (selectedProjectId) {
+            fetchReleases(selectedProjectId);
+            fetchIssues(selectedProjectId);
+            fetchModules(selectedProjectId);
+        } else {
+            setReleases([]);
+            setSelectedReleaseId(null);
+            setProjectIssues([]);
+            setProjectModules([]);
+        }
+    });
   }, [selectedProjectId, fetchReleases, fetchIssues, fetchModules]);
 
   useEffect(() => {
-    if (selectedReleaseId) {
-        fetchChanges(selectedReleaseId);
-    } else {
-        setChanges([]);
-    }
+    queueMicrotask(() => {
+        if (selectedReleaseId) {
+            fetchChanges(selectedReleaseId);
+        } else {
+            setChanges([]);
+        }
+    });
   }, [selectedReleaseId, fetchChanges]);
 
   const handleSaveRelease = async () => {
@@ -337,7 +345,7 @@ export default function ReleasesPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                     <Label className="text-black dark:text-white">Change Type</Label>
-                    <Combobox options={CHANGE_TYPE_OPTIONS} value={changeForm.type} onChange={val => setChangeForm({...changeForm, type: val as any})} />
+                    <Combobox options={CHANGE_TYPE_OPTIONS} value={changeForm.type} onChange={val => setChangeForm({...changeForm, type: val as 'Feature' | 'Bugfix' | 'Enhancement'})} />
                 </div>
                 <div className="space-y-2">
                     <Label className="text-black dark:text-white flex items-center gap-1.5"><Layers size={12}/> Link Module</Label>

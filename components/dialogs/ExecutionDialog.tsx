@@ -82,13 +82,15 @@ export const ExecutionDialog = ({ execution, isOpen, onClose, onSave }: Executio
   }, []);
 
   useEffect(() => {
-    if (execution && isOpen) {
-      setStatus(execution.status);
-      setNotes(execution.notes || '');
-      fetchIssues();
-      fetchUsers();
-      setShowNewIssueForm(false);
-    }
+    queueMicrotask(() => {
+        if (execution && isOpen) {
+            setStatus(execution.status);
+            setNotes(execution.notes || '');
+            fetchIssues();
+            fetchUsers();
+            setShowNewIssueForm(false);
+        }
+    });
   }, [execution, isOpen, fetchIssues, fetchUsers]);
 
   const handleSaveExecution = async () => {

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Button, Card, CardContent } from '../ui';
 import { ExecutionDialog } from '../dialogs/ExecutionDialog';
 import { Play, CheckCircle2, AlertCircle, Clock, PauseCircle, HelpCircle, FastForward } from 'lucide-react';
@@ -24,19 +24,25 @@ export const TestExecutionGrid = ({ runId }: { runId: string }) => {
   const [selectedExecution, setSelectedExecution] = useState<Execution | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
-  const fetchExecutions = () => {
+  const fetchExecutions = useCallback(() => {
     setLoading(true);
     fetch(`/api/test-executions?runId=${runId}`)
       .then(res => res.json())
-      .then(data => {
+      .then((data: Execution[]) => {
         setExecutions(data);
         setLoading(false);
+      })
+      .catch(() => {
+          setExecutions([]);
+          setLoading(false);
       });
-  };
+  }, [runId]);
 
   useEffect(() => {
-    fetchExecutions();
-  }, [runId]);
+    queueMicrotask(() => {
+        fetchExecutions();
+    });
+  }, [fetchExecutions]);
 
   const handleQuickPass = async (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
@@ -83,7 +89,7 @@ export const TestExecutionGrid = ({ runId }: { runId: string }) => {
   if (loading) return <div className="p-8 text-center text-gray-500 text-sm italic uppercase tracking-widest">Loading execution data...</div>;
 
   return (
-    <div className="flex flex-col gap-6 pt-4"> {/* Added padding on top */}
+    <div className="flex flex-col gap-6 pt-4">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {executions.map((exec) => (
           <Card 

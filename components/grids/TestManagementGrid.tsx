@@ -83,17 +83,36 @@ export const TestManagementGrid = ({ moduleId }: TestManagementGridProps) => {
   const columnDefs = useMemo<ColDef[]>(() => [
     { 
         field: 'scenario_id', 
-        headerName: 'Scenario', 
-        width: 180,
+        headerName: 'Scenario & Action', 
+        width: 240,
         pinned: 'left',
         checkboxSelection: true, 
         headerCheckboxSelection: true,
+        cellRenderer: (params: any) => {
+            const scenarioName = scenarios.find(s => s.scenario_id === params.value)?.name || params.value;
+            return (
+                <div className="flex items-center justify-between w-full h-full gap-2">
+                    <span className="truncate">{scenarioName}</span>
+                    <Button 
+                        size="sm" 
+                        variant="ghost" 
+                        className="h-7 w-7 p-0 text-blue-600 hover:text-blue-700 hover:bg-blue-50 opacity-40 hover:opacity-100 transition-opacity"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedTestCase(params.data);
+                            setIsEditDialogOpen(true);
+                        }}
+                    >
+                        <Edit2 size={14} />
+                    </Button>
+                </div>
+            );
+        },
         cellEditor: 'agSelectCellEditor',
         cellEditorParams: {
             values: scenarios.map(s => s.scenario_id),
             formatValue: (id: string) => scenarios.find(s => s.scenario_id === id)?.name || id,
         },
-        valueFormatter: (params) => scenarios.find(s => s.scenario_id === params.value)?.name || params.value,
         filter: true,
     },
     { 
@@ -153,24 +172,6 @@ export const TestManagementGrid = ({ moduleId }: TestManagementGridProps) => {
     },
     { field: 'expected_result', headerName: 'Expected Result', width: 250 },
     { field: 'test_data', headerName: 'Test Data', width: 150 },
-    {
-        headerName: '',
-        width: 60,
-        pinned: 'right',
-        cellRenderer: (params: any) => (
-            <Button 
-                size="sm" 
-                variant="ghost" 
-                className="h-8 w-8 p-0 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                onClick={() => {
-                    setSelectedTestCase(params.data);
-                    setIsEditDialogOpen(true);
-                }}
-            >
-                <Edit2 size={16} />
-            </Button>
-        )
-    }
   ], [scenarios]);
 
   const defaultColDef = useMemo<ColDef>(() => ({

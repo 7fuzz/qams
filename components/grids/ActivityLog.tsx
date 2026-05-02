@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { AgGridReact } from 'ag-grid-react';
 import { 
   ColDef, 
@@ -11,11 +11,19 @@ import { unifiedGridTheme, GRID_CONTAINER_CLASS } from '@/lib/theme';
 
 ModuleRegistry.registerModules([AllCommunityModule]);
 
+interface LogEntry {
+  timestamp: string;
+  user_name: string;
+  action: string;
+  entity_type: string;
+  details: string;
+}
+
 export const ActivityLog = () => {
-  const [rowData, setRowData] = useState([]);
+  const [rowData, setRowData] = useState<LogEntry[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
+  const fetchLogs = useCallback(() => {
     fetch('/api/logs')
       .then(res => res.json())
       .then(data => {
@@ -24,7 +32,11 @@ export const ActivityLog = () => {
       });
   }, []);
 
-  const columnDefs = useMemo<ColDef[]>(() => [
+  useEffect(() => {
+    fetchLogs();
+  }, [fetchLogs]);
+
+  const columnDefs = useMemo<ColDef<LogEntry>[]>(() => [
     { field: 'timestamp', headerName: 'Time', width: 180, sort: 'desc' },
     { field: 'user_name', headerName: 'User', width: 120 },
     { field: 'action', headerName: 'Action', width: 100 },

@@ -1,12 +1,13 @@
 "use client";
 
-import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, Button, Modal, Input, Label, Combobox, Pagination } from "@/components/ui";
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import { Button, Modal, Input, Label, Combobox, Pagination } from "@/components/ui";
 import { AgGridReact } from 'ag-grid-react';
 import { 
   ColDef, 
   AllCommunityModule,
   ModuleRegistry,
+  ICellRendererParams,
 } from 'ag-grid-community';
 import { unifiedGridTheme } from '@/lib/theme';
 import { Plus, Edit2, Trash2, Shield, User as UserIcon, Mail, Key } from 'lucide-react';
@@ -43,7 +44,7 @@ export default function UserManagementPage() {
   const [selectedUser, setSelectedUser] = useState<Partial<User> | null>(null);
   const [formData, setFormData] = useState({ name: '', email: '', password: '', role_id: '' });
 
-  const fetchUsers = () => {
+  const fetchUsers = useCallback(() => {
     setLoading(true);
     fetch(`/api/users?page=${page}&limit=${limit}`)
       .then(async res => {
@@ -72,17 +73,17 @@ export default function UserManagementPage() {
         setTotalPages(0);
         setLoading(false);
       });
-  };
+  }, [page, limit]);
 
-  const fetchRoles = () => {
+  const fetchRoles = useCallback(() => {
     fetch('/api/roles')
         .then(res => res.json())
         .then(setRoles);
-  };
+  }, []);
 
   useEffect(() => {
     fetchUsers();
-  }, [page, limit]);
+  }, [fetchUsers]);
 
   useEffect(() => {
     const handleResize = () => {
@@ -94,7 +95,7 @@ export default function UserManagementPage() {
 
   useEffect(() => {
     fetchRoles();
-  }, []);
+  }, [fetchRoles]);
 
   const handleOpenCreate = () => {
     setSelectedUser(null);
@@ -140,15 +141,15 @@ export default function UserManagementPage() {
     }
   };
 
-  const columnDefs = useMemo<ColDef[]>(() => [
+  const columnDefs = useMemo<ColDef<User>[]>(() => [
     { 
         field: 'name', 
         headerName: 'Full Name', 
         flex: 1,
-        cellRenderer: (p: any) => (
+        cellRenderer: (p: ICellRendererParams<User>) => (
             <div className="flex items-center gap-2 h-full">
                 <div className="w-6 h-6 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-600 flex items-center justify-center text-[10px] font-bold uppercase">
-                    {p.value.charAt(0)}
+                    {p.value?.charAt(0)}
                 </div>
                 <span className="font-medium text-black dark:text-white">{p.value}</span>
             </div>
@@ -158,13 +159,13 @@ export default function UserManagementPage() {
         field: 'email', 
         headerName: 'Email Address', 
         flex: 1,
-        cellRenderer: (p: any) => <span className="text-gray-500 dark:text-gray-400">{p.value}</span>
+        cellRenderer: (p: ICellRendererParams<User>) => <span className="text-gray-500 dark:text-gray-400">{p.value}</span>
     },
     { 
         field: 'role_name', 
         headerName: 'System Role', 
         width: 140,
-        cellRenderer: (p: any) => (
+        cellRenderer: (p: ICellRendererParams<User>) => (
             <div className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase gap-1 ${
                 p.value === 'Admin' ? 'bg-red-100 text-red-700' : 
                 p.value === 'Developer' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'
@@ -178,18 +179,18 @@ export default function UserManagementPage() {
       headerName: 'Actions', 
       width: 100, 
       pinned: 'right',
-      cellRenderer: (params: any) => (
+      cellRenderer: (params: ICellRendererParams<User>) => (
         <div className="flex gap-1 h-full items-center justify-center">
-          <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-blue-600" onClick={() => handleOpenEdit(params.data)}>
+          <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-blue-600" onClick={() => params.data && handleOpenEdit(params.data)}>
             <Edit2 size={14} />
           </Button>
-          <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-red-600" onClick={() => handleDelete(params.data.user_id)}>
+          <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-red-600" onClick={() => params.data && handleDelete(params.data.user_id)}>
             <Trash2 size={14} />
           </Button>
         </div>
       )
     },
-  ], [roles]);
+  ], [handleDelete]);
 
   if (loading && total === 0) return <div className="p-12 text-center text-gray-500 uppercase tracking-widest text-xs font-bold animate-pulse">Initializing User Matrix...</div>;
   if (error) return <div className="p-12 text-center text-red-500 font-bold">FAILURE: {error}</div>;

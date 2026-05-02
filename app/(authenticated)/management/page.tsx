@@ -1,11 +1,7 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardContent,
   Button,
   Input,
   Table,
@@ -20,7 +16,7 @@ import {
   Modal,
   Label
 } from "@/components/ui";
-import { Trash2, Plus, FolderTree, Layers, ListChecks, AlertCircle, Calendar, Clock, User, Save, FileText, Settings2, Info } from 'lucide-react';
+import { Trash2, Plus, FolderTree, Layers, ListChecks, AlertCircle, User, Save, FileText, Settings2 } from 'lucide-react';
 
 interface Project {
   project_id: string;
@@ -53,6 +49,10 @@ interface User {
   name: string;
 }
 
+interface EditData {
+    project_desc?: string;
+}
+
 export default function ManagementPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [modules, setModules] = useState<Module[]>([]);
@@ -64,48 +64,59 @@ export default function ManagementPage() {
   const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
 
   const [newName, setNewName] = useState({ project: '', module: '', scenario: '' });
-  const [editData, setEditData] = useState<any>({});
+  const [editData, setEditData] = useState<EditData>({});
 
-  const fetchProjects = async () => {
+  const fetchProjects = useCallback(async () => {
     const res = await fetch('/api/projects');
     const data = await res.json();
     setProjects(data);
-  };
+  }, []);
 
-  const fetchUsers = async () => {
-    const res = await fetch('/api/users?limit=1000'); // Fetch a large batch for selectors
+  const fetchUsers = useCallback(async () => {
+    const res = await fetch('/api/users?limit=1000');
     const resData = await res.json();
     setUsers(resData.data || []);
+  }, []);
+
+  const fetchModules = useCallback(async (pid: string) => {
+    const res = await fetch(`/api/modules?projectId=${pid}`);
+    const data = await res.json();
+    setModules(data);
+  }, []);
+
+  const fetchScenarios = useCallback(async (mid: string) => {
+    const res = await fetch(`/api/scenarios?moduleId=${mid}`);
+    const data = await res.json();
+    setScenarios(data);
+  }, []);
+
+  useEffect(() => { 
+    fetchProjects(); 
+    fetchUsers(); 
+  }, [fetchProjects, fetchUsers]);
+
+  const handleProjectSelect = (projectId: string) => {
+      setSelectedProjectId(projectId);
+      fetchModules(projectId);
+      const proj = projects.find(p => p.project_id === projectId);
+      if (proj) {
+          setEditData({ project_desc: proj.description });
+      }
+      setSelectedModuleId(null);
+      setScenarios([]);
   };
 
-  useEffect(() => { fetchProjects(); fetchUsers(); }, []);
-
-  useEffect(() => {
-    if (selectedProjectId) {
-      fetch(`/api/modules?projectId=${selectedProjectId}`).then(res => res.json()).then(setModules);
-      const proj = projects.find(p => p.project_id === selectedProjectId);
-      if (proj) setEditData({ project_desc: proj.description });
-    } else {
-      setModules([]);
-    }
-    setSelectedModuleId(null);
-    setScenarios([]);
-  }, [selectedProjectId, projects]);
-
-  useEffect(() => {
-    if (selectedModuleId) {
-      fetch(`/api/scenarios?moduleId=${selectedModuleId}`).then(res => res.json()).then(setScenarios);
-    } else {
-      setScenarios([]);
-    }
-  }, [selectedModuleId]);
+  const handleModuleSelect = (moduleId: string) => {
+      setSelectedModuleId(moduleId);
+      fetchScenarios(moduleId);
+  };
 
   const handleAdd = async (type: 'project' | 'module' | 'scenario') => {
     const name = newName[type];
     if (!name) return;
 
     const url = `/api/${type}s`;
-    const body: any = { name };
+    const body: { name: string; project_id?: string | null; module_id?: string | null } = { name };
     if (type === 'module') body.project_id = selectedProjectId;
     if (type === 'scenario') body.module_id = selectedModuleId;
 
@@ -117,8 +128,8 @@ export default function ManagementPage() {
 
     setNewName({ ...newName, [type]: '' });
     if (type === 'project') fetchProjects();
-    if (type === 'module' && selectedProjectId) fetch(`/api/modules?projectId=${selectedProjectId}`).then(res => res.json()).then(setModules);
-    if (type === 'scenario' && selectedModuleId) fetch(`/api/scenarios?moduleId=${selectedModuleId}`).then(res => res.json()).then(setScenarios);
+    if (type === 'module' && selectedProjectId) fetchModules(selectedProjectId);
+    if (type === 'scenario' && selectedModuleId) fetchScenarios(selectedModuleId);
   };
 
   const handleSaveProjectDesc = async () => {
@@ -133,7 +144,7 @@ export default function ManagementPage() {
     setIsProjectModalOpen(false);
   };
 
-  const handleUpdateModule = async (moduleId: string, data: any) => {
+  const handleUpdateModule = async (moduleId: string, data: Partial<Module>) => {
     const mod = modules.find(m => m.module_id === moduleId);
     if (!mod) return;
     await fetch('/api/modules', {
@@ -141,7 +152,7 @@ export default function ManagementPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ ...mod, ...data }),
     });
-    fetch(`/api/modules?projectId=${selectedProjectId}`).then(res => res.json()).then(setModules);
+    if (selectedProjectId) fetchModules(selectedProjectId);
   };
 
   const handleDelete = async (type: 'project' | 'module' | 'scenario', id: string) => {
@@ -149,14 +160,22 @@ export default function ManagementPage() {
     await fetch(`/api/${type}s?id=${id}`, { method: 'DELETE' });
     if (type === 'project') {
       fetchProjects();
-      if (selectedProjectId === id) setSelectedProjectId(null);
+      if (selectedProjectId === id) {
+          setSelectedProjectId(null);
+          setModules([]);
+          setSelectedModuleId(null);
+          setScenarios([]);
+      }
     }
     if (type === 'module') {
-      fetch(`/api/modules?projectId=${selectedProjectId}`).then(res => res.json()).then(setModules);
-      if (selectedModuleId === id) setSelectedModuleId(null);
+      if (selectedProjectId) fetchModules(selectedProjectId);
+      if (selectedModuleId === id) {
+          setSelectedModuleId(null);
+          setScenarios([]);
+      }
     }
     if (type === 'scenario') {
-      fetch(`/api/scenarios?moduleId=${selectedModuleId}`).then(res => res.json()).then(setScenarios);
+      if (selectedModuleId) fetchScenarios(selectedModuleId);
     }
   };
 
@@ -208,7 +227,7 @@ export default function ManagementPage() {
               {projects.map((project) => (
                 <TableRow
                   key={project.project_id}
-                  onClick={() => setSelectedProjectId(project.project_id)}
+                  onClick={() => handleProjectSelect(project.project_id)}
                   className={`cursor-pointer transition-colors ${selectedProjectId === project.project_id ? "bg-blue-50/50 dark:bg-blue-900/10 border-l-4 border-l-blue-500" : ""}`}
                 >
                   <TableCell className="font-semibold text-black dark:text-white">{project.name}</TableCell>
@@ -226,7 +245,7 @@ export default function ManagementPage() {
                         variant="ghost"
                         size="sm"
                         className="h-8 w-8 p-0 text-blue-600"
-                        onClick={(e) => { e.stopPropagation(); setSelectedProjectId(project.project_id); setIsProjectModalOpen(true); }}
+                        onClick={(e) => { e.stopPropagation(); setSelectedProjectId(project.project_id); setEditData({ project_desc: project.description }); setIsProjectModalOpen(true); }}
                       >
                         <Settings2 size={16} />
                       </Button>
@@ -272,7 +291,7 @@ export default function ManagementPage() {
                 modules.map(m => (
                   <div
                     key={m.module_id}
-                    onClick={() => setSelectedModuleId(m.module_id)}
+                    onClick={() => handleModuleSelect(m.module_id)}
                     className={`p-4 rounded-xl border transition-all ${selectedModuleId === m.module_id
                         ? "bg-white dark:bg-gray-800 shadow-lg border-blue-500/50"
                         : "bg-white/50 dark:bg-gray-800/30 hover:bg-white dark:hover:bg-gray-800 border-transparent"
@@ -287,7 +306,7 @@ export default function ManagementPage() {
                       <Combobox
                         options={userOptions}
                         value={m.responsible_id}
-                        onChange={(val) => handleUpdateModule(m.module_id, { responsible_id: val })}
+                        onChange={(val) => handleUpdateModule(m.module_id, { responsible_id: val as string })}
                         placeholder="Assign Dev..."
                         className="h-8 text-xs"
                       />

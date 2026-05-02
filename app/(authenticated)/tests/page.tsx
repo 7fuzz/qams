@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Card, CardHeader, CardTitle, CardContent, Input, Button } from "@/components/ui";
 import { Combobox } from "@/components/ui/Combobox";
 import { TestManagementGrid } from "@/components/grids/TestManagementGrid";
@@ -27,11 +27,14 @@ export default function TestsPage() {
   const [newModuleName, setNewModuleName] = useState('');
   const [isInitialLoad, setIsInitialLoad] = useState(true);
 
-  const fetchProjects = () => fetch('/api/projects').then(res => res.json()).then(setProjects);
-  const fetchModules = (id: string) => fetch(`/api/modules?projectId=${id}`).then(res => res.json()).then(data => {
+  const fetchProjects = useCallback(() => fetch('/api/projects').then(res => res.json()).then(setProjects), []);
+  const fetchModules = useCallback((id: string) => fetch(`/api/modules?projectId=${id}`).then(res => res.json()).then(data => {
     setModules(data);
     return data;
-  });
+  }), []);
+
+  // Use a ref to track if we're doing the initial load to avoid redundant saves
+  const isInitialLoadRef = useRef(true);
 
   // Load persistent state on mount
   useEffect(() => {
@@ -46,31 +49,41 @@ export default function TestsPage() {
                     setSelectedModuleId(savedModule);
                 }
                 setIsInitialLoad(false);
+                isInitialLoadRef.current = false;
             });
         } else {
             setIsInitialLoad(false);
+            isInitialLoadRef.current = false;
         }
     });
-  }, []);
+  }, [fetchProjects, fetchModules]);
 
-  useEffect(() => {
-    if (isInitialLoad) return;
-    if (selectedProjectId) {
-      fetchModules(selectedProjectId);
-      saveState('test_project_id', selectedProjectId);
+  const handleProjectChange = (id: string | null) => {
+    if (isInitialLoadRef.current) return;
+    
+    setSelectedProjectId(id);
+    if (id) {
+      fetchModules(id);
+      saveState('test_project_id', id);
     } else {
       setModules([]);
+      saveState('test_project_id', null);
     }
+    
     setSelectedModuleId(null);
     saveState('test_module_id', null);
-  }, [selectedProjectId]);
+  };
 
-  useEffect(() => {
-    if (isInitialLoad) return;
-    if (selectedModuleId) {
-      saveState('test_module_id', selectedModuleId);
+  const handleModuleChange = (id: string | null) => {
+    if (isInitialLoadRef.current) return;
+    
+    setSelectedModuleId(id);
+    if (id) {
+      saveState('test_module_id', id);
+    } else {
+      saveState('test_module_id', null);
     }
-  }, [selectedModuleId]);
+  };
 
   const handleAddModule = async () => {
     if (!newModuleName || !selectedProjectId) return;
@@ -103,7 +116,7 @@ export default function TestsPage() {
             <Combobox 
               options={projects.map(p => ({ value: p.project_id, label: p.name }))}
               value={selectedProjectId || undefined}
-              onChange={(val) => setSelectedProjectId(String(val))}
+              onChange={(val) => handleProjectChange(val ? String(val) : null)}
               placeholder="Select Project..."
             />
           </CardContent>
@@ -121,7 +134,7 @@ export default function TestsPage() {
             <Combobox 
               options={modules.map(m => ({ value: m.module_id, label: m.name }))}
               value={selectedModuleId || undefined}
-              onChange={(val) => setSelectedModuleId(String(val))}
+              onChange={(val) => handleModuleChange(val ? String(val) : null)}
               placeholder="Select Module..."
               className={!selectedProjectId ? "opacity-50 pointer-events-none" : ""}
             />

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Modal, Button, Label, Input, Combobox, Textarea, AttachmentManager } from '../ui';
 import { AlertCircle, MessageSquare, Plus, ChevronDown, ChevronUp, CheckCircle2, History, UserCheck, ShieldCheck } from 'lucide-react';
 import { 
@@ -65,20 +65,20 @@ export const IssuesListDialog = ({ testCaseId, testCaseTitle, isOpen, onClose, o
   const [newIssue, setNewIssue] = useState({ title: '', description: '', severity: ISSUE_SEVERITY.MEDIUM as string, developer_id: '' });
   const [newNoteContent, setNewNoteContent] = useState<Record<string, string>>({});
 
-  const fetchIssues = async () => {
+  const fetchIssues = useCallback(async () => {
     if (!testCaseId) return;
     const res = await fetch(`/api/issues?testCaseId=${testCaseId}&limit=1000`);
     const resData = await res.json();
     setIssues(resData.data || []);
-  };
+  }, [testCaseId]);
 
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     const res = await fetch('/api/users?limit=1000');
     const resData = await res.json();
     setUsers(resData.data || []);
-  };
+  }, []);
 
-  const fetchDataForIssue = async (issueId: string) => {
+  const fetchDataForIssue = useCallback(async (issueId: string) => {
     const [notesRes, historyRes] = await Promise.all([
         fetch(`/api/issues/notes?issueId=${issueId}`),
         fetch(`/api/issues/history?issueId=${issueId}`)
@@ -87,7 +87,7 @@ export const IssuesListDialog = ({ testCaseId, testCaseTitle, isOpen, onClose, o
     const history = await historyRes.json();
     setIssueNotes(prev => ({ ...prev, [issueId]: notes }));
     setIssueHistory(prev => ({ ...prev, [issueId]: history }));
-  };
+  }, []);
 
   useEffect(() => {
     if (testCaseId && isOpen) {
@@ -96,7 +96,7 @@ export const IssuesListDialog = ({ testCaseId, testCaseTitle, isOpen, onClose, o
       setShowNewIssueForm(false);
       setExpandedIssueId(null);
     }
-  }, [testCaseId, isOpen]);
+  }, [testCaseId, isOpen, fetchIssues, fetchUsers]);
 
   const handleCreateIssue = async () => {
     if (!newIssue.title || !testCaseId) return;

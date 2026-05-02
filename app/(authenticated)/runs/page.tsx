@@ -1,25 +1,38 @@
 "use client";
 
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import Link from 'next/link';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, Button, Pagination } from "@/components/ui";
+import { Button, Pagination } from "@/components/ui";
 import { AgGridReact } from 'ag-grid-react';
 import { 
   ColDef, 
   AllCommunityModule,
   ModuleRegistry,
+  ICellRendererParams,
 } from 'ag-grid-community';
 import { Play, Trash2, Plus, Info, LayoutPanelTop, User } from 'lucide-react';
-import { unifiedGridTheme, GRID_CONTAINER_CLASS } from '@/lib/theme';
+import { unifiedGridTheme } from '@/lib/theme';
 import { RunDetailDialog } from '@/components/dialogs/RunDetailDialog';
 
 ModuleRegistry.registerModules([AllCommunityModule]);
 
+interface TestRun {
+    run_id: string;
+    name: string;
+    project_name: string;
+    project_owner: string;
+    status: string;
+    total_cases: number;
+    passed_count: number;
+    tester_name: string;
+    created_at: string;
+}
+
 export default function TestRunsPage() {
   const gridRef = useRef<AgGridReact>(null);
-  const [runs, setRuns] = useState([]);
+  const [runs, setRuns] = useState<TestRun[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedRun, setSelectedRun] = useState<any>(null);
+  const [selectedRun, setSelectedRun] = useState<TestRun | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
 
   // Pagination
@@ -28,7 +41,7 @@ export default function TestRunsPage() {
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
 
-  const fetchRuns = () => {
+  const fetchRuns = useCallback(() => {
     setLoading(true);
     fetch(`/api/test-runs?page=${page}&limit=${limit}`)
       .then(res => res.json())
@@ -50,11 +63,11 @@ export default function TestRunsPage() {
         setTotalPages(0);
         setLoading(false);
       });
-  };
+  }, [page, limit]);
 
   useEffect(() => {
     fetchRuns();
-  }, [page, limit]);
+  }, [fetchRuns]);
 
   useEffect(() => {
     const handleResize = () => {
@@ -64,14 +77,20 @@ export default function TestRunsPage() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  const columnDefs = useMemo<ColDef[]>(() => [
+  const deleteRun = useCallback((id: string) => {
+    if (!confirm('Are you sure you want to delete this test run? All execution data will be lost.')) return;
+    fetch(`/api/test-runs?id=${id}`, { method: 'DELETE' })
+      .then(() => fetchRuns());
+  }, [fetchRuns]);
+
+  const columnDefs = useMemo<ColDef<TestRun>[]>(() => [
     { 
         field: 'name', 
         headerName: 'Run Name', 
         flex: 1.5, 
         filter: true,
         pinned: 'left',
-        cellRenderer: (params: any) => (
+        cellRenderer: (params: ICellRendererParams<TestRun>) => (
             <div className="font-bold text-blue-600 dark:text-blue-400">{params.value}</div>
         )
     },
@@ -79,7 +98,7 @@ export default function TestRunsPage() {
         field: 'project_name', 
         headerName: 'Project', 
         width: 180,
-        cellRenderer: (params: any) => (
+        cellRenderer: (params: ICellRendererParams<TestRun>) => (
             <div className="flex items-center gap-2"><LayoutPanelTop size={14} className="text-gray-400" /> {params.value}</div>
         )
     },
@@ -87,7 +106,7 @@ export default function TestRunsPage() {
         field: 'project_owner', 
         headerName: 'Owner', 
         width: 140,
-        cellRenderer: (params: any) => (
+        cellRenderer: (params: ICellRendererParams<TestRun>) => (
             <div className="flex items-center gap-2"><User size={14} className="text-gray-400" /> {params.value}</div>
         )
     },
@@ -105,18 +124,19 @@ export default function TestRunsPage() {
         headerName: 'Progress',
         width: 120,
         valueGetter: (params) => {
+            if (!params.data) return '';
             const total = params.data.total_cases || 0;
             const passed = params.data.passed_count || 0;
             return `${passed} / ${total} Passed`;
         }
     },
     { field: 'tester_name', headerName: 'Tester', width: 140 },
-    { field: 'created_at', headerName: 'Date', width: 140, valueFormatter: (p) => new Date(p.value).toLocaleDateString() },
+    { field: 'created_at', headerName: 'Date', width: 140, valueFormatter: (p) => p.value ? new Date(p.value).toLocaleDateString() : '' },
     { 
       headerName: 'Actions', 
       width: 140, 
       pinned: 'right',
-      cellRenderer: (params: any) => (
+      cellRenderer: (params: ICellRendererParams<TestRun>) => (
         <div className="flex gap-1 h-full items-center justify-center">
           <Button 
             size="sm" 
@@ -124,30 +144,28 @@ export default function TestRunsPage() {
             className="h-7 w-7 p-0 text-gray-500 hover:bg-gray-100" 
             title="View Summary"
             onClick={() => {
-                setSelectedRun(params.data);
-                setIsDetailOpen(true);
+                if (params.data) {
+                    setSelectedRun(params.data);
+                    setIsDetailOpen(true);
+                }
             }}
           >
             <Info size={14} />
           </Button>
-          <Link href={`/runs/${params.data.run_id}`}>
+          <Link href={params.data ? `/runs/${params.data.run_id}` : '#'}>
             <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-blue-600 hover:bg-blue-50" title="Execute">
               <Play size={14} fill="currentColor" />
             </Button>
           </Link>
-          <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-red-600 hover:bg-red-50" onClick={() => deleteRun(params.data.run_id)} title="Delete">
+          <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-red-600 hover:bg-red-50" onClick={() => params.data && deleteRun(params.data.run_id)} title="Delete">
             <Trash2 size={14} />
           </Button>
         </div>
       )
     },
-  ], []);
+  ], [deleteRun]);
 
-  const deleteRun = (id: string) => {
-    if (!confirm('Are you sure you want to delete this test run? All execution data will be lost.')) return;
-    fetch(`/api/test-runs?id=${id}`, { method: 'DELETE' })
-      .then(() => fetchRuns());
-  };
+  if (loading && total === 0) return <div className="p-12 text-center text-gray-500 uppercase tracking-widest text-xs font-bold animate-pulse">Loading Test Matrix...</div>;
 
   return (
     <div className="container mx-auto p-4 md:p-8 flex flex-col gap-8 max-w-full">

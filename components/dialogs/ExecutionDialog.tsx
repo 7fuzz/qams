@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Modal, Button, Label, Input, Combobox, Textarea, AttachmentManager } from '../ui';
-import { AlertCircle, MessageSquare, Plus, ChevronDown, ChevronUp, History, CheckCircle2, FileText, Database, Clock, Link as LinkIcon, BarChart, UserCheck, ShieldCheck } from 'lucide-react';
+import { AlertCircle, Plus, ChevronDown, ChevronUp, History, CheckCircle2, FileText, Database, Clock, Link as LinkIcon, BarChart, UserCheck, ShieldCheck } from 'lucide-react';
 import { 
   TEST_STATUS, 
   TEST_STATUS_OPTIONS, 
@@ -26,13 +26,6 @@ interface Issue {
   developer_id: string;
   developer_name: string;
   solver_name: string;
-  created_at: string;
-}
-
-interface IssueNote {
-  note_id: string;
-  content: string;
-  user_name: string;
   created_at: string;
 }
 
@@ -61,40 +54,32 @@ interface ExecutionDialogProps {
   execution: Execution | null;
   isOpen: boolean;
   onClose: () => void;
-  onSave: (data: any) => void;
+  onSave: () => void;
 }
 
 export const ExecutionDialog = ({ execution, isOpen, onClose, onSave }: ExecutionDialogProps) => {
-  const [status, setStatus] = useState<string>(execution?.status || TEST_STATUS.PENDING);
-  const [notes, setNotes] = useState(execution?.notes || '');
+  const [status, setStatus] = useState<string>(TEST_STATUS.PENDING);
+  const [notes, setNotes] = useState('');
   const [existingIssues, setExistingIssues] = useState<Issue[]>([]);
   const [users, setUsers] = useState<User[]>([]);
-  const [expandedIssueId, setSelectedIssueId] = useState<string | null>(null);
-  const [issueNotes, setIssueNotes] = useState<Record<string, IssueNote[]>>({});
+  const [expandedIssueId, setExpandedIssueId] = useState<string | null>(null);
   
   const [showNewIssueForm, setShowNewIssueForm] = useState(false);
   const [newIssue, setNewIssue] = useState({ title: '', description: '', severity: ISSUE_SEVERITY.MEDIUM as string, developer_id: '' });
-  const [newNoteContent, setNewNoteContent] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
 
-  const fetchIssues = async () => {
+  const fetchIssues = useCallback(async () => {
     if (!execution) return;
     const res = await fetch(`/api/issues?testCaseId=${execution.test_case_id}&limit=1000`);
     const resData = await res.json();
     setExistingIssues(resData.data || []);
-  };
+  }, [execution]);
 
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     const res = await fetch('/api/users?limit=1000');
     const resData = await res.json();
     setUsers(resData.data || []);
-  };
-
-  const fetchNotes = async (issueId: string) => {
-    const res = await fetch(`/api/issues/notes?issueId=${issueId}`);
-    const data = await res.json();
-    setIssueNotes(prev => ({ ...prev, [issueId]: data }));
-  };
+  }, []);
 
   useEffect(() => {
     if (execution && isOpen) {
@@ -104,7 +89,7 @@ export const ExecutionDialog = ({ execution, isOpen, onClose, onSave }: Executio
       fetchUsers();
       setShowNewIssueForm(false);
     }
-  }, [execution, isOpen]);
+  }, [execution, isOpen, fetchIssues, fetchUsers]);
 
   const handleSaveExecution = async () => {
     setLoading(true);
@@ -118,7 +103,7 @@ export const ExecutionDialog = ({ execution, isOpen, onClose, onSave }: Executio
           notes,
         }),
       });
-      onSave({});
+      onSave();
       onClose();
     } finally {
       setLoading(false);
@@ -141,7 +126,7 @@ export const ExecutionDialog = ({ execution, isOpen, onClose, onSave }: Executio
     fetchIssues();
   };
 
-  const handleUpdateIssueStatus = async (issueId: string, data: any) => {
+  const handleUpdateIssueStatus = async (issueId: string, data: Partial<Issue>) => {
     await fetch('/api/issues', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
@@ -170,18 +155,6 @@ export const ExecutionDialog = ({ execution, isOpen, onClose, onSave }: Executio
       });
       alert(`Observation logged for "${issue.title}" in this run.`);
   }
-
-  const handleAddNote = async (issueId: string) => {
-    const content = newNoteContent[issueId];
-    if (!content) return;
-    await fetch('/api/issues/notes', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ issue_id: issueId, content }),
-    });
-    setNewNoteContent(prev => ({ ...prev, [issueId]: '' }));
-    fetchNotes(issueId);
-  };
 
   if (!execution) return null;
 
@@ -319,10 +292,9 @@ export const ExecutionDialog = ({ execution, isOpen, onClose, onSave }: Executio
                             className="flex items-center justify-between p-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors"
                             onClick={() => {
                                 if (expandedIssueId === issue.issue_id) {
-                                    setSelectedIssueId(null);
+                                    setExpandedIssueId(null);
                                 } else {
-                                    setSelectedIssueId(issue.issue_id);
-                                    fetchNotes(issue.issue_id);
+                                    setExpandedIssueId(issue.issue_id);
                                 }
                             }}
                         >
@@ -377,7 +349,7 @@ export const ExecutionDialog = ({ execution, isOpen, onClose, onSave }: Executio
                                         <Combobox 
                                             options={ISSUE_STATUS_OPTIONS} 
                                             value={issue.status} 
-                                            onChange={(val) => handleUpdateIssueStatus(issue.issue_id, { status: val, severity: issue.severity, title: issue.title, description: issue.description, developer_id: issue.developer_id })} 
+                                            onChange={(val) => handleUpdateIssueStatus(issue.issue_id, { status: val as IssueStatus, severity: issue.severity, title: issue.title, description: issue.description, developer_id: issue.developer_id })} 
                                         />
                                     </div>
                                     <div className="space-y-1">
@@ -385,7 +357,7 @@ export const ExecutionDialog = ({ execution, isOpen, onClose, onSave }: Executio
                                         <Combobox 
                                             options={userOptions} 
                                             value={issue.developer_id} 
-                                            onChange={(val) => handleUpdateIssueStatus(issue.issue_id, { status: issue.status, severity: issue.severity, title: issue.title, description: issue.description, developer_id: val })} 
+                                            onChange={(val) => handleUpdateIssueStatus(issue.issue_id, { status: issue.status, severity: issue.severity, title: issue.title, description: issue.description, developer_id: val as string })} 
                                             placeholder="Assign..."
                                         />
                                     </div>

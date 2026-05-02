@@ -1,13 +1,13 @@
 "use client";
 
-import React, { useState, useMemo, useRef, useEffect } from 'react';
+import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { AgGridReact } from 'ag-grid-react';
 import { 
   ColDef, 
   CellValueChangedEvent,
   AllCommunityModule,
   ModuleRegistry,
-  themeQuartz
+  ICellRendererParams
 } from 'ag-grid-community';
 import { Button, Input, Pagination } from '../ui';
 import { Trash2, Plus, Copy, AlertCircle, Edit2, CheckCircle2, ExternalLink, Download, Upload } from 'lucide-react';
@@ -46,6 +46,22 @@ interface TestManagementGridProps {
   moduleId: string;
 }
 
+interface ExcelRow {
+    scenario?: string;
+    title?: string;
+    case?: string;
+    type?: string;
+    priority?: string;
+    automation_status?: string;
+    requirement_link?: string;
+    estimated_duration?: string | number;
+    precondition?: string;
+    steps?: string;
+    test_data?: string;
+    expected_result?: string;
+    [key: string]: string | number | undefined;
+}
+
 export const TestManagementGrid = ({ moduleId }: TestManagementGridProps) => {
   const gridRef = useRef<AgGridReact>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -65,9 +81,9 @@ export const TestManagementGrid = ({ moduleId }: TestManagementGridProps) => {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isIssuesDialogOpen, setIsIssuesDialogOpen] = useState(false);
 
-  const fetchScenarios = () => fetch(`/api/scenarios?moduleId=${moduleId}`).then(res => res.json()).then(setScenarios);
+  const fetchScenarios = useCallback(() => fetch(`/api/scenarios?moduleId=${moduleId}`).then(res => res.json()).then(setScenarios), [moduleId]);
   
-  const fetchTestCases = (silent = false) => {
+  const fetchTestCases = useCallback((silent = false) => {
     if (!silent) setLoading(true);
     fetch(`/api/test-cases?moduleId=${moduleId}&page=${page}&limit=${limit}`)
       .then(res => res.json())
@@ -89,15 +105,15 @@ export const TestManagementGrid = ({ moduleId }: TestManagementGridProps) => {
         setTotalPages(0);
         setLoading(false);
       });
-  };
+  }, [moduleId, page, limit]);
 
   useEffect(() => {
     fetchScenarios();
-  }, [moduleId]);
+  }, [fetchScenarios]);
 
   useEffect(() => {
       fetchTestCases();
-  }, [moduleId, page, limit]);
+  }, [fetchTestCases]);
 
   const handleAddScenario = async () => {
     if (!newScenarioName) return;
@@ -129,16 +145,16 @@ export const TestManagementGrid = ({ moduleId }: TestManagementGridProps) => {
         const workbook = XLSX.read(data, { type: 'array' });
         const sheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[sheetName];
-        const json: any[] = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
+        const json: ExcelRow[] = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
 
         let lastScenario = '';
         const testCases = json.map(row => {
-            const obj: any = {};
+            const obj: ExcelRow = {};
             Object.keys(row).forEach(key => {
                 obj[key.trim().toLowerCase()] = row[key];
             });
 
-            if (obj.scenario && obj.scenario.trim() !== "") {
+            if (obj.scenario && typeof obj.scenario === 'string' && obj.scenario.trim() !== "") {
                 lastScenario = obj.scenario.trim();
             } else {
                 obj.scenario = lastScenario;
@@ -169,7 +185,7 @@ export const TestManagementGrid = ({ moduleId }: TestManagementGridProps) => {
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
-  const columnDefs = useMemo<ColDef[]>(() => [
+  const columnDefs = useMemo<ColDef<TestCase>[]>(() => [
     { 
         field: 'scenario_id', 
         headerName: 'Scenario & Action', 
@@ -177,7 +193,7 @@ export const TestManagementGrid = ({ moduleId }: TestManagementGridProps) => {
         pinned: 'left',
         checkboxSelection: true, 
         headerCheckboxSelection: true,
-        cellRenderer: (params: any) => {
+        cellRenderer: (params: ICellRendererParams<TestCase>) => {
             const scenarioName = scenarios.find(s => s.scenario_id === params.value)?.name || params.value;
             return (
                 <div className="flex items-center justify-between w-full h-full gap-2">
@@ -187,8 +203,10 @@ export const TestManagementGrid = ({ moduleId }: TestManagementGridProps) => {
                         className="h-8 w-8 p-0 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-800/50 border border-blue-200 dark:border-blue-800 shadow-sm shrink-0"
                         onClick={(e) => {
                             e.stopPropagation();
-                            setSelectedTestCase(params.data);
-                            setIsEditDialogOpen(true);
+                            if (params.data) {
+                                setSelectedTestCase(params.data);
+                                setIsEditDialogOpen(true);
+                            }
                         }}
                     >
                         <Edit2 size={16} />
@@ -245,16 +263,18 @@ export const TestManagementGrid = ({ moduleId }: TestManagementGridProps) => {
         headerName: 'Issues', 
         width: 120,
         editable: false,
-        cellRenderer: (params: any) => {
-            const open = params.data.open_issues_count || 0;
-            const closed = params.data.closed_issues_count || 0;
+        cellRenderer: (params: ICellRendererParams<TestCase>) => {
+            const open = params.data?.open_issues_count || 0;
+            const closed = params.data?.closed_issues_count || 0;
             if (open === 0 && closed === 0) return null;
             return (
                 <div 
                     className="flex items-center gap-2 cursor-pointer hover:underline"
                     onClick={() => {
-                        setSelectedTestCase(params.data);
-                        setIsIssuesDialogOpen(true);
+                        if (params.data) {
+                            setSelectedTestCase(params.data);
+                            setIsIssuesDialogOpen(true);
+                        }
                     }}
                 >
                     {open > 0 && <span className="flex items-center gap-0.5 text-red-500 font-bold"><AlertCircle size={12} />{open}</span>}
@@ -267,7 +287,7 @@ export const TestManagementGrid = ({ moduleId }: TestManagementGridProps) => {
         field: 'requirement_link', 
         headerName: 'Link', 
         width: 100,
-        cellRenderer: (params: any) => {
+        cellRenderer: (params: ICellRendererParams<TestCase>) => {
             if (!params.value) return null;
             return <a href={params.value} target="_blank" className="text-blue-500 hover:text-blue-600"><ExternalLink size={14} /></a>
         }
@@ -289,7 +309,7 @@ export const TestManagementGrid = ({ moduleId }: TestManagementGridProps) => {
     { field: 'test_data', headerName: 'Test Data', width: 150 },
   ], [scenarios]);
 
-  const defaultColDef = useMemo<ColDef>(() => ({
+  const defaultColDef = useMemo<ColDef<TestCase>>(() => ({
     resizable: true,
     editable: true,
     sortable: true,
@@ -343,7 +363,7 @@ export const TestManagementGrid = ({ moduleId }: TestManagementGridProps) => {
       .then(() => fetchTestCases(true));
   };
 
-  const onCellValueChanged = (event: CellValueChangedEvent) => {
+  const onCellValueChanged = (event: CellValueChangedEvent<TestCase>) => {
     if (event.data.test_case_id) {
       fetch('/api/test-cases', {
         method: 'PUT',
@@ -409,7 +429,7 @@ export const TestManagementGrid = ({ moduleId }: TestManagementGridProps) => {
         </div>
       </div>
       
-      <div className="w-full border dark:border-gray-800 overflow-hidden bg-white dark:bg-gray-950">
+      <div className="w-full border dark:border-gray-800 overflow-hidden bg-white dark:bg-gray-950 shadow-sm">
         <AgGridReact
           ref={gridRef}
           theme={unifiedGridTheme}

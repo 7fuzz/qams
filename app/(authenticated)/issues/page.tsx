@@ -1,11 +1,11 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from 'react';
-import {
-  Card, CardHeader, CardTitle, CardContent, Button, Input, Combobox, Table, TableHeader, TableRow, TableHead, TableBody, TableCell, Pagination, Badge, Label
+import React, { useState, useEffect, useCallback } from 'react';
+import { 
+  Card, CardHeader, CardTitle, CardContent, Button, Combobox, Table, TableHeader, TableRow, TableHead, TableBody, TableCell, Pagination, Label
 } from "@/components/ui";
-import { AlertTriangle, Filter, UserCheck, ShieldCheck, ExternalLink, Search, LayoutPanelTop, Layers, MessageSquare } from 'lucide-react';
-import { ISSUE_STATUS_OPTIONS, ISSUE_SEVERITY_OPTIONS, ISSUE_STATUS } from '@/lib/constants';
+import { AlertTriangle, UserCheck, ShieldCheck, ExternalLink, LayoutPanelTop, Layers } from 'lucide-react';
+import { ISSUE_STATUS_OPTIONS, ISSUE_STATUS } from '@/lib/constants';
 import { IssuesListDialog } from '@/components/dialogs/IssuesListDialog';
 
 interface Project {
@@ -39,11 +39,17 @@ interface Issue {
   updated_at: string;
 }
 
+interface CurrentUser {
+    user_id: string;
+    name: string;
+    isLoggedIn: boolean;
+}
+
 export default function IssueManagementPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [modules, setModules] = useState<Module[]>([]);
   const [users, setUsers] = useState<User[]>([]);
-  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
 
   const [issues, setIssues] = useState<Issue[]>([]);
   const [loading, setLoading] = useState(true);
@@ -64,7 +70,7 @@ export default function IssueManagementPage() {
   const [selectedTestCase, setSelectedTestCase] = useState<{ id: string, title: string } | null>(null);
   const [isIssuesDialogOpen, setIsIssuesDialogOpen] = useState(false);
 
-  const fetchBaseData = async () => {
+  const fetchBaseData = useCallback(async () => {
     const [pRes, uRes, userRes] = await Promise.all([
       fetch('/api/projects'),
       fetch('/api/users?limit=1000'),
@@ -73,22 +79,22 @@ export default function IssueManagementPage() {
     const pData = await pRes.json();
     const uData = await uRes.json();
     const userData = await userRes.json();
-
+    
     setProjects(pData);
     setUsers(uData.data || []);
     setCurrentUser(userData);
-  };
+  }, []);
 
-  const fetchModules = (pid: string) => {
+  const fetchModules = useCallback((pid: string) => {
     if (pid === 'all') {
       setModules([]);
       setSelectedModuleId('all');
       return;
     }
     fetch(`/api/modules?projectId=${pid}`).then(res => res.json()).then(setModules);
-  };
+  }, []);
 
-  const fetchIssues = () => {
+  const fetchIssues = useCallback(() => {
     setLoading(true);
     let url = `/api/issues?page=${page}&limit=${limit}`;
     if (selectedProjectId !== 'all') url += `&projectId=${selectedProjectId}`;
@@ -104,27 +110,27 @@ export default function IssueManagementPage() {
         setTotalPages(res.totalPages || 1);
         setLoading(false);
       });
-  };
+  }, [page, limit, selectedProjectId, selectedModuleId, selectedStatus, selectedDevId]);
 
-  useEffect(() => { fetchBaseData(); }, []);
-
+  useEffect(() => { fetchBaseData(); }, [fetchBaseData]);
+  
   useEffect(() => {
     if (selectedProjectId) fetchModules(selectedProjectId);
-  }, [selectedProjectId]);
+  }, [selectedProjectId, fetchModules]);
 
   useEffect(() => {
     fetchIssues();
-  }, [page, limit, selectedProjectId, selectedModuleId, selectedStatus, selectedDevId]);
+  }, [fetchIssues]);
 
   const handleOpenIssue = (issue: Issue) => {
-    setSelectedTestCase({ id: issue.test_case_id, title: issue.title });
-    setIsIssuesDialogOpen(true);
+      setSelectedTestCase({ id: issue.test_case_id, title: issue.title });
+      setIsIssuesDialogOpen(true);
   };
 
   const getStatusColor = (status: string) => {
-    if (status === ISSUE_STATUS.CLOSED) return 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400';
-    if (status === ISSUE_STATUS.IN_PROGRESS) return 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400';
-    return 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400';
+      if (status === ISSUE_STATUS.CLOSED) return 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400';
+      if (status === ISSUE_STATUS.IN_PROGRESS) return 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400';
+      return 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400';
   };
 
   return (
@@ -132,146 +138,147 @@ export default function IssueManagementPage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="space-y-1">
           <h1 className="text-3xl font-bold tracking-tight flex items-center gap-3">
-            <AlertTriangle size={32} className="text-red-500" /> Issue Management
+              <AlertTriangle size={32} className="text-red-500" /> Issue Management
           </h1>
           <p className="text-gray-500 font-medium uppercase tracking-wider text-[10px]">
             Triage, assign, and track bug resolution across all modules.
           </p>
         </div>
         <div className="flex gap-2">
-          <Button
-            variant={selectedDevId === currentUser?.user_id ? 'primary' : 'outline'}
-            size="sm"
-            onClick={() => setSelectedDevId(selectedDevId === currentUser?.user_id ? 'all' : currentUser?.user_id)}
-          >
-            <UserCheck size={16} className="mr-2" /> Assigned to Me
-          </Button>
+            <Button 
+                variant={selectedDevId === currentUser?.user_id ? 'primary' : 'outline'} 
+                size="sm"
+                onClick={() => setSelectedDevId(selectedDevId === currentUser?.user_id ? 'all' : (currentUser?.user_id || 'all'))}
+            >
+                <UserCheck size={16} className="mr-2" /> Assigned to Me
+            </Button>
         </div>
       </div>
 
       <Card className="shadow-sm border dark:border-gray-800">
         <CardContent className="p-4">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="space-y-1.5">
-              <Label className="text-[10px] font-bold text-gray-400 uppercase flex items-center gap-1"><LayoutPanelTop size={10} /> Project</Label>
-              <Combobox
-                options={[{ value: 'all', label: 'All Projects' }, ...projects.map(p => ({ value: p.project_id, label: p.name }))]}
-                value={selectedProjectId}
-                onChange={val => { setSelectedProjectId(val as string); setPage(1); }}
-              />
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="space-y-1.5">
+                    <Label className="text-[10px] font-bold text-gray-400 uppercase flex items-center gap-1"><LayoutPanelTop size={10}/> Project</Label>
+                    <Combobox 
+                        options={[{ value: 'all', label: 'All Projects' }, ...projects.map(p => ({ value: p.project_id, label: p.name }))]}
+                        value={selectedProjectId}
+                        onChange={val => { setSelectedProjectId(val as string); setPage(1); }}
+                    />
+                </div>
+                <div className="space-y-1.5">
+                    <Label className="text-[10px] font-bold text-gray-400 uppercase flex items-center gap-1"><Layers size={10}/> Module</Label>
+                    <Combobox 
+                        options={[{ value: 'all', label: 'All Modules' }, ...modules.map(m => ({ value: m.module_id, label: m.name }))]}
+                        value={selectedModuleId}
+                        onChange={val => { setSelectedModuleId(val as string); setPage(1); }}
+                        disabled={selectedProjectId === 'all'}
+                    />
+                </div>
+                <div className="space-y-1.5">
+                    <Label className="text-[10px] font-bold text-gray-400 uppercase flex items-center gap-1"><AlertTriangle size={10}/> Status</Label>
+                    <Combobox 
+                        options={[{ value: 'all', label: 'All Statuses' }, ...ISSUE_STATUS_OPTIONS]}
+                        value={selectedStatus}
+                        onChange={val => { setSelectedStatus(val as string); setPage(1); }}
+                    />
+                </div>
+                <div className="space-y-1.5">
+                    <Label className="text-[10px] font-bold text-gray-400 uppercase flex items-center gap-1"><UserCheck size={10}/> Developer</Label>
+                    <Combobox 
+                        options={[{ value: 'all', label: 'All Developers' }, ...users.map(u => ({ value: u.user_id, label: u.name }))]}
+                        value={selectedDevId}
+                        onChange={val => { setSelectedDevId(val as string); setPage(1); }}
+                    />
+                </div>
             </div>
-            <div className="space-y-1.5">
-              <Label className="text-[10px] font-bold text-gray-400 uppercase flex items-center gap-1"><Layers size={10} /> Module</Label>
-              <Combobox
-                options={[{ value: 'all', label: 'All Modules' }, ...modules.map(m => ({ value: m.module_id, label: m.name }))]}
-                value={selectedModuleId}
-                onChange={val => { setSelectedModuleId(val as string); setPage(1); }}
-                disabled={selectedProjectId === 'all'}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-[10px] font-bold text-gray-400 uppercase flex items-center gap-1"><Filter size={10} /> Status</Label>
-              <Combobox
-                options={[{ value: 'all', label: 'All Statuses' }, ...ISSUE_STATUS_OPTIONS]}
-                value={selectedStatus}
-                onChange={val => { setSelectedStatus(val as string); setPage(1); }}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-[10px] font-bold text-gray-400 uppercase flex items-center gap-1"><UserCheck size={10} /> Developer</Label>
-              <Combobox
-                options={[{ value: 'all', label: 'All Developers' }, ...users.map(u => ({ value: u.user_id, label: u.name }))]}
-                value={selectedDevId}
-                onChange={val => { setSelectedDevId(val as string); setPage(1); }}
-              />
-            </div>
-          </div>
         </CardContent>
       </Card>
 
       <div className="w-full border dark:border-gray-800 rounded-lg overflow-hidden bg-white dark:bg-gray-950 shadow-sm">
         <Table>
-          <TableHeader className="bg-gray-50/50 dark:bg-gray-900/50">
-            <TableRow>
-              <TableHead className="w-[350px]">Issue Details</TableHead>
-              <TableHead>Location</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Assignment</TableHead>
-              <TableHead>Last Update</TableHead>
-              <TableHead className="text-right">Action</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {loading ? (
-              <TableRow><TableCell colSpan={6} className="text-center py-20 text-gray-400 uppercase tracking-widest text-xs font-bold animate-pulse">Syncing Issue Matrix...</TableCell></TableRow>
-            ) : issues.length === 0 ? (
-              <TableRow><TableCell colSpan={6} className="text-center py-20 text-gray-400 italic">No issues found matching your filters.</TableCell></TableRow>
-            ) : (
-              issues.map(issue => (
-                <TableRow key={issue.issue_id} className="hover:bg-gray-50/50 dark:hover:bg-gray-900/50 transition-colors">
-                  <TableCell>
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <span className={`text-[9px] font-black uppercase px-1.5 py-0.5 rounded ${issue.severity.includes('High') ? 'bg-red-500 text-white' :
-                            issue.severity.includes('Medium') ? 'bg-orange-500 text-white' : 'bg-blue-500 text-white'
-                          }`}>{issue.severity.split(' ')[0]}</span>
-                        <span className="font-bold text-sm text-black dark:text-white line-clamp-1">{issue.title}</span>
-                      </div>
-                      <p className="text-xs text-gray-500 line-clamp-1 italic">Reported by: {issue.reporter_name}</p>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="space-y-0.5">
-                      <div className="text-[10px] font-bold text-blue-600 dark:text-blue-400 flex items-center gap-1 uppercase"><LayoutPanelTop size={10} /> {issue.project_name}</div>
-                      <div className="text-[10px] font-medium text-gray-500 flex items-center gap-1 uppercase"><Layers size={10} /> {issue.module_name}</div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${getStatusColor(issue.status)}`}>
-                      {issue.status}
-                    </span>
-                  </TableCell>
-                  <TableCell>
-                    {issue.status === ISSUE_STATUS.CLOSED ? (
-                      <div className="flex items-center gap-1.5 text-green-600 dark:text-green-400 text-[10px] font-bold uppercase">
-                        <ShieldCheck size={12} /> {issue.solver_name}
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-1.5 text-gray-500 text-[10px] font-bold uppercase">
-                        <UserCheck size={12} /> {issue.developer_name || 'Unassigned'}
-                      </div>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-[10px] text-gray-400 uppercase font-medium">
-                    {new Date(issue.updated_at).toLocaleDateString()}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="h-8 w-8 p-0 text-blue-600"
-                      onClick={() => handleOpenIssue(issue)}
-                      title="View Details & Manage"
-                    >
-                      <ExternalLink size={16} />
-                    </Button>
-                  </TableCell>
+            <TableHeader className="bg-gray-50/50 dark:bg-gray-900/50">
+                <TableRow>
+                    <TableHead className="w-[350px]">Issue Details</TableHead>
+                    <TableHead>Location</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Assignment</TableHead>
+                    <TableHead>Last Update</TableHead>
+                    <TableHead className="text-right">Action</TableHead>
                 </TableRow>
-              ))
-            )}
-          </TableBody>
+            </TableHeader>
+            <TableBody>
+                {loading ? (
+                    <TableRow><TableCell colSpan={6} className="text-center py-20 text-gray-400 uppercase tracking-widest text-xs font-bold animate-pulse">Syncing Issue Matrix...</TableCell></TableRow>
+                ) : issues.length === 0 ? (
+                    <TableRow><TableCell colSpan={6} className="text-center py-20 text-gray-400 italic">No issues found matching your filters.</TableCell></TableRow>
+                ) : (
+                    issues.map(issue => (
+                        <TableRow key={issue.issue_id} className="hover:bg-gray-50/50 dark:hover:bg-gray-900/50 transition-colors">
+                            <TableCell>
+                                <div className="space-y-1">
+                                    <div className="flex items-center gap-2">
+                                        <span className={`text-[9px] font-black uppercase px-1.5 py-0.5 rounded ${
+                                            issue.severity.includes('High') ? 'bg-red-500 text-white' : 
+                                            issue.severity.includes('Medium') ? 'bg-orange-500 text-white' : 'bg-blue-500 text-white'
+                                        }`}>{issue.severity.split(' ')[0]}</span>
+                                        <span className="font-bold text-sm text-black dark:text-white line-clamp-1">{issue.title}</span>
+                                    </div>
+                                    <p className="text-xs text-gray-500 line-clamp-1 italic">Reported by: {issue.reporter_name}</p>
+                                </div>
+                            </TableCell>
+                            <TableCell>
+                                <div className="space-y-0.5">
+                                    <div className="text-[10px] font-bold text-blue-600 dark:text-blue-400 flex items-center gap-1 uppercase"><LayoutPanelTop size={10}/> {issue.project_name}</div>
+                                    <div className="text-[10px] font-medium text-gray-500 flex items-center gap-1 uppercase"><Layers size={10}/> {issue.module_name}</div>
+                                </div>
+                            </TableCell>
+                            <TableCell>
+                                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${getStatusColor(issue.status)}`}>
+                                    {issue.status}
+                                </span>
+                            </TableCell>
+                            <TableCell>
+                                {issue.status === ISSUE_STATUS.CLOSED ? (
+                                    <div className="flex items-center gap-1.5 text-green-600 dark:text-green-400 text-[10px] font-bold uppercase">
+                                        <ShieldCheck size={12} /> {issue.solver_name}
+                                    </div>
+                                ) : (
+                                    <div className="flex items-center gap-1.5 text-gray-500 text-[10px] font-bold uppercase">
+                                        <UserCheck size={12} /> {issue.developer_name || 'Unassigned'}
+                                    </div>
+                                )}
+                            </TableCell>
+                            <TableCell className="text-[10px] text-gray-400 uppercase font-medium">
+                                {new Date(issue.updated_at).toLocaleDateString()}
+                            </TableCell>
+                            <TableCell className="text-right">
+                                <Button 
+                                    size="sm" 
+                                    variant="ghost" 
+                                    className="h-8 w-8 p-0 text-blue-600"
+                                    onClick={() => handleOpenIssue(issue)}
+                                    title="View Details & Manage"
+                                >
+                                    <ExternalLink size={16} />
+                                </Button>
+                            </TableCell>
+                        </TableRow>
+                    ))
+                )}
+            </TableBody>
         </Table>
-        <Pagination
-          currentPage={page}
-          totalPages={totalPages}
-          pageSize={limit}
-          totalItems={total}
-          onPageChange={setPage}
-          onPageSizeChange={(s) => { setLimit(s); setPage(1); }}
+        <Pagination 
+            currentPage={page}
+            totalPages={totalPages}
+            pageSize={limit}
+            totalItems={total}
+            onPageChange={setPage}
+            onPageSizeChange={(s) => { setLimit(s); setPage(1); }}
         />
       </div>
 
-      <IssuesListDialog
+      <IssuesListDialog 
         testCaseId={selectedTestCase?.id || null}
         testCaseTitle={selectedTestCase?.title || ''}
         isOpen={isIssuesDialogOpen}

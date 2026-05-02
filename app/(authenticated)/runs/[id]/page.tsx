@@ -1,27 +1,33 @@
 "use client";
 
-import React, { use, useState, useEffect } from 'react';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, Button } from "@/components/ui";
+import React, { use, useState, useEffect, useCallback } from 'react';
+import { Button } from "@/components/ui";
 import { TestExecutionGrid } from "@/components/grids/TestExecutionGrid";
 import { CheckCircle, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
+interface Run {
+  run_id: string;
+  name: string;
+  status: string;
+}
+
 export default function RunExecutionPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
-  const [run, setRun] = useState<any>(null);
+  const [run, setRun] = useState<Run | null>(null);
 
-  const fetchRun = async () => {
+  const fetchRun = useCallback(async () => {
     const res = await fetch('/api/test-runs?limit=1000');
     const resData = await res.json();
-    const currentRun = (resData.data || []).find((r: any) => r.run_id === id);
-    setRun(currentRun);
-  };
+    const currentRun = (resData.data || []).find((r: Run) => r.run_id === id);
+    setRun(currentRun || null);
+  }, [id]);
 
   useEffect(() => {
     fetchRun();
-  }, [id]);
+  }, [fetchRun]);
 
   const completeRun = async () => {
     if (!confirm('Are you sure you want to complete this test run?')) return;

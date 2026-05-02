@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Modal, Button, Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '../ui';
-import { AlertCircle, CheckCircle2, Clock, Play, User, LayoutPanelTop, Calendar } from 'lucide-react';
+import { AlertCircle, User, LayoutPanelTop, Calendar } from 'lucide-react';
 import { ISSUE_STATUS } from '@/lib/constants';
 
 interface Run {
@@ -38,8 +38,8 @@ export const RunDetailDialog = ({ run, isOpen, onClose }: RunDetailDialogProps) 
   const [issues, setIssues] = useState<RunIssue[]>([]);
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    if (run && isOpen) {
+  const fetchIssues = useCallback(() => {
+    if (run) {
       setLoading(true);
       fetch(`/api/issues?runId=${run.run_id}`)
         .then(res => res.json())
@@ -48,7 +48,13 @@ export const RunDetailDialog = ({ run, isOpen, onClose }: RunDetailDialogProps) 
           setLoading(false);
         });
     }
-  }, [run, isOpen]);
+  }, [run]);
+
+  useEffect(() => {
+    if (run && isOpen) {
+      fetchIssues();
+    }
+  }, [run, isOpen, fetchIssues]);
 
   if (!run) return null;
 
@@ -67,11 +73,11 @@ export const RunDetailDialog = ({ run, isOpen, onClose }: RunDetailDialogProps) 
             <div className="p-4 bg-gray-50 dark:bg-gray-900 rounded-xl border dark:border-gray-800">
                 <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Progress</span>
                 <div className="mt-2 flex items-end justify-between">
-                    <p className="text-2xl font-bold">{Math.round((run.passed_count / run.total_cases) * 100) || 0}%</p>
+                    <p className="text-2xl font-bold">{Math.round((run.passed_count / (run.total_cases || 1)) * 100) || 0}%</p>
                     <p className="text-xs text-gray-500">{run.passed_count} / {run.total_cases} Passed</p>
                 </div>
                 <div className="w-full h-1.5 bg-gray-200 dark:bg-gray-800 rounded-full mt-2 overflow-hidden">
-                    <div className="h-full bg-green-500 transition-all" style={{ width: `${(run.passed_count / run.total_cases) * 100 || 0}%` }}></div>
+                    <div className="h-full bg-green-500 transition-all" style={{ width: `${(run.passed_count / (run.total_cases || 1)) * 100 || 0}%` }}></div>
                 </div>
             </div>
             <div className="p-4 bg-gray-50 dark:bg-gray-900 rounded-xl border dark:border-gray-800">

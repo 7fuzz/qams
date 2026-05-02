@@ -15,6 +15,7 @@ import { TEST_CASE_TYPE, TEST_CASE_TYPE_OPTIONS, TEST_PRIORITY, TEST_PRIORITY_OP
 import { GRID_CONTAINER_CLASS, unifiedGridTheme } from '@/lib/theme';
 import { EditTestCaseDialog } from '../dialogs/EditTestCaseDialog';
 import { IssuesListDialog } from '../dialogs/IssuesListDialog';
+import * as XLSX from 'xlsx';
 
 ModuleRegistry.registerModules([AllCommunityModule]);
 
@@ -86,71 +87,103 @@ export const TestManagementGrid = ({ moduleId }: TestManagementGridProps) => {
   };
 
   const handleDownloadTemplate = () => {
-    const headers = ['scenario', 'title', 'type', 'priority', 'automation_status', 'requirement_link', 'estimated_duration', 'precondition', 'steps', 'test_data', 'expected_result'];
-    const sampleRows = [
-        ['Login', 'Login dengan email terdaftar', 'Positive', 'P0 - Critical', 'Manual', '', '5', '', '1. Open page', '', 'Success'],
-        ['', 'Login dengan password salah', 'Negative', 'P1 - High', 'Manual', '', '3', '', '1. Open page', '', 'Error shown'],
-        ['Register', 'Register user baru', 'Positive', 'P0 - Critical', 'Manual', '', '10', '', '1. Enter data', '', 'Account created']
+    const data = [
+        {
+            scenario: 'Login',
+            title: 'Login dengan email terdaftar dan password yang benar',
+            type: 'Positive',
+            priority: 'P0 - Critical',
+            automation_status: 'Manual',
+            requirement_link: '',
+            estimated_duration: 5,
+            precondition: 'User is registered',
+            steps: '1. Open Login Page\n2. Enter email\n3. Enter valid password\n4. Click Login',
+            test_data: 'email: test@example.com',
+            expected_result: 'Dashboard should be displayed'
+        },
+        {
+            scenario: '',
+            title: 'Login menggunakan email yang terdaftar dan password yang salah',
+            type: 'Negative',
+            priority: 'P1 - High',
+            automation_status: 'Manual',
+            requirement_link: '',
+            estimated_duration: 3,
+            precondition: '',
+            steps: '1. Open Login Page\n2. Enter valid email\n3. Enter WRONG password\n4. Click Login',
+            test_data: '',
+            expected_result: 'Error message "Invalid credentials" shown'
+        },
+        {
+            scenario: 'Register',
+            title: 'Register dengan email baru',
+            type: 'Positive',
+            priority: 'P0 - Critical',
+            automation_status: 'Manual',
+            requirement_link: '',
+            estimated_duration: 10,
+            precondition: '',
+            steps: '1. Open Register Page\n2. Fill all data\n3. Submit',
+            test_data: '',
+            expected_result: 'Account created successfully'
+        }
     ];
-    
-    const csvContent = [
-        headers.join(','),
-        ...sampleRows.map(row => row.map(val => `"${val.replace(/"/g, '""')}"`).join(','))
-    ].join('\n');
 
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.setAttribute('href', url);
-    link.setAttribute('download', 'test_case_import_template.csv');
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    const worksheet = XLSX.utils.json_to_sheet(data);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Test Cases");
+
+    // Adjust column widths
+    const wscols = [
+        { wch: 15 }, // scenario
+        { wch: 40 }, // title
+        { wch: 10 }, // type
+        { wch: 15 }, // priority
+        { wch: 15 }, // automation_status
+        { wch: 20 }, // requirement_link
+        { wch: 10 }, // duration
+        { wch: 20 }, // precondition
+        { wch: 40 }, // steps
+        { wch: 20 }, // test_data
+        { wch: 30 }, // expected_result
+    ];
+    worksheet['!cols'] = wscols;
+
+    XLSX.writeFile(workbook, "test_case_template.xlsx");
   };
 
-  const handleImportCSV = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImportExcel = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
     const reader = new FileReader();
     reader.onload = async (e) => {
-        const text = e.target?.result as string;
-        const lines = text.split('\n');
-        const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
-        
-        let lastScenario = '';
-        const testCases = lines.slice(1).filter(line => line.trim()).map(line => {
-            const values: string[] = [];
-            let current = '';
-            let inQuotes = false;
-            for (let i = 0; i < line.length; i++) {
-                const char = line[i];
-                if (char === '"') inQuotes = !inQuotes;
-                else if (char === ',' && !inQuotes) {
-                    values.push(current.trim());
-                    current = '';
-                } else {
-                    current += char;
-                }
-            }
-            values.push(current.trim());
+        const data = new Uint8Array(e.target?.result as ArrayBuffer);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        const json: any[] = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
 
+        let lastScenario = '';
+        const testCases = json.map(row => {
             const obj: any = {};
-            headers.forEach((header, idx) => {
-                obj[header] = values[idx];
+            // Map headers to lowercase keys to be flexible
+            Object.keys(row).forEach(key => {
+                obj[key.trim().toLowerCase()] = row[key];
             });
 
-            // Auto-fill scenario from previous row if empty
-            if (obj.scenario) {
-                lastScenario = obj.scenario;
+            // Handle scenario inheritance
+            if (obj.scenario && obj.scenario.trim() !== "") {
+                lastScenario = obj.scenario.trim();
             } else {
                 obj.scenario = lastScenario;
             }
 
             return obj;
-        });
+        }).filter(tc => tc.title || tc.case); // Only import rows with a title
 
         if (testCases.length > 0) {
+            setLoading(true);
             const res = await fetch('/api/test-cases/import', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -159,13 +192,14 @@ export const TestManagementGrid = ({ moduleId }: TestManagementGridProps) => {
             if (res.ok) {
                 fetchScenarios();
                 fetchTestCases();
-                alert(`Imported ${testCases.length} test cases across scenarios.`);
+                alert(`Imported ${testCases.length} test cases successfully.`);
             } else {
-                alert('Import failed. Please check your CSV format.');
+                alert('Import failed. Please check your data.');
             }
+            setLoading(false);
         }
     };
-    reader.readAsText(file);
+    reader.readAsArrayBuffer(file);
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
@@ -379,8 +413,8 @@ export const TestManagementGrid = ({ moduleId }: TestManagementGridProps) => {
           <input 
             type="file" 
             ref={fileInputRef} 
-            onChange={handleImportCSV} 
-            accept=".csv" 
+            onChange={handleImportExcel} 
+            accept=".xlsx, .xls" 
             className="hidden" 
           />
 

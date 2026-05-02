@@ -10,10 +10,11 @@ import {
   themeQuartz
 } from 'ag-grid-community';
 import { Button, Input } from './ui';
-import { Trash2, Plus, Copy, AlertCircle, ListChecks, Edit2 } from 'lucide-react';
+import { Trash2, Plus, Copy, AlertCircle, ListChecks, Edit2, CheckCircle2 } from 'lucide-react';
 import { TEST_CASE_TYPE, TEST_CASE_TYPE_OPTIONS } from '@/lib/constants';
-import { unifiedGridTheme, GRID_CONTAINER_CLASS } from '@/lib/theme';
+import { GRID_CONTAINER_CLASS, unifiedGridTheme } from '@/lib/theme';
 import { EditTestCaseDialog } from './EditTestCaseDialog';
+import { IssuesListDialog } from './IssuesListDialog';
 
 ModuleRegistry.registerModules([AllCommunityModule]);
 
@@ -28,6 +29,7 @@ interface TestCase {
   expected_result: string;
   scenario_name?: string;
   open_issues_count?: number;
+  closed_issues_count?: number;
 }
 
 interface Scenario {
@@ -48,6 +50,7 @@ export const TestManagementGrid = ({ moduleId }: TestManagementGridProps) => {
   
   const [selectedTestCase, setSelectedTestCase] = useState<TestCase | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isIssuesDialogOpen, setIsIssuesDialogOpen] = useState(false);
 
   const fetchScenarios = () => fetch(`/api/scenarios?moduleId=${moduleId}`).then(res => res.json()).then(setScenarios);
   
@@ -114,13 +117,25 @@ export const TestManagementGrid = ({ moduleId }: TestManagementGridProps) => {
       }
     },
     { 
-        field: 'open_issues_count', 
         headerName: 'Issues', 
-        width: 90,
+        width: 140,
         editable: false,
         cellRenderer: (params: any) => {
-            if (!params.value) return null;
-            return <div className="flex items-center gap-1 text-red-500 font-bold"><AlertCircle size={14} /> {params.value}</div>;
+            const open = params.data.open_issues_count || 0;
+            const closed = params.data.closed_issues_count || 0;
+            if (open === 0 && closed === 0) return null;
+            return (
+                <div 
+                    className="flex items-center gap-2 cursor-pointer hover:underline"
+                    onClick={() => {
+                        setSelectedTestCase(params.data);
+                        setIsIssuesDialogOpen(true);
+                    }}
+                >
+                    {open > 0 && <span className="flex items-center gap-0.5 text-red-500 font-bold"><AlertCircle size={12} />{open}</span>}
+                    {closed > 0 && <span className="flex items-center gap-0.5 text-green-500 font-bold"><CheckCircle2 size={12} />{closed}</span>}
+                </div>
+            );
         }
     },
     { field: 'precondition', headerName: 'Precondition', width: 200 },
@@ -140,7 +155,7 @@ export const TestManagementGrid = ({ moduleId }: TestManagementGridProps) => {
     { field: 'test_data', headerName: 'Test Data', width: 150 },
     {
         headerName: '',
-        width: 80,
+        width: 60,
         pinned: 'right',
         cellRenderer: (params: any) => (
             <Button 
@@ -271,6 +286,14 @@ export const TestManagementGrid = ({ moduleId }: TestManagementGridProps) => {
         isOpen={isEditDialogOpen}
         onClose={() => setIsEditDialogOpen(false)}
         onSave={() => fetchTestCases(true)}
+      />
+
+      <IssuesListDialog 
+        testCaseId={selectedTestCase?.test_case_id || null}
+        testCaseTitle={selectedTestCase?.title || ''}
+        isOpen={isIssuesDialogOpen}
+        onClose={() => setIsIssuesDialogOpen(false)}
+        onRefresh={() => fetchTestCases(true)}
       />
     </div>
   );

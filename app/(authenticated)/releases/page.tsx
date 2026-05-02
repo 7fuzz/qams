@@ -84,7 +84,9 @@ export default function ReleasesPage() {
   };
 
   const fetchIssues = (pid: string) => {
-      fetch(`/api/issues?projectId=${pid}`).then(res => res.json()).then(setProjectIssues);
+      fetch(`/api/issues?projectId=${pid}&limit=1000`).then(res => res.json()).then(resData => {
+          setProjectIssues(resData.data || []);
+      });
   };
 
   const fetchModules = (pid: string) => {

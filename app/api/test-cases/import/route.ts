@@ -12,14 +12,16 @@ export async function POST(request: Request) {
     if (!session.isLoggedIn) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     try {
-        const { moduleId, scenarioId, testCases } = await request.json();
+        const { moduleId, testCases } = await request.json();
         
         if (!testCases || !Array.isArray(testCases)) {
             return NextResponse.json({ error: 'Invalid data format' }, { status: 400 });
         }
 
         const importTransaction = db.transaction((cases) => {
-            const insert = db.prepare(`
+            const scenarioCache: Record<string, string> = {};
+
+            const insertCase = db.prepare(`
                 INSERT INTO test_cases (
                     test_case_id, scenario_id, title, type, priority, 
                     automation_status, requirement_link, estimated_duration, 
@@ -27,11 +29,30 @@ export async function POST(request: Request) {
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             `);
 
+            const findScenario = db.prepare('SELECT scenario_id FROM scenarios WHERE name = ? AND module_id = ?');
+            const createScenario = db.prepare('INSERT INTO scenarios (scenario_id, module_id, name) VALUES (?, ?, ?)');
+
             for (const tc of cases) {
-                insert.run(
+                const scenarioName = tc.scenario || 'Default Scenario';
+                
+                // 1. Get or Create Scenario ID
+                let scenarioId = scenarioCache[scenarioName];
+                if (!scenarioId) {
+                    const existing = findScenario.get(scenarioName, moduleId) as { scenario_id: string };
+                    if (existing) {
+                        scenarioId = existing.scenario_id;
+                    } else {
+                        scenarioId = generateId();
+                        createScenario.run(scenarioId, moduleId, scenarioName);
+                    }
+                    scenarioCache[scenarioName] = scenarioId;
+                }
+
+                // 2. Insert Test Case
+                insertCase.run(
                     generateId(),
-                    scenarioId, // Using the scenarioId provided (usually first scenario or specifically selected)
-                    tc.title || 'Untitled Case',
+                    scenarioId,
+                    tc.title || tc.case || 'Untitled Case', // Support both 'title' or 'case' headers
                     tc.type || TEST_CASE_TYPE.POSITIVE,
                     tc.priority || TEST_PRIORITY.P2,
                     tc.automation_status || AUTOMATION_STATUS.MANUAL,

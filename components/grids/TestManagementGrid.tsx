@@ -86,19 +86,23 @@ export const TestManagementGrid = ({ moduleId }: TestManagementGridProps) => {
   };
 
   const handleDownloadTemplate = () => {
-    const headers = ['title', 'type', 'priority', 'automation_status', 'requirement_link', 'estimated_duration', 'precondition', 'steps', 'test_data', 'expected_result'];
-    const sampleRow = ['Verify login success', 'Positive', 'P1 - High', 'Manual', 'https://jira.com/req-1', '5', 'Valid user exists', '1. Enter email\n2. Enter pass\n3. Click Login', 'email: admin@test.com', 'Dashboard loads'];
+    const headers = ['scenario', 'title', 'type', 'priority', 'automation_status', 'requirement_link', 'estimated_duration', 'precondition', 'steps', 'test_data', 'expected_result'];
+    const sampleRows = [
+        ['Login', 'Login dengan email terdaftar', 'Positive', 'P0 - Critical', 'Manual', '', '5', '', '1. Open page', '', 'Success'],
+        ['', 'Login dengan password salah', 'Negative', 'P1 - High', 'Manual', '', '3', '', '1. Open page', '', 'Error shown'],
+        ['Register', 'Register user baru', 'Positive', 'P0 - Critical', 'Manual', '', '10', '', '1. Enter data', '', 'Account created']
+    ];
     
     const csvContent = [
         headers.join(','),
-        sampleRow.map(val => `"${val.replace(/"/g, '""')}"`).join(',')
+        ...sampleRows.map(row => row.map(val => `"${val.replace(/"/g, '""')}"`).join(','))
     ].join('\n');
 
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.setAttribute('href', url);
-    link.setAttribute('download', 'test_case_template.csv');
+    link.setAttribute('download', 'test_case_import_template.csv');
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -106,7 +110,7 @@ export const TestManagementGrid = ({ moduleId }: TestManagementGridProps) => {
 
   const handleImportCSV = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (!file || scenarios.length === 0) return;
+    if (!file) return;
 
     const reader = new FileReader();
     reader.onload = async (e) => {
@@ -114,8 +118,8 @@ export const TestManagementGrid = ({ moduleId }: TestManagementGridProps) => {
         const lines = text.split('\n');
         const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
         
+        let lastScenario = '';
         const testCases = lines.slice(1).filter(line => line.trim()).map(line => {
-            // Basic CSV parser that handles quotes
             const values: string[] = [];
             let current = '';
             let inQuotes = false;
@@ -135,21 +139,30 @@ export const TestManagementGrid = ({ moduleId }: TestManagementGridProps) => {
             headers.forEach((header, idx) => {
                 obj[header] = values[idx];
             });
+
+            // Auto-fill scenario from previous row if empty
+            if (obj.scenario) {
+                lastScenario = obj.scenario;
+            } else {
+                obj.scenario = lastScenario;
+            }
+
             return obj;
         });
 
         if (testCases.length > 0) {
-            await fetch('/api/test-cases/import', {
+            const res = await fetch('/api/test-cases/import', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    moduleId,
-                    scenarioId: scenarios[0].scenario_id, // Default to first scenario
-                    testCases
-                }),
+                body: JSON.stringify({ moduleId, testCases }),
             });
-            fetchTestCases();
-            alert(`Imported ${testCases.length} test cases successfully.`);
+            if (res.ok) {
+                fetchScenarios();
+                fetchTestCases();
+                alert(`Imported ${testCases.length} test cases across scenarios.`);
+            } else {
+                alert('Import failed. Please check your CSV format.');
+            }
         }
     };
     reader.readAsText(file);
@@ -168,17 +181,17 @@ export const TestManagementGrid = ({ moduleId }: TestManagementGridProps) => {
             const scenarioName = scenarios.find(s => s.scenario_id === params.value)?.name || params.value;
             return (
                 <div className="flex items-center justify-between w-full h-full gap-2">
-                    <span className="truncate">{scenarioName}</span>
+                    <span className="truncate font-bold">{scenarioName}</span>
                     <Button 
                         size="sm" 
-                        className="h-9 w-9 p-0 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-800/50 border border-blue-200 dark:border-blue-800 shadow-sm shrink-0"
+                        className="h-8 w-8 p-0 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-800/50 border border-blue-200 dark:border-blue-800 shadow-sm shrink-0"
                         onClick={(e) => {
                             e.stopPropagation();
                             setSelectedTestCase(params.data);
                             setIsEditDialogOpen(true);
                         }}
                     >
-                        <Edit2 size={18} />
+                        <Edit2 size={16} />
                     </Button>
                 </div>
             );

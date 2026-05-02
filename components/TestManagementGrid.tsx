@@ -270,10 +270,6 @@ export const TestManagementGrid = ({ moduleId }: TestManagementGridProps) => {
           columnDefs={columnDefs}
           defaultColDef={defaultColDef}
           onCellValueChanged={onCellValueChanged}
-          onRowDoubleClicked={(params) => {
-            setSelectedTestCase(params.data);
-            setIsEditDialogOpen(true);
-          }}
           rowSelection="multiple"
           animateRows={true}
         />

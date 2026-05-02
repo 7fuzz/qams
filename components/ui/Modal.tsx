@@ -1,6 +1,6 @@
 "use client";
 
-import React from 'react';
+import React, { useRef } from 'react';
 import { X } from 'lucide-react';
 import { Button } from './Button';
 
@@ -12,11 +12,25 @@ interface ModalProps {
 }
 
 export const Modal = ({ isOpen, onClose, title, children }: ModalProps) => {
+  const modalRef = useRef<HTMLDivElement>(null);
+
   if (!isOpen) return null;
 
+  const handleBackdropClick = (e: React.MouseEvent) => {
+    if (modalRef.current && !modalRef.current.contains(e.target as Node)) {
+      onClose();
+    }
+  };
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-      <div className="bg-white dark:bg-gray-950 rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col border dark:border-gray-800 animate-in fade-in zoom-in duration-200">
+    <div 
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200"
+      onClick={handleBackdropClick}
+    >
+      <div 
+        ref={modalRef}
+        className="bg-white dark:bg-gray-950 rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col border dark:border-gray-800 animate-in zoom-in duration-200"
+      >
         <div className="flex items-center justify-between px-6 py-4 border-b dark:border-gray-800">
           <h3 className="text-xl font-semibold tracking-tight">{title}</h3>
           <button 
@@ -26,7 +40,7 @@ export const Modal = ({ isOpen, onClose, title, children }: ModalProps) => {
             <X size={20} />
           </button>
         </div>
-        <div className="flex-1 overflow-y-auto p-6">
+        <div className="flex-1 overflow-y-auto p-6 bg-white dark:bg-gray-950">
           {children}
         </div>
       </div>

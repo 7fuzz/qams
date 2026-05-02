@@ -42,29 +42,29 @@ export const Combobox = ({ options, value, onChange, placeholder = "Select...", 
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="flex h-10 w-full items-center justify-between rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-hidden focus:ring-2 focus:ring-gray-400 dark:border-gray-800 dark:bg-gray-950"
+        className="flex h-10 w-full items-center justify-between rounded-md border border-gray-300 bg-white dark:bg-gray-950 px-3 py-2 text-sm focus:outline-hidden focus:ring-2 focus:ring-gray-400 dark:border-gray-800"
       >
-        <span className={!selectedOption ? "text-gray-500" : ""}>
+        <span className={!selectedOption ? "text-gray-500" : "text-gray-900 dark:text-gray-100"}>
           {selectedOption ? selectedOption.label : placeholder}
         </span>
         <ChevronDown size={16} className="text-gray-500" />
       </button>
 
       {isOpen && (
-        <div className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-md border border-gray-200 bg-white p-1 shadow-lg dark:border-gray-800 dark:bg-gray-950">
-          <div className="flex items-center border-b px-2 pb-1 dark:border-gray-800">
+        <div className="absolute z-[100] mt-1 max-h-60 w-full overflow-auto rounded-md border border-gray-200 bg-white dark:bg-gray-950 p-1 shadow-xl dark:border-gray-800">
+          <div className="sticky top-0 z-10 flex items-center border-b bg-white dark:bg-gray-950 px-2 pb-1 dark:border-gray-800">
             <Search size={14} className="mr-2 text-gray-500" />
             <input
               autoFocus
               placeholder="Search..."
-              className="w-full bg-transparent py-2 text-sm outline-hidden"
+              className="w-full bg-transparent py-2 text-sm outline-hidden text-gray-900 dark:text-gray-100"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
-          <div className="mt-1">
+          <div className="mt-1 bg-white dark:bg-gray-950">
             {filteredOptions.length === 0 ? (
-              <div className="px-2 py-2 text-sm text-gray-500">No results found.</div>
+              <div className="px-2 py-2 text-sm text-gray-500 bg-white dark:bg-gray-950">No results found.</div>
             ) : (
               filteredOptions.map((option) => (
                 <button
@@ -75,7 +75,7 @@ export const Combobox = ({ options, value, onChange, placeholder = "Select...", 
                     setIsOpen(false);
                     setSearch("");
                   }}
-                  className={`flex w-full items-center rounded-sm px-2 py-2 text-sm transition-colors hover:bg-gray-100 dark:hover:bg-gray-800 ${
+                  className={`flex w-full items-center rounded-sm px-2 py-2 text-sm transition-colors bg-white dark:bg-gray-950 hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-900 dark:text-gray-100 ${
                     value === option.value ? "bg-gray-50 dark:bg-gray-900" : ""
                   }`}
                 >

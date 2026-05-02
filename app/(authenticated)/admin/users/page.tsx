@@ -220,9 +220,6 @@ export default function UserManagementPage() {
           />
       </div>
 
-          />
-      </div>
-
       <Modal 
         isOpen={isModalOpen} 
         onClose={() => setIsModalOpen(false)} 

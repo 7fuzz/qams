@@ -28,7 +28,10 @@ export default function TestsPage() {
   const [isInitialLoad, setIsInitialLoad] = useState(true);
 
   const fetchProjects = () => fetch('/api/projects').then(res => res.json()).then(setProjects);
-  const fetchModules = (id: number) => fetch(`/api/modules?projectId=${id}`).then(res => res.json()).then(setModules);
+  const fetchModules = (id: number) => fetch(`/api/modules?projectId=${id}`).then(res => res.json()).then(data => {
+    setModules(data);
+    return data;
+  });
 
   // Load persistent state on mount
   useEffect(() => {
@@ -39,7 +42,7 @@ export default function TestsPage() {
         if (savedProject) {
             setSelectedProjectId(savedProject);
             fetchModules(savedProject).then((mods: Module[]) => {
-                if (savedModule && mods.some(m => m.module_id === savedModule)) {
+                if (savedModule && mods && Array.isArray(mods) && mods.some(m => m.module_id === savedModule)) {
                     setSelectedModuleId(savedModule);
                 }
                 setIsInitialLoad(false);

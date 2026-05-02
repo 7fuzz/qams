@@ -99,15 +99,14 @@ export const TestManagementGrid = ({ moduleId }: TestManagementGridProps) => {
                     <span className="truncate">{scenarioName}</span>
                     <Button 
                         size="sm" 
-                        variant="ghost" 
-                        className="h-7 w-7 p-0 text-blue-600 hover:text-blue-700 hover:bg-blue-50 opacity-40 hover:opacity-100 transition-opacity"
+                        className="h-9 w-9 p-0 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-800/50 border border-blue-200 dark:border-blue-800 shadow-sm shrink-0"
                         onClick={(e) => {
                             e.stopPropagation();
                             setSelectedTestCase(params.data);
                             setIsEditDialogOpen(true);
                         }}
                     >
-                        <Edit2 size={14} />
+                        <Edit2 size={18} />
                     </Button>
                 </div>
             );

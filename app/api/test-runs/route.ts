@@ -62,6 +62,33 @@ export async function POST(request: Request) {
     }
 }
 
+export async function PUT(request: Request) {
+    const session = await getIronSession<SessionData>(await cookies(), sessionOptions);
+    if (!session.isLoggedIn) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+    try {
+        const { run_id, status } = await request.json();
+        
+        let updateQuery = 'UPDATE test_runs SET status = ?';
+        const params = [status];
+
+        if (status === 'Completed') {
+            updateQuery += ', completed_at = CURRENT_TIMESTAMP';
+        }
+
+        updateQuery += ' WHERE run_id = ?';
+        params.push(run_id);
+
+        db.prepare(updateQuery).run(...params);
+        
+        logActivity(session.user_id, 'UPDATE', 'PROJECT', run_id, { action: 'SET_RUN_STATUS', status });
+        
+        return NextResponse.json({ success: true });
+    } catch {
+        return NextResponse.json({ error: 'Failed to update test run' }, { status: 500 });
+    }
+}
+
 export async function DELETE(request: Request) {
     const session = await getIronSession<SessionData>(await cookies(), sessionOptions);
     if (!session.isLoggedIn) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

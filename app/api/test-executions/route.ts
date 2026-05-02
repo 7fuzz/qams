@@ -3,6 +3,7 @@ import { getIronSession } from "iron-session";
 import { cookies } from "next/headers";
 import { sessionOptions, SessionData } from "@/lib/session";
 import db from '@/lib/db';
+import { logActivity } from '@/lib/logger';
 
 export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
@@ -33,6 +34,17 @@ export async function PUT(request: Request) {
             SET status = ?, notes = ?, proof_url = ?, executed_at = CURRENT_TIMESTAMP
             WHERE execution_id = ?
         `).run(status, notes, proof_url, execution_id);
+
+        // Fetch execution details for logging
+        const execution = db.prepare('SELECT run_id, test_case_id FROM test_executions WHERE execution_id = ?').get(execution_id) as { run_id: number, test_case_id: number };
+        const testCase = db.prepare('SELECT title FROM test_cases WHERE test_case_id = ?').get(execution.test_case_id) as { title: string };
+
+        logActivity(session.user_id, 'UPDATE', 'TEST_CASE', execution.test_case_id, { 
+            action: 'EXECUTE',
+            run_id: execution.run_id,
+            status,
+            test_case: testCase.title 
+        });
         
         return NextResponse.json({ success: true });
     } catch {

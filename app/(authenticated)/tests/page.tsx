@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent, Input, Button } from "@/components/ui";
 import { Combobox } from "@/components/ui/Combobox";
 import { TestManagementGrid } from "@/components/TestManagementGrid";
-import { Search, Filter, X, FolderTree, Layers, ListChecks } from 'lucide-react';
+import { Plus, FolderTree, Layers, ListChecks } from 'lucide-react';
 
 interface Project {
   project_id: number;
@@ -16,149 +16,108 @@ interface Module {
   name: string;
 }
 
-interface Scenario {
-  scenario_id: number;
-  name: string;
-}
-
 export default function TestsPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [modules, setModules] = useState<Module[]>([]);
-  const [scenarios, setScenarios] = useState<Scenario[]>([]);
   
   const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
   const [selectedModuleId, setSelectedModuleId] = useState<number | null>(null);
-  const [selectedScenarioId, setSelectedScenarioId] = useState<number | null>(null);
   
-  const [quickSearch, setQuickSearch] = useState('');
-  const [showFilters, setShowFilters] = useState(true);
+  const [newModuleName, setNewModuleName] = useState('');
+
+  const fetchProjects = () => fetch('/api/projects').then(res => res.json()).then(setProjects);
+  const fetchModules = (id: number) => fetch(`/api/modules?projectId=${id}`).then(res => res.json()).then(setModules);
 
   useEffect(() => {
-    fetch('/api/projects').then(res => res.json()).then(setProjects);
+    fetchProjects();
   }, []);
 
   useEffect(() => {
     if (selectedProjectId) {
-      fetch(`/api/modules?projectId=${selectedProjectId}`)
-        .then(res => res.json())
-        .then(data => {
-          setModules(data);
-          setSelectedModuleId(null);
-          setScenarios([]);
-          setSelectedScenarioId(null);
-        });
+      fetchModules(selectedProjectId);
+      setSelectedModuleId(null);
     } else {
       setModules([]);
       setSelectedModuleId(null);
     }
   }, [selectedProjectId]);
 
-  useEffect(() => {
-    if (selectedModuleId) {
-      fetch(`/api/scenarios?moduleId=${selectedModuleId}`)
-        .then(res => res.json())
-        .then(data => {
-          setScenarios(data);
-          setSelectedScenarioId(null);
-        });
-    } else {
-      setScenarios([]);
-      setSelectedScenarioId(null);
-    }
-  }, [selectedModuleId]);
-
-  const clearFilters = () => {
-    setSelectedProjectId(null);
-    setSelectedModuleId(null);
-    setSelectedScenarioId(null);
-    setQuickSearch('');
+  const handleAddModule = async () => {
+    if (!newModuleName || !selectedProjectId) return;
+    await fetch('/api/modules', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: newModuleName, project_id: selectedProjectId }),
+    });
+    setNewModuleName('');
+    fetchModules(selectedProjectId);
   };
 
   return (
     <div className="container mx-auto p-4 md:p-8 flex flex-col gap-6 max-w-full">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="space-y-1">
-          <h1 className="text-3xl font-bold tracking-tight text-black dark:text-white">Global Test Library</h1>
-          <p className="text-gray-500 text-sm italic uppercase tracking-wider font-medium">Explore and manage all test cases across the system.</p>
-        </div>
-        
-        <div className="flex items-center gap-3">
-            <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                <Input 
-                    placeholder="Quick search library..." 
-                    className="pl-10 w-full md:w-[300px] shadow-sm"
-                    value={quickSearch}
-                    onChange={e => setQuickSearch(e.target.value)}
-                />
-            </div>
-            <Button 
-                variant={showFilters ? "secondary" : "outline"} 
-                onClick={() => setShowFilters(!showFilters)}
-                className="gap-2"
-            >
-                <Filter size={18} /> {showFilters ? "Hide Filters" : "Show Filters"}
-            </Button>
-            {(selectedProjectId || quickSearch) && (
-                <Button variant="ghost" onClick={clearFilters} className="text-red-500">
-                    <X size={18} className="mr-1" /> Reset
-                </Button>
-            )}
-        </div>
+      <div className="space-y-1">
+        <h1 className="text-3xl font-bold tracking-tight text-black dark:text-white">Test Case Library</h1>
+        <p className="text-gray-500 text-sm italic uppercase tracking-wider font-medium">Select a project and module to manage its test cases.</p>
       </div>
 
-      {showFilters && (
-        <Card className="bg-gray-50/50 dark:bg-gray-900/10 border-dashed animate-in fade-in slide-in-from-top-2 duration-200">
-            <CardContent className="p-4">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="space-y-1.5">
-                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-1">
-                            <FolderTree size={12} /> Project
-                        </label>
-                        <Combobox 
-                            options={projects.map(p => ({ value: p.project_id, label: p.name }))}
-                            value={selectedProjectId || undefined}
-                            onChange={(val) => setSelectedProjectId(Number(val))}
-                            placeholder="All Projects"
-                        />
-                    </div>
-                    <div className="space-y-1.5">
-                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-1 text-gray-400">
-                            <Layers size={12} /> Module
-                        </label>
-                        <Combobox 
-                            options={modules.map(m => ({ value: m.module_id, label: m.name }))}
-                            value={selectedModuleId || undefined}
-                            onChange={(val) => setSelectedModuleId(Number(val))}
-                            placeholder="All Modules"
-                            className={!selectedProjectId ? "opacity-50" : ""}
-                        />
-                    </div>
-                    <div className="space-y-1.5">
-                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-1">
-                            <ListChecks size={12} /> Scenario
-                        </label>
-                        <Combobox 
-                            options={scenarios.map(s => ({ value: s.scenario_id, label: s.name }))}
-                            value={selectedScenarioId || undefined}
-                            onChange={(val) => setSelectedScenarioId(Number(val))}
-                            placeholder="All Scenarios"
-                            className={!selectedModuleId ? "opacity-50" : ""}
-                        />
-                    </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Project Selection */}
+        <Card className={selectedProjectId ? "border-blue-500/30" : ""}>
+          <CardHeader className="pb-3 flex flex-row items-center gap-2">
+            <FolderTree size={16} className="text-gray-400" />
+            <CardTitle className="text-sm font-bold uppercase tracking-wider text-gray-500">1. Select Project</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Combobox 
+              options={projects.map(p => ({ value: p.project_id, label: p.name }))}
+              value={selectedProjectId || undefined}
+              onChange={(val) => setSelectedProjectId(Number(val))}
+              placeholder="Select Project..."
+            />
+          </CardContent>
+        </Card>
+
+        {/* Module Selection */}
+        <Card className={selectedModuleId ? "border-blue-500/30" : ""}>
+          <CardHeader className="pb-3 flex flex-row items-center justify-between">
+            <div className="flex items-center gap-2">
+                <Layers size={16} className="text-gray-400" />
+                <CardTitle className="text-sm font-bold uppercase tracking-wider text-gray-500">2. Select Module</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Combobox 
+              options={modules.map(m => ({ value: m.module_id, label: m.name }))}
+              value={selectedModuleId || undefined}
+              onChange={(val) => setSelectedModuleId(Number(val))}
+              placeholder="Select Module..."
+              className={!selectedProjectId ? "opacity-50 pointer-events-none" : ""}
+            />
+            {selectedProjectId && (
+                <div className="flex gap-2">
+                    <Input 
+                        placeholder="Add New Module..." 
+                        value={newModuleName}
+                        onChange={e => setNewModuleName(e.target.value)}
+                        className="h-8 text-xs"
+                    />
+                    <Button size="sm" className="h-8 px-2" onClick={handleAddModule}><Plus size={14} /></Button>
                 </div>
-            </CardContent>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {selectedModuleId ? (
+        <Card className="shadow-2xl border-gray-200 dark:border-gray-800 overflow-hidden bg-white dark:bg-gray-950">
+          <TestManagementGrid moduleId={selectedModuleId} key={selectedModuleId} />
+        </Card>
+      ) : (
+        <Card className="border-dashed border-2 flex flex-col items-center justify-center p-16 text-gray-400 bg-gray-50/50 dark:bg-gray-900/10">
+          <ListChecks size={48} className="mb-4 opacity-20" />
+          <p className="text-sm font-medium italic">Please select a project and a module to view and manage test cases.</p>
         </Card>
       )}
-
-      <div className="overflow-x-auto pb-4">
-        <TestManagementGrid 
-            scenarioId={selectedScenarioId} 
-            projectId={selectedProjectId}
-            moduleId={selectedModuleId}
-            quickSearch={quickSearch}
-        />
-      </div>
     </div>
   );
 }

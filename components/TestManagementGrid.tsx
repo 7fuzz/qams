@@ -9,8 +9,8 @@ import {
   ModuleRegistry,
   themeQuartz
 } from 'ag-grid-community';
-import { Button } from './ui/Button';
-import { Trash2, Plus, Copy, AlertCircle } from 'lucide-react';
+import { Button, Input } from './ui';
+import { Trash2, Plus, Copy, AlertCircle, ListChecks } from 'lucide-react';
 import { TEST_CASE_TYPE, TEST_CASE_TYPE_OPTIONS } from '@/lib/constants';
 import { GRID_CONTAINER_CLASS } from '@/lib/theme';
 
@@ -25,33 +25,31 @@ interface TestCase {
   steps: string;
   test_data: string;
   expected_result: string;
-  project_name?: string;
-  module_name?: string;
   scenario_name?: string;
-  owner_name?: string;
   open_issues_count?: number;
 }
 
-interface TestManagementGridProps {
-  scenarioId?: number | null;
-  projectId?: number | null;
-  moduleId?: number | null;
-  quickSearch?: string;
+interface Scenario {
+    scenario_id: number;
+    name: string;
 }
 
-export const TestManagementGrid = ({ scenarioId, projectId, moduleId, quickSearch }: TestManagementGridProps) => {
+interface TestManagementGridProps {
+  moduleId: number;
+}
+
+export const TestManagementGrid = ({ moduleId }: TestManagementGridProps) => {
   const gridRef = useRef<AgGridReact>(null);
   const [rowData, setRowData] = useState<TestCase[]>([]);
+  const [scenarios, setScenarios] = useState<Scenario[]>([]);
   const [loading, setLoading] = useState(true);
+  const [newScenarioName, setNewScenarioName] = useState('');
 
+  const fetchScenarios = () => fetch(`/api/scenarios?moduleId=${moduleId}`).then(res => res.json()).then(setScenarios);
+  
   const fetchTestCases = () => {
     setLoading(true);
-    let url = '/api/test-cases';
-    if (scenarioId) url += `?scenarioId=${scenarioId}`;
-    else if (moduleId) url += `?moduleId=${moduleId}`;
-    else if (projectId) url += `?projectId=${projectId}`;
-
-    fetch(url)
+    fetch(`/api/test-cases?moduleId=${moduleId}`)
       .then(res => res.json())
       .then(data => {
         setRowData(data);
@@ -60,45 +58,42 @@ export const TestManagementGrid = ({ scenarioId, projectId, moduleId, quickSearc
   };
 
   useEffect(() => {
+    fetchScenarios();
     fetchTestCases();
-  }, [scenarioId, projectId, moduleId]);
+  }, [moduleId]);
 
-  useEffect(() => {
-    if (gridRef.current?.api) {
-        gridRef.current.api.setGridOption('quickFilterText', quickSearch);
-    }
-  }, [quickSearch]);
+  const handleAddScenario = async () => {
+    if (!newScenarioName) return;
+    await fetch('/api/scenarios', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: newScenarioName, module_id: moduleId }),
+    });
+    setNewScenarioName('');
+    fetchScenarios();
+  };
 
   const columnDefs = useMemo<ColDef[]>(() => [
     { 
+        field: 'scenario_id', 
+        headerName: 'Scenario', 
+        width: 180,
+        pinned: 'left',
+        cellEditor: 'agSelectCellEditor',
+        cellEditorParams: {
+            values: scenarios.map(s => s.scenario_id),
+            formatValue: (id: number) => scenarios.find(s => s.scenario_id === id)?.name || id,
+        },
+        valueFormatter: (params) => scenarios.find(s => s.scenario_id === params.value)?.name || params.value,
+        filter: true,
+    },
+    { 
       field: 'title', 
       headerName: 'Case Title', 
-      width: 200, 
+      width: 250, 
       checkboxSelection: true, 
       headerCheckboxSelection: true,
-      pinned: 'left',
       filter: true
-    },
-    { 
-        field: 'project_name', 
-        headerName: 'Project', 
-        width: 150, 
-        hide: !!scenarioId || !!projectId || !!moduleId,
-        filter: true 
-    },
-    { 
-        field: 'module_name', 
-        headerName: 'Module', 
-        width: 150, 
-        hide: !!scenarioId || !!moduleId,
-        filter: true 
-    },
-    { 
-        field: 'scenario_name', 
-        headerName: 'Scenario', 
-        width: 150, 
-        hide: !!scenarioId,
-        filter: true 
     },
     { 
       field: 'type', 
@@ -117,21 +112,29 @@ export const TestManagementGrid = ({ scenarioId, projectId, moduleId, quickSearc
     { 
         field: 'open_issues_count', 
         headerName: 'Issues', 
-        width: 100,
+        width: 90,
+        editable: false,
         cellRenderer: (params: any) => {
             if (!params.value) return null;
-            return (
-                <div className="flex items-center gap-1 text-red-500 font-bold">
-                    <AlertCircle size={14} /> {params.value}
-                </div>
-            );
+            return <div className="flex items-center gap-1 text-red-500 font-bold"><AlertCircle size={14} /> {params.value}</div>;
         }
     },
-    { field: 'owner_name', headerName: 'Owner', width: 120 },
     { field: 'precondition', headerName: 'Precondition', width: 200 },
-    { field: 'steps', headerName: 'Test Steps', width: 300, autoHeight: true, wrapText: true, cellEditor: 'agLargeTextCellEditor' },
+    { 
+        field: 'steps', 
+        headerName: 'Test Steps', 
+        width: 350, 
+        autoHeight: true, 
+        wrapText: true, 
+        cellEditor: 'agLargeTextCellEditor',
+        cellEditorParams: {
+            cols: 50,
+            rows: 6
+        }
+    },
     { field: 'expected_result', headerName: 'Expected Result', width: 250 },
-  ], [scenarioId, projectId, moduleId]);
+    { field: 'test_data', headerName: 'Test Data', width: 150 },
+  ], [scenarios]);
 
   const defaultColDef = useMemo<ColDef>(() => ({
     resizable: true,
@@ -140,15 +143,16 @@ export const TestManagementGrid = ({ scenarioId, projectId, moduleId, quickSearc
     filter: true,
     suppressHeaderMenuButton: true,
     minWidth: 100,
+    cellClass: 'border-r dark:border-gray-800', // Explicit cell borders
   }), []);
 
   const addRow = () => {
-    if (!scenarioId) {
-        alert("Please select a specific Scenario to add a new test case.");
+    if (scenarios.length === 0) {
+        alert("Please create at least one Scenario first.");
         return;
     }
     const newRow: TestCase = {
-      scenario_id: scenarioId,
+      scenario_id: scenarios[0].scenario_id,
       title: 'New Test Case',
       type: TEST_CASE_TYPE.POSITIVE,
       precondition: '',
@@ -162,51 +166,34 @@ export const TestManagementGrid = ({ scenarioId, projectId, moduleId, quickSearc
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(newRow),
     })
-    .then(res => res.json())
-    .then(() => {
-      fetchTestCases();
-    });
+    .then(() => fetchTestCases());
   };
 
   const deleteSelected = () => {
     const selectedNodes = gridRef.current?.api.getSelectedNodes();
     if (!selectedNodes || selectedNodes.length === 0) return;
-    
-    if (!confirm(`Are you sure you want to delete ${selectedNodes.length} test cases?`)) return;
-
-    const idsToDelete = selectedNodes.map(node => node.data.test_case_id);
-    
-    Promise.all(idsToDelete.map(id => 
-      fetch(`/api/test-cases?id=${id}`, { method: 'DELETE' })
-    )).then(() => {
-      fetchTestCases();
-    });
+    if (!confirm(`Delete ${selectedNodes.length} test cases?`)) return;
+    Promise.all(selectedNodes.map(node => fetch(`/api/test-cases?id=${node.data.test_case_id}`, { method: 'DELETE' })))
+      .then(() => fetchTestCases());
   };
 
   const duplicateSelected = () => {
     const selectedNodes = gridRef.current?.api.getSelectedNodes();
     if (!selectedNodes || selectedNodes.length === 0) return;
-
-    const idsToDuplicate = selectedNodes.map(node => node.data.test_case_id);
-    
-    Promise.all(idsToDuplicate.map(id => 
-      fetch(`/api/test-cases`, { 
+    Promise.all(selectedNodes.map(node => fetch(`/api/test-cases`, { 
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ test_case_id: id })
-      })
-    )).then(() => {
-      fetchTestCases();
-    });
+        body: JSON.stringify({ test_case_id: node.data.test_case_id })
+      })))
+      .then(() => fetchTestCases());
   };
 
   const onCellValueChanged = (event: CellValueChangedEvent) => {
-    const data = event.data;
-    if (data.test_case_id) {
+    if (event.data.test_case_id) {
       fetch('/api/test-cases', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
+        body: JSON.stringify(event.data),
       });
     }
   };
@@ -214,14 +201,23 @@ export const TestManagementGrid = ({ scenarioId, projectId, moduleId, quickSearc
   if (loading) return <div className="p-8 text-center text-gray-500 text-sm">Loading library data...</div>;
 
   return (
-    <div className="flex flex-col h-[calc(100vh-280px)] min-w-[800px]">
+    <div className="flex flex-col h-[calc(100vh-320px)] min-w-[1000px]">
       <div className="flex justify-between items-center px-6 py-3 border-b dark:border-gray-800 bg-gray-50/50 dark:bg-gray-900/50">
-        <h3 className="text-sm font-bold text-gray-500 uppercase tracking-widest flex items-center gap-2">
-            Library
-            <span className="bg-gray-200 dark:bg-gray-800 text-gray-600 dark:text-gray-400 px-2 py-0.5 rounded-full text-[10px] font-bold">
-                {rowData.length} Cases
-            </span>
-        </h3>
+        <div className="flex items-center gap-6">
+            <h3 className="text-sm font-bold text-gray-500 uppercase tracking-widest flex items-center gap-2">
+                Cases <span className="bg-blue-100 dark:bg-blue-900/30 text-blue-600 px-2 py-0.5 rounded-full text-[10px]">{rowData.length}</span>
+            </h3>
+            <div className="flex items-center gap-2 border-l dark:border-gray-800 pl-6">
+                <ListChecks size={14} className="text-gray-400" />
+                <Input 
+                    placeholder="New Scenario..." 
+                    value={newScenarioName}
+                    onChange={e => setNewScenarioName(e.target.value)}
+                    className="h-7 text-[10px] w-[140px]"
+                />
+                <Button size="sm" variant="outline" className="h-7 px-2" onClick={handleAddScenario}><Plus size={14} /></Button>
+            </div>
+        </div>
         <div className="flex gap-2">
           <Button onClick={deleteSelected} variant="ghost" size="sm" className="h-8 text-red-600 hover:bg-red-50">
             <Trash2 size={16} className="mr-2" /> Delete
@@ -229,7 +225,7 @@ export const TestManagementGrid = ({ scenarioId, projectId, moduleId, quickSearc
           <Button onClick={duplicateSelected} variant="ghost" size="sm" className="h-8 text-blue-600 hover:bg-blue-50">
             <Copy size={16} className="mr-2" /> Duplicate
           </Button>
-          <Button onClick={addRow} size="sm" className="h-8" disabled={!scenarioId}>
+          <Button onClick={addRow} size="sm" className="h-8">
             <Plus size={16} className="mr-2" /> Add Case
           </Button>
         </div>
@@ -244,6 +240,7 @@ export const TestManagementGrid = ({ scenarioId, projectId, moduleId, quickSearc
             foregroundColor: 'inherit',
             headerBackgroundColor: 'transparent',
             headerTextColor: 'inherit',
+            rowBorderColor: 'rgba(128, 128, 128, 0.1)',
           })}
           rowData={rowData}
           columnDefs={columnDefs}
@@ -251,6 +248,9 @@ export const TestManagementGrid = ({ scenarioId, projectId, moduleId, quickSearc
           onCellValueChanged={onCellValueChanged}
           rowSelection="multiple"
           animateRows={true}
+          rowClassRules={{
+            'bg-gray-50/30 dark:bg-gray-900/20': 'node.rowIndex % 2 !== 0', // Zebra striping
+          }}
         />
       </div>
     </div>

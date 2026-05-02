@@ -9,9 +9,28 @@ import { generateId } from '@/lib/id-utils';
 export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const projectId = searchParams.get('projectId');
+    const page = parseInt(searchParams.get('page') || '1');
+    const limit = parseInt(searchParams.get('limit') || '20');
+    const offset = (page - 1) * limit;
 
     try {
-        let query = `
+        let baseQuery = `
+            FROM test_runs tr 
+            JOIN users u ON tr.tester_id = u.user_id
+            JOIN projects p ON tr.project_id = p.project_id
+            JOIN users po ON p.owner_id = po.user_id
+        `;
+        const params: any[] = [];
+        if (projectId) {
+            baseQuery += ' WHERE tr.project_id = ?';
+            params.push(projectId);
+        }
+
+        // 1. Get total
+        const countRes = db.prepare(`SELECT COUNT(*) as total ${baseQuery}`).get(...params) as { total: number };
+        
+        // 2. Get data
+        const runs = db.prepare(`
             SELECT 
                 tr.*, 
                 u.name as tester_name, 
@@ -21,19 +40,16 @@ export async function GET(request: Request) {
                 (SELECT COUNT(*) FROM test_executions WHERE run_id = tr.run_id AND status = 'Passed') as passed_count,
                 (SELECT COUNT(*) FROM test_executions WHERE run_id = tr.run_id AND status = 'Failed') as failed_count,
                 (SELECT COUNT(*) FROM test_executions WHERE run_id = tr.run_id AND status = 'Pending') as pending_count
-            FROM test_runs tr 
-            JOIN users u ON tr.tester_id = u.user_id
-            JOIN projects p ON tr.project_id = p.project_id
-            JOIN users po ON p.owner_id = po.user_id
-        `;
-        const params: string[] = [];
-        if (projectId) {
-            query += ' WHERE tr.project_id = ?';
-            params.push(projectId);
-        }
-        query += ' ORDER BY tr.created_at DESC';
-        const runs = db.prepare(query).all(...params);
-        return NextResponse.json(runs);
+            ${baseQuery}
+            ORDER BY tr.created_at DESC
+            LIMIT ? OFFSET ?
+        `).all(...params, limit, offset);
+
+        return NextResponse.json({
+            data: runs,
+            total: countRes.total,
+            totalPages: Math.ceil(countRes.total / limit)
+        });
     } catch {
         return NextResponse.json({ error: 'Failed to fetch test runs' }, { status: 500 });
     }

@@ -9,7 +9,7 @@ import {
   ModuleRegistry,
   themeQuartz
 } from 'ag-grid-community';
-import { Button, Input } from '../ui';
+import { Button, Input, Pagination } from '../ui';
 import { Trash2, Plus, Copy, AlertCircle, Edit2, CheckCircle2, ExternalLink, Download, Upload } from 'lucide-react';
 import { TEST_CASE_TYPE, TEST_CASE_TYPE_OPTIONS, TEST_PRIORITY, TEST_PRIORITY_OPTIONS, AUTOMATION_STATUS, AUTOMATION_STATUS_OPTIONS } from '@/lib/constants';
 import { GRID_CONTAINER_CLASS, unifiedGridTheme } from '@/lib/theme';
@@ -49,11 +49,18 @@ interface TestManagementGridProps {
 export const TestManagementGrid = ({ moduleId }: TestManagementGridProps) => {
   const gridRef = useRef<AgGridReact>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
   const [rowData, setRowData] = useState<TestCase[]>([]);
   const [scenarios, setScenarios] = useState<Scenario[]>([]);
   const [loading, setLoading] = useState(true);
   const [newScenarioName, setNewScenarioName] = useState('');
   
+  // Pagination State
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(50);
+  const [totalItems, setTotalItems] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+
   const [selectedTestCase, setSelectedTestCase] = useState<TestCase | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isIssuesDialogOpen, setIsIssuesDialogOpen] = useState(false);
@@ -62,18 +69,35 @@ export const TestManagementGrid = ({ moduleId }: TestManagementGridProps) => {
   
   const fetchTestCases = (silent = false) => {
     if (!silent) setLoading(true);
-    fetch(`/api/test-cases?moduleId=${moduleId}`)
+    fetch(`/api/test-cases?moduleId=${moduleId}&page=${page}&limit=${limit}`)
       .then(res => res.json())
-      .then(data => {
-        setRowData(data);
+      .then(res => {
+        if (res.data) {
+            setRowData(res.data);
+            setTotalItems(res.total || 0);
+            setTotalPages(res.totalPages || 0);
+        } else {
+            setRowData([]);
+            setTotalItems(0);
+            setTotalPages(0);
+        }
+        setLoading(false);
+      })
+      .catch(() => {
+        setRowData([]);
+        setTotalItems(0);
+        setTotalPages(0);
         setLoading(false);
       });
   };
 
   useEffect(() => {
     fetchScenarios();
-    fetchTestCases();
   }, [moduleId]);
+
+  useEffect(() => {
+      fetchTestCases();
+  }, [moduleId, page, limit]);
 
   const handleAddScenario = async () => {
     if (!newScenarioName) return;
@@ -175,7 +199,6 @@ export const TestManagementGrid = ({ moduleId }: TestManagementGridProps) => {
         cellEditor: 'agSelectCellEditor',
         cellEditorParams: {
             values: scenarios.map(s => s.scenario_id),
-            // Map the ID to the name in the dropdown list
             valueListGap: 0,
             valueListMaxWidth: 200,
             formatValue: (id: string) => scenarios.find(s => s.scenario_id === id)?.name || id,
@@ -337,7 +360,7 @@ export const TestManagementGrid = ({ moduleId }: TestManagementGridProps) => {
       <div className="flex justify-between items-center px-6 py-3 border-b dark:border-gray-800 bg-gray-50/50 dark:bg-gray-900/50">
         <div className="flex items-center gap-6 text-black dark:text-white">
             <h3 className="text-sm font-bold text-gray-500 uppercase tracking-widest flex items-center gap-2">
-                Cases <span className="bg-blue-100 dark:bg-blue-900/30 text-blue-600 px-2 py-0.5 rounded-full text-[10px]">{rowData.length}</span>
+                Cases <span className="bg-blue-100 dark:bg-blue-900/30 text-blue-600 px-2 py-0.5 rounded-full text-[10px]">{totalItems}</span>
             </h3>
             <div className="flex items-center gap-2 border-l dark:border-gray-800 pl-6">
                 <Input 
@@ -378,7 +401,7 @@ export const TestManagementGrid = ({ moduleId }: TestManagementGridProps) => {
         </div>
       </div>
       
-      <div className="w-full border dark:border-gray-800 rounded-lg overflow-hidden bg-white dark:bg-gray-950 shadow-sm">
+      <div className="w-full border dark:border-gray-800 overflow-hidden bg-white dark:bg-gray-950">
         <AgGridReact
           ref={gridRef}
           theme={unifiedGridTheme}
@@ -388,15 +411,21 @@ export const TestManagementGrid = ({ moduleId }: TestManagementGridProps) => {
           onCellValueChanged={onCellValueChanged}
           rowSelection="multiple"
           animateRows={true}
-          pagination={true}
-          paginationPageSize={50}
-          paginationPageSizeSelector={[20, 50, 100]}
           domLayout="autoHeight"
           rowClassRules={{
             'bg-gray-50/30 dark:bg-gray-900/20': 'node.rowIndex % 2 !== 0',
           }}
         />
       </div>
+
+      <Pagination 
+        currentPage={page}
+        totalPages={totalPages}
+        pageSize={limit}
+        totalItems={totalItems}
+        onPageChange={setPage}
+        onPageSizeChange={(s) => { setLimit(s); setPage(1); }}
+      />
 
       <EditTestCaseDialog 
         testCase={selectedTestCase}

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, Button, Modal, Input, Label, Combobox } from "@/components/ui";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, Button, Modal, Input, Label, Combobox, Pagination } from "@/components/ui";
 import { AgGridReact } from 'ag-grid-react';
 import { 
   ColDef, 
@@ -32,13 +32,19 @@ export default function UserManagementPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
   
+  // Pagination
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(20);
+  const [total, setTotal] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<Partial<User> | null>(null);
   const [formData, setFormData] = useState({ name: '', email: '', password: '', role_id: '' });
 
   const fetchUsers = () => {
     setLoading(true);
-    fetch('/api/users')
+    fetch(`/api/users?page=${page}&limit=${limit}`)
       .then(async res => {
         if (!res.ok) {
           const data = await res.json();
@@ -46,12 +52,23 @@ export default function UserManagementPage() {
         }
         return res.json();
       })
-      .then(data => {
-        setUsers(data);
+      .then(res => {
+        if (res.data) {
+            setUsers(res.data);
+            setTotal(res.total || 0);
+            setTotalPages(res.totalPages || 0);
+        } else {
+            setUsers([]);
+            setTotal(0);
+            setTotalPages(0);
+        }
         setLoading(false);
       })
       .catch(err => {
         setError(err.message);
+        setUsers([]);
+        setTotal(0);
+        setTotalPages(0);
         setLoading(false);
       });
   };
@@ -64,6 +81,9 @@ export default function UserManagementPage() {
 
   useEffect(() => {
     fetchUsers();
+  }, [page, limit]);
+
+  useEffect(() => {
     fetchRoles();
   }, []);
 
@@ -162,7 +182,7 @@ export default function UserManagementPage() {
     },
   ], [roles]);
 
-  if (loading) return <div className="p-12 text-center text-gray-500 uppercase tracking-widest text-xs font-bold animate-pulse">Initializing User Matrix...</div>;
+  if (loading && total === 0) return <div className="p-12 text-center text-gray-500 uppercase tracking-widest text-xs font-bold animate-pulse">Initializing User Matrix...</div>;
   if (error) return <div className="p-12 text-center text-red-500 font-bold">FAILURE: {error}</div>;
 
   return (
@@ -181,21 +201,23 @@ export default function UserManagementPage() {
         </Button>
       </div>
 
-      <Card className="shadow-2xl overflow-hidden border-0">
-        <CardContent className="p-0">
-          <div className="w-full border dark:border-gray-800 rounded-lg overflow-hidden bg-white dark:bg-gray-950 shadow-sm">
-              <AgGridReact
-                theme={unifiedGridTheme}
-                rowData={users}
-                columnDefs={columnDefs}
-                animateRows={true}
-                pagination={true}
-                paginationPageSize={20}
-                domLayout="autoHeight"
-              />
-          </div>
-        </CardContent>
-      </Card>
+      <div className="w-full border dark:border-gray-800 rounded-lg overflow-hidden bg-white dark:bg-gray-950 shadow-sm">
+          <AgGridReact
+            theme={unifiedGridTheme}
+            rowData={users}
+            columnDefs={columnDefs}
+            animateRows={true}
+            domLayout="autoHeight"
+          />
+          <Pagination 
+            currentPage={page}
+            totalPages={totalPages}
+            pageSize={limit}
+            totalItems={total}
+            onPageChange={setPage}
+            onPageSizeChange={(s) => { setLimit(s); setPage(1); }}
+          />
+      </div>
 
       <Modal 
         isOpen={isModalOpen} 

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, Button } from "@/components/ui";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, Button, Pagination } from "@/components/ui";
 import { AgGridReact } from 'ag-grid-react';
 import { 
   ColDef, 
@@ -21,19 +21,39 @@ export default function TestRunsPage() {
   const [selectedRun, setSelectedRun] = useState<any>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
 
+  // Pagination
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(20);
+  const [total, setTotal] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+
   const fetchRuns = () => {
     setLoading(true);
-    fetch('/api/test-runs')
+    fetch(`/api/test-runs?page=${page}&limit=${limit}`)
       .then(res => res.json())
-      .then(data => {
-        setRuns(data);
+      .then(res => {
+        if (res.data) {
+            setRuns(res.data);
+            setTotal(res.total || 0);
+            setTotalPages(res.totalPages || 0);
+        } else {
+            setRuns([]);
+            setTotal(0);
+            setTotalPages(0);
+        }
+        setLoading(false);
+      })
+      .catch(() => {
+        setRuns([]);
+        setTotal(0);
+        setTotalPages(0);
         setLoading(false);
       });
   };
 
   useEffect(() => {
     fetchRuns();
-  }, []);
+  }, [page, limit]);
 
   const columnDefs = useMemo<ColDef[]>(() => [
     { 
@@ -134,15 +154,21 @@ export default function TestRunsPage() {
         </Link>
       </div>
 
-      <div className="w-full border dark:border-gray-800 rounded-lg overflow-hidden bg-white dark:bg-gray-950 shadow-sm">
+      <div className="w-full border dark:border-gray-800 overflow-hidden bg-white dark:bg-gray-950">
           <AgGridReact
             theme={unifiedGridTheme}
             rowData={runs}
             columnDefs={columnDefs}
             animateRows={true}
-            pagination={true}
-            paginationPageSize={20}
             domLayout="autoHeight"
+          />
+          <Pagination 
+            currentPage={page}
+            totalPages={totalPages}
+            pageSize={limit}
+            totalItems={total}
+            onPageChange={setPage}
+            onPageSizeChange={(s) => { setLimit(s); setPage(1); }}
           />
       </div>
 

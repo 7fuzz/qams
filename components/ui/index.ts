@@ -8,6 +8,7 @@ export * from './Combobox';
 export * from './Modal';
 export * from './Textarea';
 export * from './AttachmentManager';
+export * from './Pagination';
 
 
 

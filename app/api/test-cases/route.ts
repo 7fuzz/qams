@@ -11,9 +11,40 @@ export async function GET(request: Request) {
     const scenarioId = searchParams.get('scenarioId');
     const projectId = searchParams.get('projectId');
     const moduleId = searchParams.get('moduleId');
+    
+    // Pagination params
+    const page = parseInt(searchParams.get('page') || '1');
+    const limit = parseInt(searchParams.get('limit') || '50');
+    const offset = (page - 1) * limit;
 
     try {
-        let query = `
+        let baseQuery = `
+            FROM test_cases tc
+            JOIN scenarios s ON tc.scenario_id = s.scenario_id
+            JOIN modules m ON s.module_id = m.module_id
+            JOIN projects p ON m.project_id = p.project_id
+            JOIN users u ON p.owner_id = u.user_id
+            WHERE 1=1
+        `;
+        const params: any[] = [];
+
+        if (scenarioId) {
+            baseQuery += ' AND tc.scenario_id = ?';
+            params.push(scenarioId);
+        } else if (moduleId) {
+            baseQuery += ' AND m.module_id = ?';
+            params.push(moduleId);
+        } else if (projectId) {
+            baseQuery += ' AND p.project_id = ?';
+            params.push(projectId);
+        }
+
+        // 1. Get Total Count
+        const countQuery = `SELECT COUNT(*) as total ${baseQuery}`;
+        const total = (db.prepare(countQuery).get(...params) as any).total;
+
+        // 2. Get Paginated Data
+        const dataQuery = `
             SELECT 
                 tc.*, 
                 s.name as scenario_name, 
@@ -24,28 +55,20 @@ export async function GET(request: Request) {
                 u.name as owner_name,
                 (SELECT COUNT(*) FROM issues i WHERE i.test_case_id = tc.test_case_id AND i.status != 'Closed') as open_issues_count,
                 (SELECT COUNT(*) FROM issues i WHERE i.test_case_id = tc.test_case_id AND i.status = 'Closed') as closed_issues_count
-            FROM test_cases tc
-            JOIN scenarios s ON tc.scenario_id = s.scenario_id
-            JOIN modules m ON s.module_id = m.module_id
-            JOIN projects p ON m.project_id = p.project_id
-            JOIN users u ON p.owner_id = u.user_id
-            WHERE 1=1
+            ${baseQuery}
+            ORDER BY tc.created_at DESC
+            LIMIT ? OFFSET ?
         `;
-        const params: string[] = [];
+        
+        const testCases = db.prepare(dataQuery).all(...params, limit, offset);
 
-        if (scenarioId) {
-            query += ' AND tc.scenario_id = ?';
-            params.push(scenarioId);
-        } else if (moduleId) {
-            query += ' AND m.module_id = ?';
-            params.push(moduleId);
-        } else if (projectId) {
-            query += ' AND p.project_id = ?';
-            params.push(projectId);
-        }
-
-        const testCases = db.prepare(query).all(...params);
-        return NextResponse.json(testCases);
+        return NextResponse.json({
+            data: testCases,
+            total,
+            page,
+            limit,
+            totalPages: Math.ceil(total / limit)
+        });
     } catch (error) {
         console.error(error);
         return NextResponse.json({ error: 'Failed to fetch test cases' }, { status: 500 });
@@ -81,13 +104,13 @@ export async function PUT(request: Request) {
 
     try {
         const body = await request.json();
-        const { test_case_id, title, type, priority, automation_status, requirement_link, estimated_duration, precondition, steps, test_data, expected_result } = body;
+        const { test_case_id, title, type, priority, automation_status, requirement_link, estimated_duration, precondition, steps, test_data, expected_result, scenario_id } = body;
         
         db.prepare(`
             UPDATE test_cases 
-            SET title = ?, type = ?, priority = ?, automation_status = ?, requirement_link = ?, estimated_duration = ?, precondition = ?, steps = ?, test_data = ?, expected_result = ?
+            SET title = ?, type = ?, priority = ?, automation_status = ?, requirement_link = ?, estimated_duration = ?, precondition = ?, steps = ?, test_data = ?, expected_result = ?, scenario_id = ?
             WHERE test_case_id = ?
-        `).run(title, type, priority || null, automation_status || null, requirement_link || null, estimated_duration || null, precondition, steps, test_data, expected_result, test_case_id);
+        `).run(title, type, priority || null, automation_status || null, requirement_link || null, estimated_duration || null, precondition, steps, test_data, expected_result, scenario_id, test_case_id);
         
         logActivity(session.user_id, 'UPDATE', 'TEST_CASE', test_case_id, { title });
         

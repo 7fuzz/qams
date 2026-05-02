@@ -6,15 +6,31 @@ import db from '@/lib/db';
 import { generateId } from '@/lib/id-utils';
 import { hashPassword } from '@/lib/auth-utils';
 
-export async function GET() {
+export async function GET(request: Request) {
+    const { searchParams } = new URL(request.url);
+    const page = parseInt(searchParams.get('page') || '1');
+    const limit = parseInt(searchParams.get('limit') || '20');
+    const offset = (page - 1) * limit;
+
     try {
+        const baseQuery = 'FROM users u JOIN roles r ON u.role_id = r.role_id';
+        
+        // 1. Total
+        const countRes = db.prepare(`SELECT COUNT(*) as total ${baseQuery}`).get() as { total: number };
+        
+        // 2. Data
         const users = db.prepare(`
             SELECT u.user_id, u.name, u.email, r.name as role_name, u.role_id 
-            FROM users u 
-            JOIN roles r ON u.role_id = r.role_id
+            ${baseQuery}
             ORDER BY u.name ASC
-        `).all();
-        return NextResponse.json(users);
+            LIMIT ? OFFSET ?
+        `).all(limit, offset);
+
+        return NextResponse.json({
+            data: users,
+            total: countRes.total,
+            totalPages: Math.ceil(countRes.total / limit)
+        });
     } catch {
         return NextResponse.json({ error: 'Failed to fetch users' }, { status: 500 });
     }

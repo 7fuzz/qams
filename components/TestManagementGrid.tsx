@@ -256,16 +256,7 @@ export const TestManagementGrid = ({ moduleId }: TestManagementGridProps) => {
       <div className={GRID_CONTAINER_CLASS}>
         <AgGridReact
           ref={gridRef}
-          theme={themeQuartz.withParams({
-            accentColor: '#3b82f6',
-            backgroundColor: 'transparent',
-            foregroundColor: 'inherit',
-            headerBackgroundColor: 'transparent',
-            headerTextColor: 'inherit',
-            rowBorderColor: 'rgba(128, 128, 128, 0.1)',
-            oddRowBackgroundColor: 'rgba(128, 128, 128, 0.03)',
-            checkboxBorderColor: 'rgba(128, 128, 128, 0.5)',
-          })}
+          theme={unifiedGridTheme}
           rowData={rowData}
           columnDefs={columnDefs}
           defaultColDef={defaultColDef}

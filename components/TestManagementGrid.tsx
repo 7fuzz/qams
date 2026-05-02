@@ -76,12 +76,15 @@ export const TestManagementGrid = ({ moduleId }: TestManagementGridProps) => {
   const columnDefs = useMemo<ColDef[]>(() => [
     { 
         headerName: '', 
-        width: 50, 
+        width: 40, 
         checkboxSelection: true, 
         headerCheckboxSelection: true,
         pinned: 'left',
         suppressMovable: true,
-        cellClass: 'flex justify-center items-center bg-gray-50 dark:bg-gray-900 border-r dark:border-gray-800'
+        filter: false,
+        sortable: false,
+        resizable: false,
+        cellClass: 'flex justify-center items-center border-r dark:border-gray-800'
     },
     { 
         field: 'scenario_id', 
@@ -247,7 +250,8 @@ export const TestManagementGrid = ({ moduleId }: TestManagementGridProps) => {
             headerBackgroundColor: 'transparent',
             headerTextColor: 'inherit',
             rowBorderColor: 'rgba(128, 128, 128, 0.1)',
-            oddRowBackgroundColor: 'rgba(128, 128, 128, 0.03)', // Force zebra striping in theme
+            oddRowBackgroundColor: 'rgba(128, 128, 128, 0.03)',
+            checkboxBorderColor: 'rgba(128, 128, 128, 0.5)', // Make checkbox borders visible
           })}
           rowData={rowData}
           columnDefs={columnDefs}

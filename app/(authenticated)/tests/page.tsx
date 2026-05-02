@@ -8,12 +8,12 @@ import { Plus, FolderTree, Layers, ListChecks } from 'lucide-react';
 import { saveState, loadState } from '@/lib/persistence';
 
 interface Project {
-  project_id: number;
+  project_id: string;
   name: string;
 }
 
 interface Module {
-  module_id: number;
+  module_id: string;
   name: string;
 }
 
@@ -21,22 +21,22 @@ export default function TestsPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [modules, setModules] = useState<Module[]>([]);
   
-  const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
-  const [selectedModuleId, setSelectedModuleId] = useState<number | null>(null);
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
+  const [selectedModuleId, setSelectedModuleId] = useState<string | null>(null);
   
   const [newModuleName, setNewModuleName] = useState('');
   const [isInitialLoad, setIsInitialLoad] = useState(true);
 
   const fetchProjects = () => fetch('/api/projects').then(res => res.json()).then(setProjects);
-  const fetchModules = (id: number) => fetch(`/api/modules?projectId=${id}`).then(res => res.json()).then(data => {
+  const fetchModules = (id: string) => fetch(`/api/modules?projectId=${id}`).then(res => res.json()).then(data => {
     setModules(data);
     return data;
   });
 
   // Load persistent state on mount
   useEffect(() => {
-    const savedProject = loadState<number>('test_project_id');
-    const savedModule = loadState<number>('test_module_id');
+    const savedProject = loadState<string>('test_project_id');
+    const savedModule = loadState<string>('test_module_id');
     
     fetchProjects().then(() => {
         if (savedProject) {
@@ -103,7 +103,7 @@ export default function TestsPage() {
             <Combobox 
               options={projects.map(p => ({ value: p.project_id, label: p.name }))}
               value={selectedProjectId || undefined}
-              onChange={(val) => setSelectedProjectId(Number(val))}
+              onChange={(val) => setSelectedProjectId(String(val))}
               placeholder="Select Project..."
             />
           </CardContent>
@@ -121,7 +121,7 @@ export default function TestsPage() {
             <Combobox 
               options={modules.map(m => ({ value: m.module_id, label: m.name }))}
               value={selectedModuleId || undefined}
-              onChange={(val) => setSelectedModuleId(Number(val))}
+              onChange={(val) => setSelectedModuleId(String(val))}
               placeholder="Select Module..."
               className={!selectedProjectId ? "opacity-50 pointer-events-none" : ""}
             />

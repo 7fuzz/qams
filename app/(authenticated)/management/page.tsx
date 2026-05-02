@@ -18,7 +18,7 @@ import {
 import { Trash2, Plus, FolderTree, Layers, ListChecks, AlertCircle, Calendar, Clock } from 'lucide-react';
 
 interface Project {
-  project_id: number;
+  project_id: string;
   name: string;
   version: string;
   owner_name: string;
@@ -28,15 +28,15 @@ interface Project {
 }
 
 interface Module {
-  module_id: number;
+  module_id: string;
   name: string;
-  project_id: number;
+  project_id: string;
 }
 
 interface Scenario {
-  scenario_id: number;
+  scenario_id: string;
   name: string;
-  module_id: number;
+  module_id: string;
 }
 
 export default function ManagementPage() {
@@ -44,8 +44,8 @@ export default function ManagementPage() {
   const [modules, setModules] = useState<Module[]>([]);
   const [scenarios, setScenarios] = useState<Scenario[]>([]);
   
-  const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
-  const [selectedModuleId, setSelectedModuleId] = useState<number | null>(null);
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
+  const [selectedModuleId, setSelectedModuleId] = useState<string | null>(null);
   
   const [newName, setNewName] = useState({ project: '', module: '', scenario: '' });
 
@@ -80,7 +80,7 @@ export default function ManagementPage() {
     if (!name) return;
 
     const url = `/api/${type}s`;
-    const body: any = { name };
+    const body: { name: string; project_id?: string | null; module_id?: string | null } = { name };
     if (type === 'module') body.project_id = selectedProjectId;
     if (type === 'scenario') body.module_id = selectedModuleId;
 
@@ -96,7 +96,7 @@ export default function ManagementPage() {
     if (type === 'scenario' && selectedModuleId) fetch(`/api/scenarios?moduleId=${selectedModuleId}`).then(res => res.json()).then(setScenarios);
   };
 
-  const handleDelete = async (type: 'project' | 'module' | 'scenario', id: number) => {
+  const handleDelete = async (type: 'project' | 'module' | 'scenario', id: string) => {
     if (!confirm(`Are you sure you want to delete this ${type}? This will delete all child items.`)) return;
     await fetch(`/api/${type}s?id=${id}`, { method: 'DELETE' });
     if (type === 'project') {
@@ -140,7 +140,6 @@ export default function ManagementPage() {
         </div>
       </div>
 
-      {/* Projects Table */}
       <section className="space-y-4">
         <div className="flex items-center gap-2 text-gray-500">
             <FolderTree size={18} />
@@ -194,10 +193,7 @@ export default function ManagementPage() {
         </Table>
       </section>
 
-      {/* Modules and Scenarios Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 pt-4">
-        
-        {/* Modules */}
         <section className="space-y-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 text-gray-500">
@@ -248,7 +244,6 @@ export default function ManagementPage() {
           </div>
         </section>
 
-        {/* Scenarios */}
         <section className="space-y-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 text-gray-500">
@@ -293,7 +288,6 @@ export default function ManagementPage() {
             )}
           </div>
         </section>
-
       </div>
     </div>
   );

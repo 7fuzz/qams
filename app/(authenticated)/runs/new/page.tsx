@@ -5,17 +5,17 @@ import { useRouter } from 'next/navigation';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter, Label, Input, Button, Checkbox } from "@/components/ui";
 
 interface Project {
-  project_id: number;
+  project_id: string;
   name: string;
 }
 
 interface Module {
-  module_id: number;
+  module_id: string;
   name: string;
 }
 
 interface Scenario {
-  scenario_id: number;
+  scenario_id: string;
   name: string;
   module_name: string;
 }
@@ -25,8 +25,8 @@ export default function NewRunPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [scenarios, setScenarios] = useState<Scenario[]>([]);
   
-  const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
-  const [selectedScenarioIds, setSelectedScenarioIds] = useState<number[]>([]);
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
+  const [selectedScenarioIds, setSelectedScenarioIds] = useState<string[]>([]);
   const [runName, setRunName] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -36,9 +36,6 @@ export default function NewRunPage() {
 
   useEffect(() => {
     if (selectedProjectId) {
-      // Fetch all scenarios for this project's modules
-      // For simplicity, let's assume we can fetch all scenarios by projectId in a new API or nested fetch
-      // Let's implement a quick fetch for all scenarios in the project
       fetch(`/api/modules?projectId=${selectedProjectId}`)
         .then(res => res.json())
         .then(async (modules: Module[]) => {
@@ -56,7 +53,7 @@ export default function NewRunPage() {
     }
   }, [selectedProjectId]);
 
-  const toggleScenario = (id: number) => {
+  const toggleScenario = (id: string) => {
     setSelectedScenarioIds(prev => 
       prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
     );
@@ -92,8 +89,8 @@ export default function NewRunPage() {
     <div className="container mx-auto p-8 max-w-4xl">
       <div className="space-y-6">
         <div className="space-y-2">
-          <h1 className="text-3xl font-bold tracking-tight">Start New Test Run</h1>
-          <p className="text-gray-500">Define the scope and name for this execution session.</p>
+          <h1 className="text-3xl font-bold tracking-tight text-black dark:text-white">Start New Test Run</h1>
+          <p className="text-gray-500 text-sm">Define the scope and name for this execution session.</p>
         </div>
 
         <Card>
@@ -105,9 +102,9 @@ export default function NewRunPage() {
               <Label htmlFor="project">Project</Label>
               <select 
                 id="project"
-                className="w-full rounded-md border p-2 text-sm"
+                className="w-full rounded-md border border-gray-300 dark:border-gray-800 bg-transparent p-2 text-sm"
                 value={selectedProjectId || ''}
-                onChange={e => setSelectedProjectId(Number(e.target.value))}
+                onChange={e => setSelectedProjectId(e.target.value)}
               >
                 <option value="">Select a project...</option>
                 {projects.map(p => <option key={p.project_id} value={p.project_id}>{p.name}</option>)}
@@ -134,7 +131,7 @@ export default function NewRunPage() {
             <CardContent>
               <div className="grid gap-4 sm:grid-cols-2">
                 {scenarios.map(s => (
-                  <div key={s.scenario_id} className="flex items-center space-x-2 border p-3 rounded-md hover:bg-gray-50 transition-colors">
+                  <div key={s.scenario_id} className="flex items-center space-x-2 border dark:border-gray-800 p-3 rounded-md hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors">
                     <Checkbox 
                       id={`s-${s.scenario_id}`} 
                       checked={selectedScenarioIds.includes(s.scenario_id)}
@@ -147,13 +144,13 @@ export default function NewRunPage() {
                       >
                         {s.name}
                       </label>
-                      <p className="text-xs text-gray-500">{s.module_name}</p>
+                      <p className="text-[10px] text-gray-500 uppercase tracking-widest">{s.module_name}</p>
                     </div>
                   </div>
                 ))}
               </div>
             </CardContent>
-            <CardFooter className="border-t pt-6">
+            <CardFooter className="border-t dark:border-gray-800 pt-6">
               <Button 
                 className="w-full" 
                 onClick={startRun}

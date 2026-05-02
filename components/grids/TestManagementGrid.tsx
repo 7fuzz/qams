@@ -19,8 +19,8 @@ import { IssuesListDialog } from '../dialogs/IssuesListDialog';
 ModuleRegistry.registerModules([AllCommunityModule]);
 
 interface TestCase {
-  test_case_id: number;
-  scenario_id: number;
+  test_case_id: string;
+  scenario_id: string;
   title: string;
   type: string;
   precondition: string;
@@ -33,12 +33,12 @@ interface TestCase {
 }
 
 interface Scenario {
-    scenario_id: number;
+    scenario_id: string;
     name: string;
 }
 
 interface TestManagementGridProps {
-  moduleId: number;
+  moduleId: string;
 }
 
 export const TestManagementGrid = ({ moduleId }: TestManagementGridProps) => {
@@ -91,7 +91,7 @@ export const TestManagementGrid = ({ moduleId }: TestManagementGridProps) => {
         cellEditor: 'agSelectCellEditor',
         cellEditorParams: {
             values: scenarios.map(s => s.scenario_id),
-            formatValue: (id: number) => scenarios.find(s => s.scenario_id === id)?.name || id,
+            formatValue: (id: string) => scenarios.find(s => s.scenario_id === id)?.name || id,
         },
         valueFormatter: (params) => scenarios.find(s => s.scenario_id === params.value)?.name || params.value,
         filter: true,
@@ -278,6 +278,9 @@ export const TestManagementGrid = ({ moduleId }: TestManagementGridProps) => {
           onCellValueChanged={onCellValueChanged}
           rowSelection="multiple"
           animateRows={true}
+          rowClassRules={{
+            'bg-gray-50/30 dark:bg-gray-900/20': 'node.rowIndex % 2 !== 0', // Zebra striping
+          }}
         />
       </div>
 

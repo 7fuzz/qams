@@ -13,8 +13,8 @@ import {
 } from '@/lib/constants';
 
 interface Issue {
-  issue_id: number;
-  test_case_id: number;
+  issue_id: string;
+  test_case_id: string;
   title: string;
   description: string;
   severity: IssueSeverity;
@@ -24,14 +24,14 @@ interface Issue {
 }
 
 interface IssueNote {
-  note_id: number;
+  note_id: string;
   content: string;
   user_name: string;
   created_at: string;
 }
 
 interface IssuesListDialogProps {
-  testCaseId: number | null;
+  testCaseId: string | null;
   testCaseTitle: string;
   isOpen: boolean;
   onClose: () => void;
@@ -40,11 +40,11 @@ interface IssuesListDialogProps {
 
 export const IssuesListDialog = ({ testCaseId, testCaseTitle, isOpen, onClose, onRefresh }: IssuesListDialogProps) => {
   const [issues, setIssues] = useState<Issue[]>([]);
-  const [expandedIssueId, setExpandedIssueId] = useState<number | null>(null);
-  const [issueNotes, setIssueNotes] = useState<Record<number, IssueNote[]>>({});
+  const [expandedIssueId, setExpandedIssueId] = useState<string | null>(null);
+  const [issueNotes, setIssueNotes] = useState<Record<string, IssueNote[]>>({});
   const [showNewIssueForm, setShowNewIssueForm] = useState(false);
   const [newIssue, setNewIssue] = useState({ title: '', description: '', severity: ISSUE_SEVERITY.MEDIUM as string });
-  const [newNoteContent, setNewNoteContent] = useState<Record<number, string>>({});
+  const [newNoteContent, setNewNoteContent] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
 
   const fetchIssues = async () => {
@@ -54,7 +54,7 @@ export const IssuesListDialog = ({ testCaseId, testCaseTitle, isOpen, onClose, o
     setIssues(data);
   };
 
-  const fetchNotes = async (issueId: number) => {
+  const fetchNotes = async (issueId: string) => {
     const res = await fetch(`/api/issues/notes?issueId=${issueId}`);
     const data = await res.json();
     setIssueNotes(prev => ({ ...prev, [issueId]: data }));
@@ -81,7 +81,7 @@ export const IssuesListDialog = ({ testCaseId, testCaseTitle, isOpen, onClose, o
     onRefresh();
   };
 
-  const handleUpdateIssue = async (issueId: number, data: Partial<Issue>) => {
+  const handleUpdateIssue = async (issueId: string, data: Partial<Issue>) => {
     await fetch('/api/issues', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
@@ -91,7 +91,7 @@ export const IssuesListDialog = ({ testCaseId, testCaseTitle, isOpen, onClose, o
     onRefresh();
   };
 
-  const handleAddNote = async (issueId: number) => {
+  const handleAddNote = async (issueId: string) => {
     const content = newNoteContent[issueId];
     if (!content) return;
     await fetch('/api/issues/notes', {

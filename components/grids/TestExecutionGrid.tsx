@@ -7,8 +7,8 @@ import { Play, CheckCircle2, AlertCircle, Clock, PauseCircle, HelpCircle } from 
 import { TEST_STATUS, TestStatus } from '@/lib/constants';
 
 interface Execution {
-  execution_id: number;
-  test_case_id: number;
+  execution_id: string;
+  test_case_id: string;
   title: string;
   status: TestStatus;
   steps: string;
@@ -17,7 +17,7 @@ interface Execution {
   notes: string;
 }
 
-export const TestExecutionGrid = ({ runId }: { runId: number }) => {
+export const TestExecutionGrid = ({ runId }: { runId: string }) => {
   const [executions, setExecutions] = useState<Execution[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedExecution, setSelectedExecution] = useState<Execution | null>(null);
@@ -69,7 +69,7 @@ export const TestExecutionGrid = ({ runId }: { runId: number }) => {
     }
   };
 
-  if (loading) return <div className="p-8 text-center text-gray-500">Loading execution data...</div>;
+  if (loading) return <div className="p-8 text-center text-gray-500 text-sm italic uppercase tracking-widest">Loading execution data...</div>;
 
   return (
     <div className="flex flex-col gap-6">
@@ -86,7 +86,7 @@ export const TestExecutionGrid = ({ runId }: { runId: number }) => {
             <CardContent className="p-5 flex flex-col h-full justify-between gap-4">
               <div className="space-y-3">
                 <div className="flex justify-between items-start gap-2">
-                  <h4 className="font-bold text-sm line-clamp-2 leading-tight flex-1">{exec.title}</h4>
+                  <h4 className="font-bold text-sm line-clamp-2 leading-tight flex-1 text-black dark:text-white">{exec.title}</h4>
                   {getStatusIcon(exec.status)}
                 </div>
                 
@@ -106,6 +106,11 @@ export const TestExecutionGrid = ({ runId }: { runId: number }) => {
             </CardContent>
           </Card>
         ))}
+        {executions.length === 0 && (
+            <div className="col-span-full py-20 text-center text-gray-500">
+                No test cases found in this run.
+            </div>
+        )}
       </div>
 
       <ExecutionDialog 

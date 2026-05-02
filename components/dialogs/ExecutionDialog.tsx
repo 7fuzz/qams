@@ -15,8 +15,8 @@ import {
 } from '@/lib/constants';
 
 interface Issue {
-  issue_id: number;
-  test_case_id: number;
+  issue_id: string;
+  test_case_id: string;
   title: string;
   description: string;
   severity: IssueSeverity;
@@ -26,15 +26,15 @@ interface Issue {
 }
 
 interface IssueNote {
-  note_id: number;
+  note_id: string;
   content: string;
   user_name: string;
   created_at: string;
 }
 
 interface Execution {
-  execution_id: number;
-  test_case_id: number;
+  execution_id: string;
+  test_case_id: string;
   title: string;
   status: TestStatus;
   steps: string;
@@ -54,12 +54,12 @@ export const ExecutionDialog = ({ execution, isOpen, onClose, onSave }: Executio
   const [status, setStatus] = useState<string>(execution?.status || TEST_STATUS.PENDING);
   const [notes, setNotes] = useState(execution?.notes || '');
   const [existingIssues, setExistingIssues] = useState<Issue[]>([]);
-  const [expandedIssueId, setSelectedIssueId] = useState<number | null>(null);
-  const [issueNotes, setIssueNotes] = useState<Record<number, IssueNote[]>>({});
+  const [expandedIssueId, setSelectedIssueId] = useState<string | null>(null);
+  const [issueNotes, setIssueNotes] = useState<Record<string, IssueNote[]>>({});
   
   const [showNewIssueForm, setShowNewIssueForm] = useState(false);
   const [newIssue, setNewIssue] = useState({ title: '', description: '', severity: ISSUE_SEVERITY.MEDIUM as string });
-  const [newNoteContent, setNewNoteContent] = useState<Record<number, string>>({});
+  const [newNoteContent, setNewNoteContent] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
 
   const fetchIssues = async () => {
@@ -69,7 +69,7 @@ export const ExecutionDialog = ({ execution, isOpen, onClose, onSave }: Executio
     setExistingIssues(data);
   };
 
-  const fetchNotes = async (issueId: number) => {
+  const fetchNotes = async (issueId: string) => {
     const res = await fetch(`/api/issues/notes?issueId=${issueId}`);
     const data = await res.json();
     setIssueNotes(prev => ({ ...prev, [issueId]: data }));
@@ -118,7 +118,7 @@ export const ExecutionDialog = ({ execution, isOpen, onClose, onSave }: Executio
     fetchIssues();
   };
 
-  const handleUpdateIssueStatus = async (issueId: number, newStatus: string, currentSeverity: string, title: string, desc: string) => {
+  const handleUpdateIssueStatus = async (issueId: string, newStatus: string, currentSeverity: string, title: string, desc: string) => {
     await fetch('/api/issues', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
@@ -127,7 +127,7 @@ export const ExecutionDialog = ({ execution, isOpen, onClose, onSave }: Executio
     fetchIssues();
   };
 
-  const handleAddNote = async (issueId: number) => {
+  const handleAddNote = async (issueId: string) => {
     const content = newNoteContent[issueId];
     if (!content) return;
     await fetch('/api/issues/notes', {
@@ -174,11 +174,10 @@ export const ExecutionDialog = ({ execution, isOpen, onClose, onSave }: Executio
         <div className="space-y-2">
           <Label>Execution Notes</Label>
           <Textarea 
-            placeholder="Record any minor adjustments or observations..."
+            placeholder="Minor adjustments or results..."
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
           />
-
         </div>
 
         {/* Issues Section */}

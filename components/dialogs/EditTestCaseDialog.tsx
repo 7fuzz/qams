@@ -5,8 +5,8 @@ import { Modal, Button, Label, Input, Combobox, Textarea } from '../ui';
 import { TEST_CASE_TYPE_OPTIONS } from '@/lib/constants';
 
 interface TestCase {
-  test_case_id: number;
-  scenario_id: number;
+  test_case_id: string;
+  scenario_id: string;
   title: string;
   type: string;
   precondition: string;

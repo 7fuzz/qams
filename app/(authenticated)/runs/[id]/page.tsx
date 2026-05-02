@@ -13,10 +13,9 @@ export default function RunExecutionPage({ params }: { params: Promise<{ id: str
   const [run, setRun] = useState<any>(null);
 
   const fetchRun = async () => {
-    // We could make a specific API for single run but let's just filter from all runs for now or assume a future API
     const res = await fetch('/api/test-runs');
     const data = await res.json();
-    const currentRun = data.find((r: any) => r.run_id === Number(id));
+    const currentRun = data.find((r: any) => r.run_id === id);
     setRun(currentRun);
   };
 
@@ -30,7 +29,7 @@ export default function RunExecutionPage({ params }: { params: Promise<{ id: str
     await fetch('/api/test-runs', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ run_id: Number(id), status: 'Completed' }),
+      body: JSON.stringify({ run_id: id, status: 'Completed' }),
     });
 
     router.push('/runs');
@@ -45,7 +44,7 @@ export default function RunExecutionPage({ params }: { params: Promise<{ id: str
                 <ArrowLeft size={18} />
             </Link>
             <span className="text-[10px] font-bold uppercase tracking-widest text-blue-500 bg-blue-500/10 px-2 py-0.5 rounded-full">
-                Run #{id}
+                Run Details
             </span>
           </div>
           <h1 className="text-3xl font-bold tracking-tight text-black dark:text-white">
@@ -61,7 +60,7 @@ export default function RunExecutionPage({ params }: { params: Promise<{ id: str
         )}
       </div>
 
-      <TestExecutionGrid runId={Number(id)} />
+      <TestExecutionGrid runId={id} />
     </div>
   );
 }

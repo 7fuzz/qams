@@ -48,7 +48,7 @@ export default function TestRunsPage() {
     { field: 'created_at', headerName: 'Started At', width: 180 },
     { 
       headerName: 'Actions', 
-      width: 150, 
+      width: 120, 
       pinned: 'right',
       cellRenderer: (params: any) => (
         <div className="flex gap-2 h-full items-center">
@@ -65,7 +65,7 @@ export default function TestRunsPage() {
     },
   ], []);
 
-  const deleteRun = (id: number) => {
+  const deleteRun = (id: string) => {
     if (!confirm('Are you sure you want to delete this test run? All execution data will be lost.')) return;
     fetch(`/api/test-runs?id=${id}`, { method: 'DELETE' })
       .then(() => fetchRuns());
@@ -75,7 +75,7 @@ export default function TestRunsPage() {
     <div className="container mx-auto p-4 md:p-8 flex flex-col gap-8 max-w-7xl">
       <div className="flex justify-between items-center">
         <div className="space-y-1">
-          <h1 className="text-3xl font-bold tracking-tight">Test Executions</h1>
+          <h1 className="text-3xl font-bold tracking-tight text-black dark:text-white">Test Executions</h1>
           <p className="text-gray-500 dark:text-gray-400">View and manage ongoing or past test runs.</p>
         </div>
         <Link href="/runs/new">

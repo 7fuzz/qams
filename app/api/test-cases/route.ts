@@ -12,38 +12,37 @@ export async function GET(request: Request) {
     const projectId = searchParams.get('projectId');
     const moduleId = searchParams.get('moduleId');
     
-    // Pagination params
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '50');
     const offset = (page - 1) * limit;
 
     try {
-        let baseQuery = `
+        let whereClause = 'WHERE 1=1';
+        const params: any[] = [];
+
+        if (scenarioId) {
+            whereClause += ' AND tc.scenario_id = ?';
+            params.push(scenarioId);
+        } else if (moduleId) {
+            whereClause += ' AND m.module_id = ?';
+            params.push(moduleId);
+        } else if (projectId) {
+            whereClause += ' AND p.project_id = ?';
+            params.push(projectId);
+        }
+
+        const countQuery = `
+            SELECT COUNT(*) as total 
             FROM test_cases tc
             JOIN scenarios s ON tc.scenario_id = s.scenario_id
             JOIN modules m ON s.module_id = m.module_id
             JOIN projects p ON m.project_id = p.project_id
-            JOIN users u ON p.owner_id = u.user_id
-            WHERE 1=1
+            ${whereClause}
         `;
-        const params: any[] = [];
+        const countRes = db.prepare(countQuery).get(...params) as any;
+        const total = countRes ? countRes.total : 0;
 
-        if (scenarioId) {
-            baseQuery += ' AND tc.scenario_id = ?';
-            params.push(scenarioId);
-        } else if (moduleId) {
-            baseQuery += ' AND m.module_id = ?';
-            params.push(moduleId);
-        } else if (projectId) {
-            baseQuery += ' AND p.project_id = ?';
-            params.push(projectId);
-        }
-
-        // 1. Get Total Count
-        const countQuery = `SELECT COUNT(*) as total ${baseQuery}`;
-        const total = (db.prepare(countQuery).get(...params) as any).total;
-
-        // 2. Get Paginated Data
+        // Removing tc.created_at prefix just in case, or using tc.test_case_id
         const dataQuery = `
             SELECT 
                 tc.*, 
@@ -55,8 +54,13 @@ export async function GET(request: Request) {
                 u.name as owner_name,
                 (SELECT COUNT(*) FROM issues i WHERE i.test_case_id = tc.test_case_id AND i.status != 'Closed') as open_issues_count,
                 (SELECT COUNT(*) FROM issues i WHERE i.test_case_id = tc.test_case_id AND i.status = 'Closed') as closed_issues_count
-            ${baseQuery}
-            ORDER BY tc.created_at DESC
+            FROM test_cases tc
+            JOIN scenarios s ON tc.scenario_id = s.scenario_id
+            JOIN modules m ON s.module_id = m.module_id
+            JOIN projects p ON m.project_id = p.project_id
+            JOIN users u ON p.owner_id = u.user_id
+            ${whereClause}
+            ORDER BY tc.test_case_id DESC
             LIMIT ? OFFSET ?
         `;
         
@@ -70,7 +74,7 @@ export async function GET(request: Request) {
             totalPages: Math.ceil(total / limit)
         });
     } catch (error) {
-        console.error(error);
+        console.error('SQL Error Detail:', error);
         return NextResponse.json({ error: 'Failed to fetch test cases' }, { status: 500 });
     }
 }
@@ -108,7 +112,7 @@ export async function PUT(request: Request) {
         
         db.prepare(`
             UPDATE test_cases 
-            SET title = ?, type = ?, priority = ?, automation_status = ?, requirement_link = ?, estimated_duration = ?, precondition = ?, steps = ?, test_data = ?, expected_result = ?, scenario_id = ?
+            SET title = ?, type = ?, priority = ?, automation_status = ?, requirement_link = ?, estimated_duration = ?, precondition = ?, steps = ?, test_data = ?, expected_result = ?, scenario_id = ?, updated_at = CURRENT_TIMESTAMP
             WHERE test_case_id = ?
         `).run(title, type, priority || null, automation_status || null, requirement_link || null, estimated_duration || null, precondition, steps, test_data, expected_result, scenario_id, test_case_id);
         

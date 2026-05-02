@@ -7,6 +7,7 @@ export * from './Table';
 export * from './Combobox';
 export * from './Modal';
 export * from './Textarea';
+export * from './AttachmentManager';
 
 
 

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Modal, Button, Label, Input, Combobox, Textarea } from '../ui';
+import { Modal, Button, Label, Input, Combobox, Textarea, AttachmentManager } from '../ui';
 import { TEST_CASE_TYPE_OPTIONS } from '@/lib/constants';
 
 interface TestCase {
@@ -64,28 +64,46 @@ export const EditTestCaseDialog = ({ testCase, isOpen, onClose, onSave }: EditTe
                 />
             </div>
             <div className="space-y-2">
-                <Label>Test Data</Label>
+                <Label>Reference/External ID</Label>
                 <Input value={formData.test_data || ''} onChange={e => setFormData({...formData, test_data: e.target.value})} />
             </div>
         </div>
 
-        <div className="space-y-2">
-            <Label>Precondition</Label>
-            <Textarea value={formData.precondition || ''} onChange={e => setFormData({...formData, precondition: e.target.value})} />
-        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-6">
+                <div className="space-y-2">
+                    <Label>Precondition</Label>
+                    <Textarea value={formData.precondition || ''} onChange={e => setFormData({...formData, precondition: e.target.value})} />
+                </div>
 
-        <div className="space-y-2">
-            <Label>Test Steps</Label>
-            <Textarea 
-                value={formData.steps || ''} 
-                onChange={e => setFormData({...formData, steps: e.target.value})} 
-                className="min-h-[150px]"
-            />
-        </div>
+                <div className="space-y-2">
+                    <Label>Test Steps</Label>
+                    <Textarea 
+                        value={formData.steps || ''} 
+                        onChange={e => setFormData({...formData, steps: e.target.value})} 
+                        className="min-h-[150px]"
+                    />
+                </div>
 
-        <div className="space-y-2">
-            <Label>Expected Result</Label>
-            <Textarea value={formData.expected_result || ''} onChange={e => setFormData({...formData, expected_result: e.target.value})} />
+                <div className="space-y-2">
+                    <Label>Expected Result</Label>
+                    <Textarea value={formData.expected_result || ''} onChange={e => setFormData({...formData, expected_result: e.target.value})} />
+                </div>
+            </div>
+
+            <div className="space-y-6 border-l dark:border-gray-800 pl-6">
+                <div className="space-y-2">
+                    <Label>Test Data (JSON/Complex)</Label>
+                    <Textarea 
+                        placeholder='{"key": "value"} or csv data...'
+                        value={formData.test_data || ''} 
+                        onChange={e => setFormData({...formData, test_data: e.target.value})} 
+                        className="min-h-[200px] font-mono text-[11px]"
+                    />
+                </div>
+
+                <AttachmentManager entityId={testCase.test_case_id} entityType="TEST_CASE" />
+            </div>
         </div>
 
         <div className="flex justify-end gap-3 border-t dark:border-gray-800 pt-6">

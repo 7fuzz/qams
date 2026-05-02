@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Modal, Button, Label, Input, Combobox, Textarea } from '../ui';
+import { Modal, Button, Label, Input, Combobox, Textarea, AttachmentManager } from '../ui';
 import { AlertCircle, MessageSquare, Plus, ChevronDown, ChevronUp, History, CheckCircle2 } from 'lucide-react';
 import { 
   TEST_STATUS, 
@@ -136,7 +136,6 @@ export const ExecutionDialog = ({ execution, isOpen, onClose, onSave }: Executio
   };
 
   const handleLogObservation = async (issue: Issue) => {
-    // Simply update the issue with its current data but pass execution_id to trigger a history log
     await fetch('/api/issues', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -169,164 +168,148 @@ export const ExecutionDialog = ({ execution, isOpen, onClose, onSave }: Executio
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={`Execute: ${execution.title}`}>
       <div className="space-y-6">
-        {/* Test Case Info - Compact */}
-        <div className="p-4 bg-gray-50 dark:bg-gray-900 rounded-lg text-xs border dark:border-gray-800 grid grid-cols-2 gap-4">
-          <div className="col-span-2">
-            <span className="font-bold text-gray-400 uppercase tracking-widest text-[10px]">Steps</span>
-            <p className="mt-1 whitespace-pre-wrap">{execution.steps}</p>
-          </div>
-          <div>
-            <span className="font-bold text-gray-400 uppercase tracking-widest text-[10px]">Expected</span>
-            <p className="mt-1">{execution.expected_result}</p>
-          </div>
-          <div>
-            <span className="font-bold text-gray-400 uppercase tracking-widest text-[10px]">Precondition</span>
-            <p className="mt-1">{execution.precondition || 'None'}</p>
-          </div>
-        </div>
-
-        {/* Execution Status */}
-        <div className="flex gap-4 items-end">
-          <div className="flex-1 space-y-2">
-            <Label>Resulting Status</Label>
-            <Combobox options={TEST_STATUS_OPTIONS} value={status} onChange={(val) => setStatus(val as string)} />
-          </div>
-          <Button onClick={handleSaveExecution} disabled={loading} className="px-8 shadow-lg shadow-blue-500/20">
-            {loading ? 'Saving...' : 'Save Results'}
-          </Button>
-        </div>
-
-        <div className="space-y-2">
-          <Label>Execution Notes</Label>
-          <Textarea 
-            placeholder="Minor adjustments or results..."
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-          />
-        </div>
-
-        {/* Issues Section */}
-        <div className="space-y-4 border-t dark:border-gray-800 pt-6">
-          <div className="flex items-center justify-between">
-            <h4 className="font-bold text-[10px] uppercase tracking-[0.2em] text-gray-400 flex items-center gap-2">
-                <AlertCircle size={14} /> Persistent Bugs ({existingIssues.length})
-            </h4>
-            <Button variant="outline" size="sm" className="h-7 text-[10px] uppercase font-bold" onClick={() => setShowNewIssueForm(!showNewIssueForm)}>
-              <Plus size={14} className="mr-1" /> New Bug
-            </Button>
-          </div>
-
-          {showNewIssueForm && (
-            <div className="p-4 border border-red-100 dark:border-red-900/20 bg-red-50/20 dark:bg-red-900/10 rounded-lg space-y-3 animate-in fade-in slide-in-from-top-2">
-              <Input placeholder="Bug Summary" value={newIssue.title} onChange={e => setNewIssue({...newIssue, title: e.target.value})} />
-              <Textarea 
-                placeholder="Actual vs Expected behavior..."
-                value={newIssue.description}
-                onChange={e => setNewIssue({...newIssue, description: e.target.value})}
-                className="bg-white dark:bg-gray-950"
-              />
-              <div className="flex gap-3">
-                <div className="flex-1">
-                  <Combobox options={ISSUE_SEVERITY_OPTIONS} value={newIssue.severity} onChange={val => setNewIssue({...newIssue, severity: val as string})} />
-                </div>
-                <Button size="sm" onClick={handleCreateIssue} className="bg-red-600 hover:bg-red-700">Report</Button>
-              </div>
-            </div>
-          )}
-
-          <div className="space-y-3">
-            {existingIssues.map(issue => (
-              <div key={issue.issue_id} className="border dark:border-gray-800 rounded-lg overflow-hidden bg-white dark:bg-gray-950">
-                <div 
-                  className="flex items-center justify-between p-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors"
-                  onClick={() => {
-                    if (expandedIssueId === issue.issue_id) {
-                        setSelectedIssueId(null);
-                    } else {
-                        setSelectedIssueId(issue.issue_id);
-                        fetchNotes(issue.issue_id);
-                    }
-                  }}
-                >
-                  <div className="flex items-center gap-3">
-                    <AlertCircle size={16} className={issue.status === 'Closed' ? 'text-gray-400' : 'text-red-500'} />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-6">
+                {/* Test Case Info - Compact */}
+                <div className="p-4 bg-gray-50 dark:bg-gray-900 rounded-lg text-xs border dark:border-gray-800 space-y-4">
                     <div>
-                      <div className={`text-sm font-semibold ${issue.status === 'Closed' ? 'line-through text-gray-400' : ''}`}>{issue.title}</div>
-                      <div className="text-[10px] text-gray-500 flex gap-2 font-medium">
-                        <span>{issue.severity}</span>
-                        <span>•</span>
-                        <span className="text-blue-500 font-bold uppercase">{issue.status}</span>
-                      </div>
+                        <span className="font-bold text-gray-400 uppercase tracking-widest text-[10px]">Steps</span>
+                        <p className="mt-1 whitespace-pre-wrap text-black dark:text-white">{execution.steps}</p>
                     </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    {issue.status !== 'Closed' && (
-                        <Button 
-                            size="sm" 
-                            variant="ghost" 
-                            className="h-7 text-[10px] text-orange-600 bg-orange-50 dark:bg-orange-900/10 hover:bg-orange-100"
-                            onClick={(e) => { e.stopPropagation(); handleLogObservation(issue); }}
-                        >
-                            <History size={12} className="mr-1" /> Still Present
-                        </Button>
-                    )}
-                    {expandedIssueId === issue.issue_id ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                  </div>
+                    <div>
+                        <span className="font-bold text-gray-400 uppercase tracking-widest text-[10px]">Expected</span>
+                        <p className="mt-1 text-black dark:text-white">{execution.expected_result}</p>
+                    </div>
+                    <div>
+                        <span className="font-bold text-gray-400 uppercase tracking-widest text-[10px]">Precondition</span>
+                        <p className="mt-1 text-black dark:text-white">{execution.precondition || 'None'}</p>
+                    </div>
                 </div>
 
-                {expandedIssueId === issue.issue_id && (
-                  <div className="p-4 border-t dark:border-gray-800 bg-gray-50/20 space-y-4">
-                    <p className="text-sm text-gray-600 dark:text-gray-400 italic">{issue.description}</p>
-                    
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-1">
-                        <Label className="text-[10px] font-bold text-gray-400 uppercase">Change Status</Label>
-                        <Combobox 
-                          options={ISSUE_STATUS_OPTIONS} 
-                          value={issue.status} 
-                          onChange={(val) => handleUpdateIssueStatus(issue.issue_id, val as string, issue.severity, issue.title, issue.description)} 
+                {/* Execution Status */}
+                <div className="space-y-4">
+                    <div className="space-y-2">
+                        <Label className="text-black dark:text-white">Resulting Status</Label>
+                        <Combobox options={TEST_STATUS_OPTIONS} value={status} onChange={(val) => setStatus(val as string)} />
+                    </div>
+                    <div className="space-y-2 text-black dark:text-white">
+                        <Label>Execution Notes</Label>
+                        <Textarea 
+                            placeholder="Minor adjustments or results..."
+                            value={notes}
+                            onChange={(e) => setNotes(e.target.value)}
                         />
-                      </div>
-                      <div className="space-y-1">
-                        <Label className="text-[10px] font-bold text-gray-400 uppercase">Change Severity</Label>
-                        <Combobox 
-                          options={ISSUE_SEVERITY_OPTIONS} 
-                          value={issue.severity} 
-                          onChange={(val) => handleUpdateIssueStatus(issue.issue_id, issue.status, val as string, issue.title, issue.description)} 
-                        />
-                      </div>
+                    </div>
+                    <Button onClick={handleSaveExecution} disabled={loading} className="w-full shadow-lg shadow-blue-500/20 py-6 text-black dark:text-white border-black dark:border-white">
+                        {loading ? 'Saving...' : 'Save Execution Results'}
+                    </Button>
+                </div>
+            </div>
+
+            <div className="space-y-6 border-l dark:border-gray-800 pl-6">
+                {/* Attachments for Execution */}
+                <AttachmentManager entityId={execution.test_case_id} entityType="TEST_CASE" />
+
+                {/* Issues Section */}
+                <div className="space-y-4 pt-4 border-t dark:border-gray-800">
+                    <div className="flex items-center justify-between">
+                        <h4 className="font-bold text-[10px] uppercase tracking-[0.2em] text-gray-400 flex items-center gap-2">
+                            <AlertCircle size={14} /> Persistent Bugs ({existingIssues.length})
+                        </h4>
+                        <Button variant="outline" size="sm" className="h-7 text-[10px] uppercase font-bold text-black dark:text-white border-black dark:border-white" onClick={() => setShowNewIssueForm(!showNewIssueForm)}>
+                            <Plus size={14} className="mr-1" /> New Bug
+                        </Button>
                     </div>
 
-                    <div className="space-y-3">
-                      <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-1">
-                        <MessageSquare size={12} /> Notes Thread
-                      </div>
-                      <div className="space-y-2">
-                        {(issueNotes[issue.issue_id] || []).map(note => (
-                          <div key={note.note_id} className="text-[11px] bg-white dark:bg-gray-900 p-2 rounded border dark:border-gray-800">
-                            <div className="flex justify-between font-bold text-gray-500 mb-1">
-                              <span>{note.user_name}</span>
-                              <span>{new Date(note.created_at).toLocaleDateString()}</span>
+                    {showNewIssueForm && (
+                        <div className="p-4 border border-red-100 dark:border-red-900/20 bg-red-50/20 dark:bg-red-900/10 rounded-lg space-y-3 animate-in fade-in slide-in-from-top-2">
+                            <Input placeholder="Bug Summary" value={newIssue.title} onChange={e => setNewIssue({...newIssue, title: e.target.value})} />
+                            <Textarea 
+                                placeholder="Actual vs Expected behavior..."
+                                value={newIssue.description}
+                                onChange={e => setNewIssue({...newIssue, description: e.target.value})}
+                                className="bg-white dark:bg-gray-950"
+                            />
+                            <div className="flex gap-3">
+                                <div className="flex-1">
+                                <Combobox options={ISSUE_SEVERITY_OPTIONS} value={newIssue.severity} onChange={val => setNewIssue({...newIssue, severity: val as string})} />
+                                </div>
+                                <Button size="sm" onClick={handleCreateIssue} className="bg-red-600 hover:bg-red-700 text-black dark:text-white border-black dark:border-white">Report</Button>
                             </div>
-                            {note.content}
-                          </div>
+                        </div>
+                    )}
+
+                    <div className="space-y-3 max-h-[300px] overflow-y-auto pr-1">
+                        {existingIssues.map(issue => (
+                            <div key={issue.issue_id} className="border dark:border-gray-800 rounded-lg overflow-hidden bg-white dark:bg-gray-950">
+                                <div 
+                                    className="flex items-center justify-between p-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors"
+                                    onClick={() => {
+                                        if (expandedIssueId === issue.issue_id) {
+                                            setSelectedIssueId(null);
+                                        } else {
+                                            setSelectedIssueId(issue.issue_id);
+                                            fetchNotes(issue.issue_id);
+                                        }
+                                    }}
+                                >
+                                    <div className="flex items-center gap-2">
+                                        <AlertCircle size={14} className={issue.status === 'Closed' ? 'text-gray-400' : 'text-red-500'} />
+                                        <div className="text-[11px] font-semibold truncate max-w-[120px] text-black dark:text-white">{issue.title}</div>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        {issue.status !== 'Closed' && (
+                                            <Button 
+                                                size="sm" 
+                                                variant="ghost" 
+                                                className="h-6 w-6 p-0 text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-900/10"
+                                                onClick={(e) => { e.stopPropagation(); handleLogObservation(issue); }}
+                                                title="Log Still Present"
+                                            >
+                                                <History size={12} />
+                                            </Button>
+                                        )}
+                                        {expandedIssueId === issue.issue_id ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                                    </div>
+                                </div>
+
+                                {expandedIssueId === issue.issue_id && (
+                                    <div className="p-3 border-t dark:border-gray-800 bg-gray-50/20 space-y-4">
+                                        <div className="space-y-1">
+                                            <Label className="text-[10px] font-bold text-gray-400 uppercase text-black dark:text-white">Change Status</Label>
+                                            <Combobox 
+                                                options={ISSUE_STATUS_OPTIONS} 
+                                                value={issue.status} 
+                                                onChange={(val) => handleUpdateIssueStatus(issue.issue_id, val as string, issue.severity, issue.title, issue.description)} 
+                                            />
+                                        </div>
+                                        <div className="space-y-3">
+                                            {(issueNotes[issue.issue_id] || []).slice(-1).map(note => (
+                                                <div key={note.note_id} className="text-[10px] bg-white dark:bg-gray-900 p-2 rounded border dark:border-gray-800 italic">
+                                                    "{note.content}"
+                                                </div>
+                                            ))}
+                                            <div className="flex gap-2">
+                                                <Input 
+                                                    placeholder="Add note..." 
+                                                    className="h-7 text-[10px] bg-white dark:bg-gray-950" 
+                                                    value={newNoteContent[issue.issue_id] || ''}
+                                                    onChange={e => setNewNoteContent({...newNoteContent, [issue.issue_id]: e.target.value})}
+                                                />
+                                                <Button size="sm" className="h-7 px-3 text-[10px] text-black dark:text-white border-black dark:border-white" onClick={() => handleAddNote(issue.issue_id)}>Post</Button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
                         ))}
-                      </div>
-                      <div className="flex gap-2">
-                        <Input 
-                          placeholder="Add detail..." 
-                          className="h-8 text-xs bg-white dark:bg-gray-950" 
-                          value={newNoteContent[issue.issue_id] || ''}
-                          onChange={e => setNewNoteContent({...newNoteContent, [issue.issue_id]: e.target.value})}
-                        />
-                        <Button size="sm" className="h-8" onClick={() => handleAddNote(issue.issue_id)}>Post</Button>
-                      </div>
                     </div>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
+                </div>
+            </div>
+        </div>
+
+        <div className="flex justify-end pt-4 border-t dark:border-gray-800">
+            <Button variant="outline" onClick={onClose} className="px-8 text-black dark:text-white border-black dark:border-white">Close</Button>
         </div>
       </div>
     </Modal>

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Modal, Button, Label, Input, Combobox, Textarea } from '../ui';
+import { Modal, Button, Label, Input, Combobox, Textarea, AttachmentManager } from '../ui';
 import { AlertCircle, MessageSquare, Plus, ChevronDown, ChevronUp, CheckCircle2, History } from 'lucide-react';
 import { 
   ISSUE_SEVERITY_OPTIONS,
@@ -64,7 +64,6 @@ export const IssuesListDialog = ({ testCaseId, testCaseTitle, isOpen, onClose, o
   };
 
   const fetchDataForIssue = async (issueId: string) => {
-    // Parallel fetch notes and history
     const [notesRes, historyRes] = await Promise.all([
         fetch(`/api/issues/notes?issueId=${issueId}`),
         fetch(`/api/issues/history?issueId=${issueId}`)
@@ -96,14 +95,14 @@ export const IssuesListDialog = ({ testCaseId, testCaseTitle, isOpen, onClose, o
     onRefresh();
   };
 
-  const handleUpdateIssue = async (issueId: string, data: Partial<Issue>) => {
+  const handleUpdateIssue = async (issueId: number | string, data: Partial<Issue>) => {
     await fetch('/api/issues', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ issue_id: issueId, ...data }),
     });
     fetchIssues();
-    fetchDataForIssue(issueId);
+    fetchDataForIssue(issueId.toString());
     onRefresh();
   };
 
@@ -182,70 +181,79 @@ export const IssuesListDialog = ({ testCaseId, testCaseTitle, isOpen, onClose, o
 
               {expandedIssueId === issue.issue_id && (
                 <div className="p-4 border-t dark:border-gray-800 bg-gray-50/20 space-y-6">
-                  <p className="text-sm text-gray-600 dark:text-gray-400 border-l-2 pl-3 italic">{issue.description}</p>
                   
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-1">
-                      <Label className="text-[10px] font-bold text-gray-400">STATUS</Label>
-                      <Combobox 
-                        options={ISSUE_STATUS_OPTIONS} 
-                        value={issue.status} 
-                        onChange={(val) => handleUpdateIssue(issue.issue_id, { status: val as IssueStatus })} 
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <Label className="text-[10px] font-bold text-gray-400">SEVERITY</Label>
-                      <Combobox 
-                        options={ISSUE_SEVERITY_OPTIONS} 
-                        value={issue.severity} 
-                        onChange={(val) => handleUpdateIssue(issue.issue_id, { severity: val as IssueSeverity })} 
-                      />
-                    </div>
-                  </div>
-
-                  {/* Run History */}
-                  <div className="space-y-3">
-                    <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-1">
-                      <History size={12} /> Run History
-                    </div>
-                    <div className="space-y-2">
-                        {(issueHistory[issue.issue_id] || []).map(entry => (
-                            <div key={entry.history_id} className="flex items-center justify-between text-[11px] p-2 bg-white dark:bg-gray-900 border dark:border-gray-800 rounded">
-                                <div className="flex items-center gap-2">
-                                    <span className="font-bold text-blue-500">{entry.run_name || 'System'}</span>
-                                    <span className="text-gray-400">➔</span>
-                                    <span className="font-bold text-gray-700 dark:text-gray-300">{entry.status}</span>
-                                </div>
-                                <span className="text-gray-400">{new Date(entry.timestamp).toLocaleDateString()}</span>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-4">
+                        <p className="text-sm text-gray-600 dark:text-gray-400 border-l-2 pl-3 italic">{issue.description}</p>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-1">
+                            <Label className="text-[10px] font-bold text-gray-400">STATUS</Label>
+                            <Combobox 
+                                options={ISSUE_STATUS_OPTIONS} 
+                                value={issue.status} 
+                                onChange={(val) => handleUpdateIssue(issue.issue_id, { status: val as IssueStatus })} 
+                            />
                             </div>
-                        ))}
-                    </div>
-                  </div>
-
-                  {/* Notes Thread */}
-                  <div className="space-y-3">
-                    <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-1">
-                      <MessageSquare size={12} /> Notes Thread
-                    </div>
-                    <div className="space-y-2">
-                      {(issueNotes[issue.issue_id] || []).map(note => (
-                        <div key={note.note_id} className="text-xs bg-white dark:bg-gray-900 p-2 rounded border dark:border-gray-800">
-                          <div className="flex justify-between font-bold text-gray-500 mb-1">
-                            <span>{note.user_name}</span>
-                            <span>{new Date(note.created_at).toLocaleDateString()}</span>
-                          </div>
-                          {note.content}
+                            <div className="space-y-1">
+                            <Label className="text-[10px] font-bold text-gray-400">SEVERITY</Label>
+                            <Combobox 
+                                options={ISSUE_SEVERITY_OPTIONS} 
+                                value={issue.severity} 
+                                onChange={(val) => handleUpdateIssue(issue.issue_id, { severity: val as IssueSeverity })} 
+                            />
+                            </div>
                         </div>
-                      ))}
+
+                        {/* Run History */}
+                        <div className="space-y-3">
+                            <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-1">
+                            <History size={12} /> Run History
+                            </div>
+                            <div className="space-y-2">
+                                {(issueHistory[issue.issue_id] || []).map(entry => (
+                                    <div key={entry.history_id} className="flex items-center justify-between text-[11px] p-2 bg-white dark:bg-gray-900 border dark:border-gray-800 rounded text-black dark:text-white">
+                                        <div className="flex items-center gap-2">
+                                            <span className="font-bold text-blue-500">{entry.run_name || 'System'}</span>
+                                            <span className="text-gray-400">➔</span>
+                                            <span className="font-bold">{entry.status}</span>
+                                        </div>
+                                        <span className="text-gray-400">{new Date(entry.timestamp).toLocaleDateString()}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
                     </div>
-                    <div className="flex gap-2">
-                      <Input 
-                        placeholder="Add to thread..." 
-                        className="h-8 text-xs shadow-sm" 
-                        value={newNoteContent[issue.issue_id] || ''}
-                        onChange={e => setNewNoteContent({...newNoteContent, [issue.issue_id]: e.target.value})}
-                      />
-                      <Button size="sm" className="h-8 px-4" onClick={() => handleAddNote(issue.issue_id)}>Post</Button>
+
+                    <div className="space-y-6 pl-6 border-l dark:border-gray-800">
+                         {/* Attachments for Issue */}
+                        <AttachmentManager entityId={issue.issue_id} entityType="ISSUE" />
+
+                        {/* Notes Thread */}
+                        <div className="space-y-3">
+                            <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-1 text-black dark:text-white">
+                            <MessageSquare size={12} /> Notes Thread
+                            </div>
+                            <div className="space-y-2">
+                            {(issueNotes[issue.issue_id] || []).map(note => (
+                                <div key={note.note_id} className="text-xs bg-white dark:bg-gray-900 p-2 rounded border dark:border-gray-800">
+                                <div className="flex justify-between font-bold text-gray-500 mb-1">
+                                    <span>{note.user_name}</span>
+                                    <span>{new Date(note.created_at).toLocaleDateString()}</span>
+                                </div>
+                                {note.content}
+                                </div>
+                            ))}
+                            </div>
+                            <div className="flex gap-2 text-black dark:text-white">
+                            <Input 
+                                placeholder="Add to thread..." 
+                                className="h-8 text-xs shadow-sm" 
+                                value={newNoteContent[issue.issue_id] || ''}
+                                onChange={e => setNewNoteContent({...newNoteContent, [issue.issue_id]: e.target.value})}
+                            />
+                            <Button size="sm" className="h-8 px-4" onClick={() => handleAddNote(issue.issue_id)}>Post</Button>
+                            </div>
+                        </div>
                     </div>
                   </div>
                 </div>
@@ -255,7 +263,7 @@ export const IssuesListDialog = ({ testCaseId, testCaseTitle, isOpen, onClose, o
         </div>
 
         <div className="flex justify-end pt-4 border-t dark:border-gray-800">
-          <Button onClick={onClose} className="px-8">Done</Button>
+          <Button onClick={onClose} className="px-8 text-black dark:text-white border-black dark:border-white">Done</Button>
         </div>
       </div>
     </Modal>

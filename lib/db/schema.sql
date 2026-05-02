@@ -137,3 +137,13 @@ CREATE TABLE IF NOT EXISTS activity_log (
     FOREIGN KEY (user_id) REFERENCES users(user_id)
 );
 
+-- Attachments Table
+CREATE TABLE IF NOT EXISTS attachments (
+    attachment_id TEXT PRIMARY KEY,
+    entity_type TEXT NOT NULL, -- 'TEST_CASE' or 'ISSUE'
+    entity_id TEXT NOT NULL,
+    url TEXT NOT NULL,
+    name TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+

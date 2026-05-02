@@ -13,25 +13,45 @@ export async function GET(request: Request) {
     const runId = searchParams.get('runId');
 
     try {
-        let query = `
-            SELECT i.*, u.name as reporter_name 
-            FROM issues i 
-            JOIN users u ON i.reporter_id = u.user_id
-        `;
+        let query = '';
         const params: string[] = [];
-        
-        if (testCaseId) {
-            query += ' WHERE i.test_case_id = ?';
-            params.push(testCaseId);
-        } else if (runId) {
-            query += ` WHERE i.test_case_id IN (SELECT test_case_id FROM test_executions WHERE run_id = ?)`;
-            params.push(runId);
+
+        if (runId) {
+            // Fetch issues with status as it was during/at the end of this specific run
+            query = `
+                SELECT 
+                    i.issue_id, i.test_case_id, i.snapshot_execution_id, i.reporter_id, i.developer_id, i.title, i.description, i.severity, i.created_at, i.updated_at,
+                    u.name as reporter_name,
+                    COALESCE(
+                        (SELECT status FROM issue_history h 
+                         WHERE h.issue_id = i.issue_id 
+                         AND h.timestamp <= (SELECT COALESCE(completed_at, CURRENT_TIMESTAMP) FROM test_runs WHERE run_id = ?) 
+                         ORDER BY h.timestamp DESC LIMIT 1),
+                        i.status
+                    ) as status
+                FROM issues i 
+                JOIN users u ON i.reporter_id = u.user_id
+                WHERE i.test_case_id IN (SELECT test_case_id FROM test_executions WHERE run_id = ?)
+            `;
+            params.push(runId, runId);
+        } else {
+            query = `
+                SELECT i.*, u.name as reporter_name 
+                FROM issues i 
+                JOIN users u ON i.reporter_id = u.user_id
+                WHERE 1=1
+            `;
+            if (testCaseId) {
+                query += ' AND i.test_case_id = ?';
+                params.push(testCaseId);
+            }
         }
 
-        query += ' ORDER BY i.created_at DESC';
+        query += ' ORDER BY created_at DESC';
         const issues = db.prepare(query).all(...params);
         return NextResponse.json(issues);
-    } catch {
+    } catch (error) {
+        console.error(error);
         return NextResponse.json({ error: 'Failed to fetch issues' }, { status: 500 });
     }
 }

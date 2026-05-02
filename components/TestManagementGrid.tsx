@@ -81,7 +81,7 @@ export const TestManagementGrid = ({ moduleId }: TestManagementGridProps) => {
     { 
         field: 'scenario_id', 
         headerName: 'Scenario', 
-        width: 220,
+        width: 180,
         pinned: 'left',
         checkboxSelection: true, 
         headerCheckboxSelection: true,
@@ -123,9 +123,20 @@ export const TestManagementGrid = ({ moduleId }: TestManagementGridProps) => {
             return <div className="flex items-center gap-1 text-red-500 font-bold"><AlertCircle size={14} /> {params.value}</div>;
         }
     },
-    { field: 'precondition', headerName: 'Precondition', width: 200, hide: true },
-    { field: 'steps', headerName: 'Test Steps', width: 300, autoHeight: true, wrapText: true, hide: true },
-    { field: 'expected_result', headerName: 'Expected Result', width: 250, hide: true },
+    { field: 'precondition', headerName: 'Precondition', width: 200 },
+    { 
+        field: 'steps', 
+        headerName: 'Test Steps', 
+        width: 300, 
+        autoHeight: true, 
+        wrapText: true, 
+        cellEditor: 'agLargeTextCellEditor',
+        cellEditorParams: {
+            cols: 50,
+            rows: 6
+        }
+    },
+    { field: 'expected_result', headerName: 'Expected Result', width: 250 },
     { field: 'test_data', headerName: 'Test Data', width: 150 },
     {
         headerName: '',

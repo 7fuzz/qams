@@ -1,7 +1,4 @@
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/Card";
-import { Input } from "@/components/ui/Input";
-import { Label } from "@/components/ui/Label";
-import { Button } from "@/components/ui/Button";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter, Input, Label, Button } from "@/components/ui";
 
 export default function SettingsPage() {
   return (

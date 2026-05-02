@@ -2,10 +2,7 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/Card";
-import { Label } from "@/components/ui/Label";
-import { Input } from "@/components/ui/Input";
-import { Button } from "@/components/ui/Button";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter, Label, Input, Button } from "@/components/ui";
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');

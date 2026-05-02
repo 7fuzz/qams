@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Modal, Button, Label, Input, Combobox, Textarea } from './ui';
+import { Modal, Button, Label, Input, Combobox, Textarea } from '../ui';
 import { AlertCircle, MessageSquare, Plus, ChevronDown, ChevronUp } from 'lucide-react';
 import { 
   TEST_STATUS, 

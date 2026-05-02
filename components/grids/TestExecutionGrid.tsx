@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Button, Card, CardContent } from './ui';
-import { ExecutionDialog } from './ExecutionDialog';
+import { Button, Card, CardContent } from '../ui';
+import { ExecutionDialog } from '../dialogs/ExecutionDialog';
 import { Play, CheckCircle2, AlertCircle, Clock, PauseCircle, HelpCircle } from 'lucide-react';
 import { TEST_STATUS, TestStatus } from '@/lib/constants';
 

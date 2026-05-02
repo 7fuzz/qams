@@ -9,12 +9,12 @@ import {
   ModuleRegistry,
   themeQuartz
 } from 'ag-grid-community';
-import { Button, Input } from './ui';
+import { Button, Input } from '../ui';
 import { Trash2, Plus, Copy, AlertCircle, ListChecks, Edit2, CheckCircle2 } from 'lucide-react';
 import { TEST_CASE_TYPE, TEST_CASE_TYPE_OPTIONS } from '@/lib/constants';
 import { GRID_CONTAINER_CLASS, unifiedGridTheme } from '@/lib/theme';
-import { EditTestCaseDialog } from './EditTestCaseDialog';
-import { IssuesListDialog } from './IssuesListDialog';
+import { EditTestCaseDialog } from '../dialogs/EditTestCaseDialog';
+import { IssuesListDialog } from '../dialogs/IssuesListDialog';
 
 ModuleRegistry.registerModules([AllCommunityModule]);
 

@@ -2,8 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/Card";
-import { Button } from "@/components/ui/Button";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, Button } from "@/components/ui";
 import { AgGridReact } from 'ag-grid-react';
 import { 
   ColDef, 

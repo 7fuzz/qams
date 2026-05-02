@@ -14,7 +14,6 @@ import {
   TableCell,
   TableCaption
 } from "@/components/ui";
-import { SpreadsheetEditor } from "@/components/SpreadsheetEditor";
 
 const invoices = [
   {
@@ -54,14 +53,6 @@ export default function Home() {
         </div>
 
         <div className="grid gap-16">
-          {/* Spreadsheet Editor Section */}
-          <section className="space-y-4">
-            <h2 className="text-2xl font-semibold border-b pb-2">Spreadsheet Editor (AG Grid)</h2>
-            <Card className="p-4 bg-white dark:bg-gray-900 shadow-lg">
-              <SpreadsheetEditor />
-            </Card>
-          </section>
-
           {/* Button Section */}
           <section className="space-y-4">
             <h2 className="text-2xl font-semibold border-b pb-2">Atomic Buttons</h2>

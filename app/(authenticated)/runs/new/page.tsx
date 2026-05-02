@@ -2,11 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/Card";
-import { Label } from "@/components/ui/Label";
-import { Input } from "@/components/ui/Input";
-import { Button } from "@/components/ui/Button";
-import { Checkbox } from "@/components/ui/Checkbox";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter, Label, Input, Button, Checkbox } from "@/components/ui";
 
 interface Project {
   project_id: number;

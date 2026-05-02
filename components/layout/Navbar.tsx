@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Button } from "./ui/Button";
+import { Button } from "../ui/Button";
 
 export const Navbar = () => {
   const [user, setUser] = useState<{ isLoggedIn: boolean; role: string; name: string } | null>(null);

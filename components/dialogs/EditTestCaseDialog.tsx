@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Modal, Button, Label, Input, Combobox, Textarea } from './ui';
+import { Modal, Button, Label, Input, Combobox, Textarea } from '../ui';
 import { TEST_CASE_TYPE_OPTIONS } from '@/lib/constants';
 
 interface TestCase {

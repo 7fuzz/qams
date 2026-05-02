@@ -2,7 +2,7 @@
 
 import React, { use, useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, Button } from "@/components/ui";
-import { TestExecutionGrid } from "@/components/TestExecutionGrid";
+import { TestExecutionGrid } from "@/components/grids/TestExecutionGrid";
 import { CheckCircle, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';

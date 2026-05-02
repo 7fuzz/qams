@@ -2,7 +2,7 @@ import { getIronSession } from "iron-session";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { sessionOptions, SessionData } from "@/lib/session";
-import { Sidebar } from "@/components/Sidebar";
+import { Sidebar } from "@/components/layout/Sidebar";
 
 export default async function AuthenticatedLayout({
   children,

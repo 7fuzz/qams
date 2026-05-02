@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/Card";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui";
 import { AgGridReact } from 'ag-grid-react';
 import { 
   ColDef, 

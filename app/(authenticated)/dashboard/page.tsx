@@ -1,5 +1,5 @@
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/Card";
-import { ActivityLog } from "@/components/ActivityLog";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui";
+import { ActivityLog } from "@/components/grids/ActivityLog";
 
 export default function DashboardPage() {
   return (

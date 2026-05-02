@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent, Input, Button } from "@/components/ui";
 import { Combobox } from "@/components/ui/Combobox";
-import { TestManagementGrid } from "@/components/TestManagementGrid";
+import { TestManagementGrid } from "@/components/grids/TestManagementGrid";
 import { Plus, FolderTree, Layers, ListChecks } from 'lucide-react';
 import { saveState, loadState } from '@/lib/persistence';
 

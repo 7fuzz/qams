@@ -73,9 +73,9 @@ export const IssuesListDialog = ({ testCaseId, testCaseTitle, isOpen, onClose, o
   };
 
   const fetchUsers = async () => {
-    const res = await fetch('/api/users');
-    const data = await res.json();
-    setUsers(data);
+    const res = await fetch('/api/users?limit=1000');
+    const resData = await res.json();
+    setUsers(resData.data || []);
   };
 
   const fetchDataForIssue = async (issueId: string) => {

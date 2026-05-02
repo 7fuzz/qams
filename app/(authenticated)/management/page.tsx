@@ -73,9 +73,9 @@ export default function ManagementPage() {
   };
 
   const fetchUsers = async () => {
-    const res = await fetch('/api/users');
-    const data = await res.json();
-    setUsers(data);
+    const res = await fetch('/api/users?limit=1000'); // Fetch a large batch for selectors
+    const resData = await res.json();
+    setUsers(resData.data || []);
   };
 
   useEffect(() => { fetchProjects(); fetchUsers(); }, []);

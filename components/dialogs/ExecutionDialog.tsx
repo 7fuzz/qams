@@ -85,9 +85,9 @@ export const ExecutionDialog = ({ execution, isOpen, onClose, onSave }: Executio
   };
 
   const fetchUsers = async () => {
-    const res = await fetch('/api/users');
-    const data = await res.json();
-    setUsers(data);
+    const res = await fetch('/api/users?limit=1000');
+    const resData = await res.json();
+    setUsers(resData.data || []);
   };
 
   const fetchNotes = async (issueId: string) => {

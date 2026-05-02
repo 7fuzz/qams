@@ -2,10 +2,9 @@
 
 import React, { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
-import { Input } from "@/components/ui/Input";
-import { Button } from "@/components/ui/Button";
 import { Combobox } from "@/components/ui/Combobox";
 import { TestManagementGrid } from "@/components/TestManagementGrid";
+import { FolderTree, Layers, ListChecks } from 'lucide-react';
 
 interface Project {
   project_id: number;
@@ -30,25 +29,21 @@ export default function TestsPage() {
   const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
   const [selectedModuleId, setSelectedModuleId] = useState<number | null>(null);
   const [selectedScenarioId, setSelectedScenarioId] = useState<number | null>(null);
-  
-  const [newProjectName, setNewProjectName] = useState('');
-  const [newModuleName, setNewModuleName] = useState('');
-  const [newScenarioName, setNewScenarioName] = useState('');
-
-  const fetchProjects = () => fetch('/api/projects').then(res => res.json()).then(setProjects);
-  const fetchModules = (id: number) => fetch(`/api/modules?projectId=${id}`).then(res => res.json()).then(setModules);
-  const fetchScenarios = (id: number) => fetch(`/api/scenarios?moduleId=${id}`).then(res => res.json()).then(setScenarios);
 
   useEffect(() => {
-    fetchProjects();
+    fetch('/api/projects').then(res => res.json()).then(setProjects);
   }, []);
 
   useEffect(() => {
     if (selectedProjectId) {
-      fetchModules(selectedProjectId);
-      setSelectedModuleId(null);
-      setScenarios([]);
-      setSelectedScenarioId(null);
+      fetch(`/api/modules?projectId=${selectedProjectId}`)
+        .then(res => res.json())
+        .then(data => {
+          setModules(data);
+          setSelectedModuleId(null);
+          setScenarios([]);
+          setSelectedScenarioId(null);
+        });
     } else {
       setModules([]);
       setSelectedModuleId(null);
@@ -57,145 +52,85 @@ export default function TestsPage() {
 
   useEffect(() => {
     if (selectedModuleId) {
-      fetchScenarios(selectedModuleId);
-      setSelectedScenarioId(null);
+      fetch(`/api/scenarios?moduleId=${selectedModuleId}`)
+        .then(res => res.json())
+        .then(data => {
+          setScenarios(data);
+          setSelectedScenarioId(null);
+        });
     } else {
       setScenarios([]);
       setSelectedScenarioId(null);
     }
   }, [selectedModuleId]);
 
-  const addItem = (type: 'PROJECT' | 'MODULE' | 'SCENARIO') => {
-    let url = '';
-    let name = '';
-    let body: any = {};
-
-    if (type === 'PROJECT') {
-      url = '/api/projects';
-      name = newProjectName;
-      body = { name };
-    } else if (type === 'MODULE') {
-      url = '/api/modules';
-      name = newModuleName;
-      body = { name, project_id: selectedProjectId };
-    } else {
-      url = '/api/scenarios';
-      name = newScenarioName;
-      body = { name, module_id: selectedModuleId };
-    }
-
-    if (!name) return;
-
-    fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    })
-    .then(res => res.json())
-    .then((data) => {
-      if (type === 'PROJECT') {
-        setNewProjectName('');
-        fetchProjects().then(() => setSelectedProjectId(data.project_id));
-      } else if (type === 'MODULE') {
-        setNewModuleName('');
-        fetchModules(selectedProjectId!).then(() => setSelectedModuleId(data.module_id));
-      } else {
-        setNewScenarioName('');
-        fetchScenarios(selectedModuleId!).then(() => setSelectedScenarioId(data.scenario_id));
-      }
-    });
-  };
-
   return (
     <div className="container mx-auto p-4 md:p-8 flex flex-col gap-8 max-w-7xl">
       <div className="space-y-2">
-        <h1 className="text-3xl font-bold tracking-tight">Test Library</h1>
-        <p className="text-gray-500 dark:text-gray-400">Manage your projects, modules, and test cases.</p>
+        <h1 className="text-3xl font-bold tracking-tight text-black dark:text-white">Test Case Library</h1>
+        <p className="text-gray-500">Navigate the hierarchy to manage specific test cases.</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* Project Column */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-gray-500 uppercase tracking-wider">Project</CardTitle>
+        {/* Project Selection */}
+        <Card className={selectedProjectId ? "border-blue-500/30" : ""}>
+          <CardHeader className="pb-3 flex flex-row items-center gap-2">
+            <FolderTree size={16} className="text-gray-400" />
+            <CardTitle className="text-sm font-bold uppercase tracking-wider text-gray-500">Project</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent>
             <Combobox 
               options={projects.map(p => ({ value: p.project_id, label: p.name }))}
               value={selectedProjectId || undefined}
               onChange={(val) => setSelectedProjectId(Number(val))}
               placeholder="Select Project..."
             />
-            <div className="flex gap-2">
-              <Input 
-                placeholder="New Project" 
-                value={newProjectName} 
-                onChange={e => setNewProjectName(e.target.value)} 
-                className="h-9 text-sm" 
-              />
-              <Button size="sm" onClick={() => addItem('PROJECT')} className="h-9">Add</Button>
-            </div>
           </CardContent>
         </Card>
 
-        {/* Module Column */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-gray-500 uppercase tracking-wider">Module</CardTitle>
+        {/* Module Selection */}
+        <Card className={selectedModuleId ? "border-blue-500/30" : ""}>
+          <CardHeader className="pb-3 flex flex-row items-center gap-2">
+            <Layers size={16} className="text-gray-400" />
+            <CardTitle className="text-sm font-bold uppercase tracking-wider text-gray-500">Module</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent>
             <Combobox 
               options={modules.map(m => ({ value: m.module_id, label: m.name }))}
               value={selectedModuleId || undefined}
               onChange={(val) => setSelectedModuleId(Number(val))}
               placeholder="Select Module..."
+              className={!selectedProjectId ? "opacity-50 cursor-not-allowed" : ""}
             />
-            <div className="flex gap-2">
-              <Input 
-                placeholder="New Module" 
-                value={newModuleName} 
-                onChange={e => setNewModuleName(e.target.value)} 
-                className="h-9 text-sm" 
-              />
-              <Button size="sm" onClick={() => addItem('MODULE')} disabled={!selectedProjectId} className="h-9">Add</Button>
-            </div>
           </CardContent>
         </Card>
 
-        {/* Scenario Column */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-gray-500 uppercase tracking-wider">Scenario</CardTitle>
+        {/* Scenario Selection */}
+        <Card className={selectedScenarioId ? "border-blue-500/30" : ""}>
+          <CardHeader className="pb-3 flex flex-row items-center gap-2">
+            <ListChecks size={16} className="text-gray-400" />
+            <CardTitle className="text-sm font-bold uppercase tracking-wider text-gray-500">Scenario</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent>
             <Combobox 
               options={scenarios.map(s => ({ value: s.scenario_id, label: s.name }))}
               value={selectedScenarioId || undefined}
               onChange={(val) => setSelectedScenarioId(Number(val))}
               placeholder="Select Scenario..."
+              className={!selectedModuleId ? "opacity-50 cursor-not-allowed" : ""}
             />
-            <div className="flex gap-2">
-              <Input 
-                placeholder="New Scenario" 
-                value={newScenarioName} 
-                onChange={e => setNewScenarioName(e.target.value)} 
-                className="h-9 text-sm" 
-              />
-              <Button size="sm" onClick={() => addItem('SCENARIO')} disabled={!selectedModuleId} className="h-9">Add</Button>
-            </div>
           </CardContent>
         </Card>
       </div>
 
       {selectedScenarioId ? (
-        <Card className="shadow-lg border-gray-200 dark:border-gray-800">
-          <CardContent className="p-0">
-            <TestManagementGrid scenarioId={selectedScenarioId} key={selectedScenarioId} />
-          </CardContent>
+        <Card className="shadow-xl border-gray-200 dark:border-gray-800 overflow-hidden bg-white dark:bg-gray-950">
+          <TestManagementGrid scenarioId={selectedScenarioId} key={selectedScenarioId} />
         </Card>
       ) : (
-        <Card className="border-dashed flex flex-col items-center justify-center p-12 text-gray-400">
-          <p>Please select a project, module, and scenario to view test cases.</p>
+        <Card className="border-dashed border-2 flex flex-col items-center justify-center p-16 text-gray-400 bg-gray-50/50 dark:bg-gray-900/10">
+          <ListChecks size={48} className="mb-4 opacity-20" />
+          <p className="text-sm font-medium">Select a project, module, and scenario to manage test cases.</p>
         </Card>
       )}
     </div>

@@ -10,9 +10,9 @@ import {
   themeQuartz
 } from 'ag-grid-community';
 import { Button } from './ui/Button';
-import { Trash2, Plus } from 'lucide-react';
+import { Trash2, Plus, Copy } from 'lucide-react';
 import { TEST_CASE_TYPE, TEST_CASE_TYPE_OPTIONS } from '@/lib/constants';
-import { unifiedGridTheme, GRID_CONTAINER_CLASS } from '@/lib/theme';
+import { GRID_CONTAINER_CLASS } from '@/lib/theme';
 
 ModuleRegistry.registerModules([AllCommunityModule]);
 
@@ -120,6 +120,23 @@ export const TestManagementGrid = ({ scenarioId }: { scenarioId: number }) => {
     });
   };
 
+  const duplicateSelected = () => {
+    const selectedNodes = gridRef.current?.api.getSelectedNodes();
+    if (!selectedNodes || selectedNodes.length === 0) return;
+
+    const idsToDuplicate = selectedNodes.map(node => node.data.test_case_id);
+    
+    Promise.all(idsToDuplicate.map(id => 
+      fetch(`/api/test-cases`, { 
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ test_case_id: id })
+      })
+    )).then(() => {
+      fetchTestCases();
+    });
+  };
+
   const onCellValueChanged = (event: CellValueChangedEvent) => {
     const data = event.data;
     if (data.test_case_id) {
@@ -141,6 +158,9 @@ export const TestManagementGrid = ({ scenarioId }: { scenarioId: number }) => {
           <Button onClick={deleteSelected} variant="ghost" size="sm" className="h-8 text-red-600 hover:bg-red-50">
             <Trash2 size={16} className="mr-2" /> Delete
           </Button>
+          <Button onClick={duplicateSelected} variant="ghost" size="sm" className="h-8 text-blue-600 hover:bg-blue-50">
+            <Copy size={16} className="mr-2" /> Duplicate
+          </Button>
           <Button onClick={addRow} size="sm" className="h-8">
             <Plus size={16} className="mr-2" /> Add Case
           </Button>
@@ -150,7 +170,13 @@ export const TestManagementGrid = ({ scenarioId }: { scenarioId: number }) => {
       <div className={GRID_CONTAINER_CLASS}>
         <AgGridReact
           ref={gridRef}
-          theme={unifiedGridTheme}
+          theme={themeQuartz.withParams({
+            accentColor: '#3b82f6',
+            backgroundColor: 'transparent',
+            foregroundColor: 'inherit',
+            headerBackgroundColor: 'transparent',
+            headerTextColor: 'inherit',
+          })}
           rowData={rowData}
           columnDefs={columnDefs}
           defaultColDef={defaultColDef}

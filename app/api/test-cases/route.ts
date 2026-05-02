@@ -84,3 +84,34 @@ export async function DELETE(request: Request) {
         return NextResponse.json({ error: 'Failed to delete test case' }, { status: 500 });
     }
 }
+
+export async function PATCH(request: Request) {
+    const session = await getIronSession<SessionData>(await cookies(), sessionOptions);
+    if (!session.isLoggedIn) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+    try {
+        const { test_case_id } = await request.json();
+        
+        const source = db.prepare('SELECT * FROM test_cases WHERE test_case_id = ?').get(test_case_id);
+        if (!source) return NextResponse.json({ error: "Source not found" }, { status: 404 });
+
+        const info = db.prepare(`
+            INSERT INTO test_cases (scenario_id, title, type, precondition, steps, test_data, expected_result)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        `).run(
+            source.scenario_id, 
+            source.title + ' (Copy)', 
+            source.type, 
+            source.precondition, 
+            source.steps, 
+            source.test_data, 
+            source.expected_result
+        );
+
+        logActivity(session.user_id, 'CREATE', 'TEST_CASE', info.lastInsertRowid as number, { title: source.title + ' (Copy)', original_id: test_case_id });
+        
+        return NextResponse.json({ success: true });
+    } catch {
+        return NextResponse.json({ error: 'Failed to duplicate test case' }, { status: 500 });
+    }
+}

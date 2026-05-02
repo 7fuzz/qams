@@ -23,6 +23,7 @@ export const Sidebar = ({ userRole }: SidebarProps) => {
 
   const menuItems = [
     { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+    { name: "System Management", href: "/management", icon: FolderTree },
     { name: "Test Library", href: "/tests", icon: ClipboardList },
     { name: "Test Executions", href: "/runs", icon: FileText },
   ];

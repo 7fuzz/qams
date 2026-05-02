@@ -86,23 +86,72 @@ async function seed() {
     const insertScenario = db.prepare('INSERT INTO scenarios (scenario_id, module_id, name) VALUES (?, ?, ?)');
     Object.values(scenarios).forEach(s => insertScenario.run(s.id, s.mid, s.name));
 
-    // 6. Seed Test Cases
+    // 6. Seed Test Cases (Updated with new fields)
     console.log('Seeding test cases...');
     const tcs = [
-        { id: randomUUID(), sid: scenarios.login.id, title: 'Valid email/pass', type: 'Positive', steps: '1. Enter creds\n2. Submit', expected: 'Dashboard loads' },
-        { id: randomUUID(), sid: scenarios.login.id, title: 'Invalid password', type: 'Negative', steps: '1. Enter wrong pass\n2. Submit', expected: 'Error shown' },
-        { id: randomUUID(), sid: scenarios.mfa.id, title: 'SMS Code receive', type: 'Positive', steps: '1. Login\n2. Wait for SMS', expected: 'SMS arrives in 30s' },
-        { id: randomUUID(), sid: scenarios.calc.id, title: 'Overtime 1.5x', type: 'Positive', steps: '1. Add 10h OT\n2. Calc', expected: 'OT pay is 15h base' },
-        { id: randomUUID(), sid: scenarios.calc.id, title: 'Tax bracket shift', type: 'Edge Case', steps: '1. Set salary $9999\n2. Set $10001\n3. Calc', expected: 'Tax % changes correctly' },
-        { id: randomUUID(), sid: scenarios.post.id, title: 'Unbalanced entry', type: 'Negative', steps: '1. Cr $100, Dr $90\n2. Post', expected: 'Reject with balance error' }
+        { 
+            id: randomUUID(), 
+            sid: scenarios.login.id, 
+            title: 'Valid email/pass', 
+            type: 'Positive', 
+            priority: 'P0 - Critical',
+            automation_status: 'Automated',
+            duration: 5,
+            steps: '1. Enter creds\n2. Submit', 
+            expected: 'Dashboard loads' 
+        },
+        { 
+            id: randomUUID(), 
+            sid: scenarios.login.id, 
+            title: 'Invalid password', 
+            type: 'Negative', 
+            priority: 'P1 - High',
+            automation_status: 'Manual',
+            duration: 3,
+            steps: '1. Enter wrong pass\n2. Submit', 
+            expected: 'Error shown' 
+        },
+        { 
+            id: randomUUID(), 
+            sid: scenarios.mfa.id, 
+            title: 'SMS Code receive', 
+            type: 'Positive', 
+            priority: 'P0 - Critical',
+            automation_status: 'Manual',
+            duration: 10,
+            steps: '1. Login\n2. Wait for SMS', 
+            expected: 'SMS arrives in 30s' 
+        },
+        { 
+            id: randomUUID(), 
+            sid: scenarios.calc.id, 
+            title: 'Overtime 1.5x', 
+            type: 'Positive', 
+            priority: 'P2 - Medium',
+            automation_status: 'Automated',
+            duration: 15,
+            steps: '1. Add 10h OT\n2. Calc', 
+            expected: 'OT pay is 15h base' 
+        },
+        { 
+            id: randomUUID(), 
+            sid: scenarios.calc.id, 
+            title: 'Tax bracket shift', 
+            type: 'Edge Case', 
+            priority: 'P1 - High',
+            automation_status: 'Can be automated',
+            duration: 20,
+            steps: '1. Set salary $9999\n2. Set $10001\n3. Calc', 
+            expected: 'Tax % changes correctly' 
+        }
     ];
     const insertTC = db.prepare(`
-        INSERT INTO test_cases (test_case_id, scenario_id, title, type, steps, expected_result)
-        VALUES (?, ?, ?, ?, ?, ?)
+        INSERT INTO test_cases (test_case_id, scenario_id, title, type, priority, automation_status, estimated_duration, steps, expected_result)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
-    tcs.forEach(tc => insertTC.run(tc.id, tc.sid, tc.title, tc.type, tc.steps, tc.expected));
+    tcs.forEach(tc => insertTC.run(tc.id, tc.sid, tc.title, tc.type, tc.priority, tc.automation_status, tc.duration, tc.steps, tc.expected));
 
-    // 7. Seed Test Runs (One completed, one current)
+    // 7. Seed Test Runs
     console.log('Seeding test runs...');
     const runs = {
         old: { id: randomUUID(), name: 'Sprint 12 Regression', status: 'Completed' },
@@ -116,50 +165,24 @@ async function seed() {
     console.log('Seeding executions...');
     const insertExec = db.prepare('INSERT INTO test_executions (execution_id, run_id, test_case_id, status, notes) VALUES (?, ?, ?, ?, ?)');
     
-    // Old Run (mostly passed)
-    const oldExecs = [];
-    tcs.filter(tc => tc.sid === scenarios.login.id || tc.sid === scenarios.mfa.id).forEach(tc => {
-        const eid = randomUUID();
-        insertExec.run(eid, runs.old.id, tc.id, 'Passed', 'Legacy passed');
-        oldExecs.push({ eid, tcid: tc.id });
-    });
-
-    // New Run (some failures)
-    const newExecs = [];
     tcs.forEach(tc => {
         const eid = randomUUID();
-        const status = tc.title.includes('Tax') ? 'Failed' : (tc.title.includes('SMS') ? 'On Hold' : 'Passed');
+        const status = tc.title.includes('Tax') ? 'Failed' : 'Passed';
         insertExec.run(eid, runs.new.id, tc.id, status, status === 'Failed' ? 'Tax calculation off by $0.02' : null);
-        newExecs.push({ eid, tcid: tc.id, status });
     });
 
-    // 9. Seed Issues & History
-    console.log('Seeding issues and complex history...');
+    // 9. Seed Issues
+    console.log('Seeding issues...');
     const taxTC = tcs.find(t => t.title.includes('Tax'));
-    const mfaTC = tcs.find(t => t.title.includes('SMS'));
-    
-    const issue1Id = randomUUID(); // Tax bug
+    const issueId = randomUUID();
     db.prepare(`
-        INSERT INTO issues (issue_id, test_case_id, snapshot_execution_id, reporter_id, title, description, severity, status)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(issue1Id, taxTC.id, newExecs.find(e => e.tcid === taxTC.id).eid, users.qa2.id, 'Rounding error in tax', 'Calculation results in $0.02 discrepancy on boundaries.', 'Medium (P2)', 'Open');
-
-    const issue2Id = randomUUID(); // MFA bug from old run
-    db.prepare(`
-        INSERT INTO issues (issue_id, test_case_id, snapshot_execution_id, reporter_id, title, description, severity, status)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(issue2Id, mfaTC.id, oldExecs.find(e => e.tcid === mfaTC.id).eid, users.qa1.id, 'SMS Gateway Timeout', 'Service times out intermittently in production environment.', 'High (P1)', 'In Progress');
+        INSERT INTO issues (issue_id, test_case_id, reporter_id, title, description, severity, status)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+    `).run(issueId, taxTC.id, users.qa2.id, 'Rounding error in tax', 'Discrepancy on boundaries.', 'Medium (P2)', 'Open');
 
     // Issue History
-    const insertHistory = db.prepare('INSERT INTO issue_history (history_id, issue_id, run_id, status, user_id, timestamp) VALUES (?, ?, ?, ?, ?, ?)');
-    insertHistory.run(randomUUID(), issue2Id, runs.old.id, 'Open', users.qa1.id, '2024-04-15 11:30:00');
-    insertHistory.run(randomUUID(), issue2Id, runs.new.id, 'In Progress', users.dev1.id, '2024-05-01 14:00:00');
-    insertHistory.run(randomUUID(), issue1Id, runs.new.id, 'Open', users.qa2.id, '2024-05-01 10:15:00');
-
-    // Issue Notes
-    const insertNote = db.prepare('INSERT INTO issue_notes (note_id, issue_id, user_id, content, created_at) VALUES (?, ?, ?, ?, ?)');
-    insertNote.run(randomUUID(), issue2Id, users.dev1.id, 'I am looking into the gateway logs.', '2024-05-01 14:05:00');
-    insertNote.run(randomUUID(), issue2Id, users.qa1.id, 'Confirmed, it happened again today.', '2024-05-01 15:20:00');
+    db.prepare('INSERT INTO issue_history (history_id, issue_id, run_id, status, user_id) VALUES (?, ?, ?, ?, ?)')
+        .run(randomUUID(), issueId, runs.new.id, 'Open', users.qa2.id);
 
     console.log('--- ADVANCED SEEDING COMPLETED ---');
     db.close();

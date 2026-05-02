@@ -11,7 +11,8 @@ import {
   ChevronRight,
   ClipboardList,
   FileText,
-  FolderTree
+  FolderTree,
+  Tag
 } from "lucide-react";
 
 interface SidebarProps {
@@ -27,6 +28,7 @@ export const Sidebar = ({ userRole }: SidebarProps) => {
     { name: "System Management", href: "/management", icon: FolderTree },
     { name: "Test Library", href: "/tests", icon: ClipboardList },
     { name: "Test Executions", href: "/runs", icon: FileText },
+    { name: "Releases", href: "/releases", icon: Tag },
   ];
 
   if (userRole === 'Admin') {

@@ -11,6 +11,7 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const testCaseId = searchParams.get('testCaseId');
     const runId = searchParams.get('runId');
+    const projectId = searchParams.get('projectId');
 
     try {
         let query = '';
@@ -49,6 +50,15 @@ export async function GET(request: Request) {
             if (testCaseId) {
                 query += ' AND i.test_case_id = ?';
                 params.push(testCaseId);
+            } else if (projectId) {
+                query += ` AND i.test_case_id IN (
+                    SELECT tc.test_case_id 
+                    FROM test_cases tc
+                    JOIN scenarios sc ON tc.scenario_id = sc.scenario_id
+                    JOIN modules m ON sc.module_id = m.module_id
+                    WHERE m.project_id = ?
+                )`;
+                params.push(projectId);
             }
         }
 

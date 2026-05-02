@@ -70,6 +70,32 @@ CREATE TABLE IF NOT EXISTS test_cases (
     FOREIGN KEY (scenario_id) REFERENCES scenarios(scenario_id) ON DELETE CASCADE
 );
 
+-- Releases Table
+CREATE TABLE IF NOT EXISTS releases (
+    release_id TEXT PRIMARY KEY,
+    project_id TEXT NOT NULL,
+    version_name TEXT NOT NULL,
+    status TEXT DEFAULT 'Planning',
+    target_date DATETIME,
+    description TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (project_id) REFERENCES projects(project_id) ON DELETE CASCADE
+);
+
+-- Release Changes (Changelog)
+CREATE TABLE IF NOT EXISTS release_changes (
+    change_id TEXT PRIMARY KEY,
+    release_id TEXT NOT NULL,
+    type TEXT NOT NULL, -- 'Feature', 'Bugfix', 'Enhancement'
+    title TEXT NOT NULL,
+    description TEXT,
+    issue_id TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (release_id) REFERENCES releases(release_id) ON DELETE CASCADE,
+    FOREIGN KEY (issue_id) REFERENCES issues(issue_id) ON DELETE SET NULL
+);
+
 -- Test Runs (Execution Sessions)
 CREATE TABLE IF NOT EXISTS test_runs (
     run_id TEXT PRIMARY KEY,

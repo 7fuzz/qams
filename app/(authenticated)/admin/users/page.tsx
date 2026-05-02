@@ -8,7 +8,7 @@ import {
   AllCommunityModule,
   ModuleRegistry,
 } from 'ag-grid-community';
-import { unifiedGridTheme, GRID_CONTAINER_CLASS } from '@/lib/theme';
+import { unifiedGridTheme } from '@/lib/theme';
 import { Plus, Edit2, Trash2, Shield, User as UserIcon, Mail, Key } from 'lucide-react';
 
 ModuleRegistry.registerModules([AllCommunityModule]);
@@ -27,6 +27,7 @@ interface Role {
 }
 
 export default function UserManagementPage() {
+  const gridRef = useRef<AgGridReact>(null);
   const [users, setUsers] = useState<User[]>([]);
   const [roles, setRoles] = useState<Role[]>([]);
   const [error, setError] = useState('');
@@ -82,6 +83,14 @@ export default function UserManagementPage() {
   useEffect(() => {
     fetchUsers();
   }, [page, limit]);
+
+  useEffect(() => {
+    const handleResize = () => {
+        gridRef.current?.api?.sizeColumnsToFit();
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   useEffect(() => {
     fetchRoles();
@@ -186,10 +195,10 @@ export default function UserManagementPage() {
   if (error) return <div className="p-12 text-center text-red-500 font-bold">FAILURE: {error}</div>;
 
   return (
-    <div className="container mx-auto p-8 max-w-5xl space-y-8">
+    <div className="container mx-auto p-8 max-w-5xl space-y-8 text-black dark:text-white">
       <div className="flex justify-between items-center border-b dark:border-gray-800 pb-6">
         <div className="space-y-1">
-          <h1 className="text-3xl font-bold tracking-tight text-black dark:text-white flex items-center gap-3">
+          <h1 className="text-3xl font-bold tracking-tight flex items-center gap-3">
               <UserIcon size={32} className="text-blue-500" /> User Directory
           </h1>
           <p className="text-gray-500 font-medium uppercase tracking-wider text-[10px]">
@@ -209,6 +218,8 @@ export default function UserManagementPage() {
             columnDefs={columnDefs}
             animateRows={true}
             domLayout="autoHeight"
+            pagination={true}
+            paginationPageSize={20}
           />
           <Pagination 
             currentPage={page}

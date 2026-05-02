@@ -12,6 +12,8 @@ async function seed() {
     db.exec('DELETE FROM activity_log');
     db.exec('DELETE FROM issue_history');
     db.exec('DELETE FROM issue_notes');
+    db.exec('DELETE FROM release_changes');
+    db.exec('DELETE FROM releases');
     db.exec('DELETE FROM issues');
     db.exec('DELETE FROM test_executions');
     db.exec('DELETE FROM test_runs');
@@ -86,70 +88,21 @@ async function seed() {
     const insertScenario = db.prepare('INSERT INTO scenarios (scenario_id, module_id, name) VALUES (?, ?, ?)');
     Object.values(scenarios).forEach(s => insertScenario.run(s.id, s.mid, s.name));
 
-    // 6. Seed Test Cases (Updated with new fields)
+    // 6. Seed Test Cases
     console.log('Seeding test cases...');
     const tcs = [
-        { 
-            id: randomUUID(), 
-            sid: scenarios.login.id, 
-            title: 'Valid email/pass', 
-            type: 'Positive', 
-            priority: 'P0 - Critical',
-            automation_status: 'Automated',
-            duration: 5,
-            steps: '1. Enter creds\n2. Submit', 
-            expected: 'Dashboard loads' 
-        },
-        { 
-            id: randomUUID(), 
-            sid: scenarios.login.id, 
-            title: 'Invalid password', 
-            type: 'Negative', 
-            priority: 'P1 - High',
-            automation_status: 'Manual',
-            duration: 3,
-            steps: '1. Enter wrong pass\n2. Submit', 
-            expected: 'Error shown' 
-        },
-        { 
-            id: randomUUID(), 
-            sid: scenarios.mfa.id, 
-            title: 'SMS Code receive', 
-            type: 'Positive', 
-            priority: 'P0 - Critical',
-            automation_status: 'Manual',
-            duration: 10,
-            steps: '1. Login\n2. Wait for SMS', 
-            expected: 'SMS arrives in 30s' 
-        },
-        { 
-            id: randomUUID(), 
-            sid: scenarios.calc.id, 
-            title: 'Overtime 1.5x', 
-            type: 'Positive', 
-            priority: 'P2 - Medium',
-            automation_status: 'Automated',
-            duration: 15,
-            steps: '1. Add 10h OT\n2. Calc', 
-            expected: 'OT pay is 15h base' 
-        },
-        { 
-            id: randomUUID(), 
-            sid: scenarios.calc.id, 
-            title: 'Tax bracket shift', 
-            type: 'Edge Case', 
-            priority: 'P1 - High',
-            automation_status: 'Can be automated',
-            duration: 20,
-            steps: '1. Set salary $9999\n2. Set $10001\n3. Calc', 
-            expected: 'Tax % changes correctly' 
-        }
+        { id: randomUUID(), sid: scenarios.login.id, title: 'Valid email/pass', type: 'Positive', steps: '1. Enter creds\n2. Submit', expected: 'Dashboard loads' },
+        { id: randomUUID(), sid: scenarios.login.id, title: 'Invalid password', type: 'Negative', steps: '1. Enter wrong pass\n2. Submit', expected: 'Error shown' },
+        { id: randomUUID(), sid: scenarios.mfa.id, title: 'SMS Code receive', type: 'Positive', steps: '1. Login\n2. Wait for SMS', expected: 'SMS arrives in 30s' },
+        { id: randomUUID(), sid: scenarios.calc.id, title: 'Overtime 1.5x', type: 'Positive', steps: '1. Add 10h OT\n2. Calc', expected: 'OT pay is 15h base' },
+        { id: randomUUID(), sid: scenarios.calc.id, title: 'Tax bracket shift', type: 'Edge Case', steps: '1. Set salary $9999\n2. Set $10001\n3. Calc', expected: 'Tax % changes correctly' },
+        { id: randomUUID(), sid: scenarios.post.id, title: 'Unbalanced entry', type: 'Negative', steps: '1. Cr $100, Dr $90\n2. Post', expected: 'Reject with balance error' }
     ];
     const insertTC = db.prepare(`
-        INSERT INTO test_cases (test_case_id, scenario_id, title, type, priority, automation_status, estimated_duration, steps, expected_result)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO test_cases (test_case_id, scenario_id, title, type, steps, expected_result)
+        VALUES (?, ?, ?, ?, ?, ?)
     `);
-    tcs.forEach(tc => insertTC.run(tc.id, tc.sid, tc.title, tc.type, tc.priority, tc.automation_status, tc.duration, tc.steps, tc.expected));
+    tcs.forEach(tc => insertTC.run(tc.id, tc.sid, tc.title, tc.type, tc.steps, tc.expected));
 
     // 7. Seed Test Runs
     console.log('Seeding test runs...');
@@ -164,7 +117,6 @@ async function seed() {
     // 8. Seed Executions
     console.log('Seeding executions...');
     const insertExec = db.prepare('INSERT INTO test_executions (execution_id, run_id, test_case_id, status, notes) VALUES (?, ?, ?, ?, ?)');
-    
     tcs.forEach(tc => {
         const eid = randomUUID();
         const status = tc.title.includes('Tax') ? 'Failed' : 'Passed';
@@ -180,11 +132,19 @@ async function seed() {
         VALUES (?, ?, ?, ?, ?, ?, ?)
     `).run(issueId, taxTC.id, users.qa2.id, 'Rounding error in tax', 'Discrepancy on boundaries.', 'Medium (P2)', 'Open');
 
-    // Issue History
-    db.prepare('INSERT INTO issue_history (history_id, issue_id, run_id, status, user_id) VALUES (?, ?, ?, ?, ?)')
-        .run(randomUUID(), issueId, runs.new.id, 'Open', users.qa2.id);
+    // 10. Seed Releases & Changes
+    console.log('Seeding releases...');
+    const releaseId = randomUUID();
+    db.prepare(`
+        INSERT INTO releases (release_id, project_id, version_name, status, target_date, description)
+        VALUES (?, ?, ?, ?, ?, ?)
+    `).run(releaseId, projects.hr.id, 'v2.5.0', 'Released', '2024-05-15', 'Major Q2 update with new auth features.');
 
-    console.log('--- ADVANCED SEEDING COMPLETED ---');
+    const insertChange = db.prepare('INSERT INTO release_changes (change_id, release_id, type, title, description, issue_id) VALUES (?, ?, ?, ?, ?, ?)');
+    insertChange.run(randomUUID(), releaseId, 'Feature', 'Support for MFA', 'Added Google Authenticator integration.', null);
+    insertChange.run(randomUUID(), releaseId, 'Bugfix', 'Fix Tax Rounding', 'Corrected decimal precision in payroll engine.', issueId);
+
+    console.log('--- SEEDING COMPLETED SUCCESSFULLY ---');
     db.close();
 }
 

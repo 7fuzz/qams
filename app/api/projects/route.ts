@@ -7,7 +7,18 @@ import { logActivity } from '@/lib/logger';
 
 export async function GET() {
     try {
-        const projects = db.prepare('SELECT p.*, u.name as owner_name FROM projects p JOIN users u ON p.owner_id = u.user_id').all();
+        const projects = db.prepare(`
+            SELECT 
+                p.*, 
+                u.name as owner_name,
+                (SELECT COUNT(*) FROM issues i 
+                 JOIN test_cases tc ON i.test_case_id = tc.test_case_id
+                 JOIN scenarios s ON tc.scenario_id = s.scenario_id
+                 JOIN modules m ON s.module_id = m.module_id
+                 WHERE m.project_id = p.project_id AND i.status != 'Closed') as open_issues_count
+            FROM projects p 
+            JOIN users u ON p.owner_id = u.user_id
+        `).all();
         return NextResponse.json(projects);
     } catch {
         return NextResponse.json({ error: 'Failed to fetch projects' }, { status: 500 });
@@ -21,7 +32,7 @@ export async function POST(request: Request) {
     try {
         const { name, version } = await request.json();
         const info = db.prepare('INSERT INTO projects (name, version, owner_id) VALUES (?, ?, ?)')
-            .run(name, version, session.user_id);
+            .run(name, version || '1.0.0', session.user_id);
         
         const projectId = info.lastInsertRowid;
         logActivity(session.user_id, 'CREATE', 'PROJECT', projectId as number, { name, version });

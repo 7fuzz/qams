@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import { sessionOptions, SessionData } from "@/lib/session";
 import db from '@/lib/db';
 import { logActivity } from '@/lib/logger';
+import { generateId } from '@/lib/id-utils';
 
 export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
@@ -29,11 +30,11 @@ export async function POST(request: Request) {
 
     try {
         const { project_id, name, description } = await request.json();
-        const info = db.prepare('INSERT INTO modules (project_id, name, description) VALUES (?, ?, ?)')
-            .run(project_id, name, description);
+        const moduleId = generateId();
+        db.prepare('INSERT INTO modules (module_id, project_id, name, description) VALUES (?, ?, ?, ?)')
+            .run(moduleId, project_id, name, description);
         
-        const moduleId = info.lastInsertRowid;
-        logActivity(session.user_id, 'CREATE', 'MODULE', moduleId as number, { name, project_id });
+        logActivity(session.user_id, 'CREATE', 'MODULE', moduleId, { name, project_id });
         
         return NextResponse.json({ module_id: moduleId, project_id, name, description });
     } catch {
@@ -64,7 +65,7 @@ export async function DELETE(request: Request) {
     
     try {
         db.prepare('DELETE FROM modules WHERE module_id = ?').run(id);
-        logActivity(session.user_id, 'DELETE', 'MODULE', Number(id));
+        logActivity(session.user_id, 'DELETE', 'MODULE', id!);
         return NextResponse.json({ success: true });
     } catch {
         return NextResponse.json({ error: 'Failed to delete module' }, { status: 500 });

@@ -1,7 +1,7 @@
 import { IronSessionOptions } from "iron-session";
 
 export interface SessionData {
-  user_id: number;
+  user_id: string;
   name: string;
   email: string;
   role: string;
@@ -9,7 +9,7 @@ export interface SessionData {
 }
 
 export const defaultSession: SessionData = {
-  user_id: 0,
+  user_id: "",
   name: "",
   email: "",
   role: "",

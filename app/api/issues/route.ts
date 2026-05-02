@@ -5,6 +5,7 @@ import { sessionOptions, SessionData } from "@/lib/session";
 import db from '@/lib/db';
 import { logActivity } from '@/lib/logger';
 import { ISSUE_STATUS } from '@/lib/constants';
+import { generateId } from '@/lib/id-utils';
 
 export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
@@ -35,12 +36,12 @@ export async function POST(request: Request) {
 
     try {
         const { test_case_id, title, description, severity } = await request.json();
-        const info = db.prepare(`
-            INSERT INTO issues (test_case_id, reporter_id, title, description, severity, status)
-            VALUES (?, ?, ?, ?, ?, ?)
-        `).run(test_case_id, session.user_id, title, description, severity, ISSUE_STATUS.OPEN);
+        const issueId = generateId();
+        db.prepare(`
+            INSERT INTO issues (issue_id, test_case_id, reporter_id, title, description, severity, status)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        `).run(issueId, test_case_id, session.user_id, title, description, severity, ISSUE_STATUS.OPEN);
         
-        const issueId = info.lastInsertRowid;
         logActivity(session.user_id, 'CREATE', 'TEST_CASE', test_case_id, { issue_id: issueId, title });
         
         return NextResponse.json({ issue_id: issueId, title, status: ISSUE_STATUS.OPEN });

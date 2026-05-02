@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "../ui/Button";
 
 export const Navbar = () => {
-  const [user, setUser] = useState<{ isLoggedIn: boolean; role: string; name: string } | null>(null);
+  const [user, setUser] = useState<{ isLoggedIn: boolean; role: string; name: string; user_id: string } | null>(null);
   const router = useRouter();
 
   const fetchUser = async () => {

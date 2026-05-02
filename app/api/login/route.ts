@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { sessionOptions, SessionData } from "@/lib/session";
 import db from "@/lib/db";
+import { comparePassword } from "@/lib/auth-utils";
 
 export async function POST(request: Request) {
   const session = await getIronSession<SessionData>(await cookies(), sessionOptions);
@@ -13,10 +14,15 @@ export async function POST(request: Request) {
       SELECT u.*, r.name as role_name 
       FROM users u 
       JOIN roles r ON u.role_id = r.role_id 
-      WHERE u.email = ? AND u.password = ?
-    `).get(email, password);
+      WHERE u.email = ?
+    `).get(email);
 
     if (!user) {
+      return NextResponse.json({ error: "Invalid email or password" }, { status: 401 });
+    }
+
+    const isPasswordCorrect = await comparePassword(password, user.password);
+    if (!isPasswordCorrect) {
       return NextResponse.json({ error: "Invalid email or password" }, { status: 401 });
     }
 
@@ -29,6 +35,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json(session);
   } catch (error) {
+    console.error(error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

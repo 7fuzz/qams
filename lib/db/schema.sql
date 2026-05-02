@@ -1,26 +1,26 @@
 -- Roles Table (RBAC)
 CREATE TABLE IF NOT EXISTS roles (
-    role_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    role_id TEXT PRIMARY KEY,
     name TEXT UNIQUE NOT NULL, 
     permissions TEXT 
 );
 
 -- Users Table
 CREATE TABLE IF NOT EXISTS users (
-    user_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id TEXT PRIMARY KEY,
     name TEXT NOT NULL,
     email TEXT UNIQUE NOT NULL,
     password TEXT NOT NULL,
-    role_id INTEGER,
+    role_id TEXT,
     FOREIGN KEY (role_id) REFERENCES roles(role_id)
 );
 
 -- Projects Table
 CREATE TABLE IF NOT EXISTS projects (
-    project_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    project_id TEXT PRIMARY KEY,
     name TEXT NOT NULL,
     version TEXT,
-    owner_id INTEGER NOT NULL,
+    owner_id TEXT NOT NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (owner_id) REFERENCES users(user_id)
@@ -28,8 +28,8 @@ CREATE TABLE IF NOT EXISTS projects (
 
 -- Project Modules Table
 CREATE TABLE IF NOT EXISTS modules (
-    module_id INTEGER PRIMARY KEY AUTOINCREMENT,
-    project_id INTEGER NOT NULL,
+    module_id TEXT PRIMARY KEY,
+    project_id TEXT NOT NULL,
     name TEXT NOT NULL,
     description TEXT,
     FOREIGN KEY (project_id) REFERENCES projects(project_id) ON DELETE CASCADE
@@ -37,16 +37,16 @@ CREATE TABLE IF NOT EXISTS modules (
 
 -- Scenarios Table
 CREATE TABLE IF NOT EXISTS scenarios (
-    scenario_id INTEGER PRIMARY KEY AUTOINCREMENT,
-    module_id INTEGER NOT NULL,
+    scenario_id TEXT PRIMARY KEY,
+    module_id TEXT NOT NULL,
     name TEXT NOT NULL,
     FOREIGN KEY (module_id) REFERENCES modules(module_id) ON DELETE CASCADE
 );
 
 -- Test Cases Table
 CREATE TABLE IF NOT EXISTS test_cases (
-    test_case_id INTEGER PRIMARY KEY AUTOINCREMENT,
-    scenario_id INTEGER NOT NULL,
+    test_case_id TEXT PRIMARY KEY,
+    scenario_id TEXT NOT NULL,
     title TEXT NOT NULL,
     type TEXT NOT NULL,
     precondition TEXT,
@@ -58,9 +58,9 @@ CREATE TABLE IF NOT EXISTS test_cases (
 
 -- Test Runs (Execution Sessions)
 CREATE TABLE IF NOT EXISTS test_runs (
-    run_id INTEGER PRIMARY KEY AUTOINCREMENT,
-    project_id INTEGER NOT NULL,
-    tester_id INTEGER NOT NULL,
+    run_id TEXT PRIMARY KEY,
+    project_id TEXT NOT NULL,
+    tester_id TEXT NOT NULL,
     name TEXT NOT NULL,
     status TEXT DEFAULT 'Draft',
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -71,9 +71,9 @@ CREATE TABLE IF NOT EXISTS test_runs (
 
 -- Test Executions
 CREATE TABLE IF NOT EXISTS test_executions (
-    execution_id INTEGER PRIMARY KEY AUTOINCREMENT,
-    run_id INTEGER NOT NULL,
-    test_case_id INTEGER NOT NULL,
+    execution_id TEXT PRIMARY KEY,
+    run_id TEXT NOT NULL,
+    test_case_id TEXT NOT NULL,
     status TEXT DEFAULT 'Pending',
     notes TEXT,
     proof_url TEXT,
@@ -84,10 +84,10 @@ CREATE TABLE IF NOT EXISTS test_executions (
 
 -- Issues Table (Persistent across runs)
 CREATE TABLE IF NOT EXISTS issues (
-    issue_id INTEGER PRIMARY KEY AUTOINCREMENT,
-    test_case_id INTEGER NOT NULL,
-    reporter_id INTEGER NOT NULL,
-    developer_id INTEGER,
+    issue_id TEXT PRIMARY KEY,
+    test_case_id TEXT NOT NULL,
+    reporter_id TEXT NOT NULL,
+    developer_id TEXT,
     title TEXT NOT NULL,
     description TEXT,
     severity TEXT,
@@ -101,9 +101,9 @@ CREATE TABLE IF NOT EXISTS issues (
 
 -- Issue Notes Table
 CREATE TABLE IF NOT EXISTS issue_notes (
-    note_id INTEGER PRIMARY KEY AUTOINCREMENT,
-    issue_id INTEGER NOT NULL,
-    user_id INTEGER NOT NULL,
+    note_id TEXT PRIMARY KEY,
+    issue_id TEXT NOT NULL,
+    user_id TEXT NOT NULL,
     content TEXT NOT NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (issue_id) REFERENCES issues(issue_id) ON DELETE CASCADE,
@@ -112,11 +112,11 @@ CREATE TABLE IF NOT EXISTS issue_notes (
 
 -- Activity Log Table
 CREATE TABLE IF NOT EXISTS activity_log (
-    log_id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id INTEGER NOT NULL,
+    log_id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL,
     action TEXT NOT NULL, 
     entity_type TEXT NOT NULL, 
-    entity_id INTEGER NOT NULL,
+    entity_id TEXT NOT NULL,
     details TEXT,
     timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(user_id)

@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import { sessionOptions, SessionData } from "@/lib/session";
 import db from '@/lib/db';
 import { logActivity } from '@/lib/logger';
+import { generateId } from '@/lib/id-utils';
 
 export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
@@ -31,11 +32,11 @@ export async function POST(request: Request) {
 
     try {
         const { module_id, name } = await request.json();
-        const info = db.prepare('INSERT INTO scenarios (module_id, name) VALUES (?, ?)')
-            .run(module_id, name);
+        const scenarioId = generateId();
+        db.prepare('INSERT INTO scenarios (scenario_id, module_id, name) VALUES (?, ?, ?)')
+            .run(scenarioId, module_id, name);
         
-        const scenarioId = info.lastInsertRowid;
-        logActivity(session.user_id, 'CREATE', 'SCENARIO', scenarioId as number, { name, module_id });
+        logActivity(session.user_id, 'CREATE', 'SCENARIO', scenarioId, { name, module_id });
         
         return NextResponse.json({ scenario_id: scenarioId, module_id, name });
     } catch {
@@ -66,7 +67,7 @@ export async function DELETE(request: Request) {
     
     try {
         db.prepare('DELETE FROM scenarios WHERE scenario_id = ?').run(id);
-        logActivity(session.user_id, 'DELETE', 'SCENARIO', Number(id));
+        logActivity(session.user_id, 'DELETE', 'SCENARIO', id!);
         return NextResponse.json({ success: true });
     } catch {
         return NextResponse.json({ error: 'Failed to delete scenario' }, { status: 500 });

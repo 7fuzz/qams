@@ -1,6 +1,8 @@
 const Database = require('better-sqlite3');
 const fs = require('fs');
 const path = require('path');
+const { randomUUID } = require('crypto');
+const bcrypt = require('bcryptjs');
 
 const DB_PATH = path.join(process.cwd(), 'test_management.db');
 const SCHEMA_PATH = path.join(process.cwd(), 'lib/db/schema.sql');
@@ -16,19 +18,22 @@ async function initDb() {
     console.log('Database schema created successfully.');
     
     // Seed Roles
-    const insertRole = db.prepare('INSERT OR IGNORE INTO roles (name, permissions) VALUES (?, ?)');
-    insertRole.run('Admin', JSON.stringify({ all: true }));
-    insertRole.run('Developer', JSON.stringify({ edit: true }));
-    insertRole.run('QA', JSON.stringify({ test: true }));
-    
-    const adminRole = db.prepare('SELECT role_id FROM roles WHERE name = ?').get('Admin');
-    const devRole = db.prepare('SELECT role_id FROM roles WHERE name = ?').get('Developer');
+    const insertRole = db.prepare('INSERT OR IGNORE INTO roles (role_id, name, permissions) VALUES (?, ?, ?)');
+    const adminRoleId = randomUUID();
+    const devRoleId = randomUUID();
+    const qaRoleId = randomUUID();
 
+    insertRole.run(adminRoleId, 'Admin', JSON.stringify({ all: true }));
+    insertRole.run(devRoleId, 'Developer', JSON.stringify({ edit: true }));
+    insertRole.run(qaRoleId, 'QA', JSON.stringify({ test: true }));
+    
     // Seed Users (password: 123)
-    // Note: In a real app, use bcrypt to hash passwords. Using plain text here per request.
-    const insertUser = db.prepare('INSERT OR IGNORE INTO users (name, email, password, role_id) VALUES (?, ?, ?, ?)');
-    insertUser.run('Admin User', 'admin@example.com', '123', adminRole.role_id);
-    insertUser.run('Dev User', 'dev@example.com', '123', devRole.role_id);
+    const salt = await bcrypt.genSalt(10);
+    const hashed = await bcrypt.hash('123', salt);
+
+    const insertUser = db.prepare('INSERT OR IGNORE INTO users (user_id, name, email, password, role_id) VALUES (?, ?, ?, ?, ?)');
+    insertUser.run(randomUUID(), 'Admin User', 'admin@example.com', hashed, adminRoleId);
+    insertUser.run(randomUUID(), 'Dev User', 'dev@example.com', hashed, devRoleId);
     
     console.log('Seed data added.');
     db.close();

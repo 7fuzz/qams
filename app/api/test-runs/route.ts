@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import { sessionOptions, SessionData } from "@/lib/session";
 import db from '@/lib/db';
 import { logActivity } from '@/lib/logger';
+import { generateId } from '@/lib/id-utils';
 
 export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
@@ -30,30 +31,29 @@ export async function POST(request: Request) {
 
     try {
         const { project_id, name, scenario_ids } = await request.json();
+        const runId = generateId();
         
         // Start a transaction
         const createRun = db.transaction(() => {
-            const info = db.prepare('INSERT INTO test_runs (project_id, tester_id, name, status) VALUES (?, ?, ?, ?)')
-                .run(project_id, session.user_id, name, 'In Progress');
-            
-            const runId = info.lastInsertRowid;
+            db.prepare('INSERT INTO test_runs (run_id, project_id, tester_id, name, status) VALUES (?, ?, ?, ?, ?)')
+                .run(runId, project_id, session.user_id, name, 'In Progress');
 
             // Get all test cases for the selected scenarios
             const placeholders = scenario_ids.map(() => '?').join(',');
             const testCases = db.prepare(`SELECT test_case_id FROM test_cases WHERE scenario_id IN (${placeholders})`)
-                .all(...scenario_ids);
+                .all(...scenario_ids) as { test_case_id: string }[];
 
             // Create executions for each test case
-            const insertExecution = db.prepare('INSERT INTO test_executions (run_id, test_case_id, status) VALUES (?, ?, ?)');
+            const insertExecution = db.prepare('INSERT INTO test_executions (execution_id, run_id, test_case_id, status) VALUES (?, ?, ?, ?)');
             for (const tc of testCases) {
-                insertExecution.run(runId, tc.test_case_id, 'Pending');
+                insertExecution.run(generateId(), runId, tc.test_case_id, 'Pending');
             }
 
             return runId;
         });
 
-        const runId = createRun();
-        logActivity(session.user_id, 'CREATE', 'TEST_RUN', runId as number, { name, project_id });
+        createRun();
+        logActivity(session.user_id, 'CREATE', 'TEST_RUN', runId, { name, project_id });
         
         return NextResponse.json({ run_id: runId, name });
     } catch (error) {
@@ -98,7 +98,7 @@ export async function DELETE(request: Request) {
     
     try {
         db.prepare('DELETE FROM test_runs WHERE run_id = ?').run(id);
-        logActivity(session.user_id, 'DELETE', 'TEST_RUN', Number(id));
+        logActivity(session.user_id, 'DELETE', 'TEST_RUN', id!);
         return NextResponse.json({ success: true });
     } catch {
         return NextResponse.json({ error: 'Failed to delete test run' }, { status: 500 });

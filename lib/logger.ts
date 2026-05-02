@@ -1,13 +1,13 @@
 import db from './db';
 
 export type Action = 'CREATE' | 'UPDATE' | 'DELETE';
-export type EntityType = 'PROJECT' | 'SCENARIO' | 'TEST_CASE';
+export type EntityType = 'PROJECT' | 'MODULE' | 'SCENARIO' | 'TEST_CASE' | 'TEST_RUN';
 
 export function logActivity(
-    userId: number,
+    userId: string,
     action: Action,
     entityType: EntityType,
-    entityId: number,
+    entityId: string,
     details?: Record<string, unknown>
 ) {
     try {

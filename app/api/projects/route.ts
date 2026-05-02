@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import { sessionOptions, SessionData } from "@/lib/session";
 import db from '@/lib/db';
 import { logActivity } from '@/lib/logger';
+import { generateId } from '@/lib/id-utils';
 
 export async function GET() {
     try {
@@ -31,11 +32,11 @@ export async function POST(request: Request) {
 
     try {
         const { name, version } = await request.json();
-        const info = db.prepare('INSERT INTO projects (name, version, owner_id) VALUES (?, ?, ?)')
-            .run(name, version || '1.0.0', session.user_id);
+        const projectId = generateId();
+        db.prepare('INSERT INTO projects (project_id, name, version, owner_id) VALUES (?, ?, ?, ?)')
+            .run(projectId, name, version || '1.0.0', session.user_id);
         
-        const projectId = info.lastInsertRowid;
-        logActivity(session.user_id, 'CREATE', 'PROJECT', projectId as number, { name, version });
+        logActivity(session.user_id, 'CREATE', 'PROJECT', projectId, { name, version });
         
         return NextResponse.json({ project_id: projectId, name, version });
     } catch {
@@ -69,7 +70,7 @@ export async function DELETE(request: Request) {
     
     try {
         db.prepare('DELETE FROM projects WHERE project_id = ?').run(id);
-        logActivity(session.user_id, 'DELETE', 'PROJECT', Number(id));
+        logActivity(session.user_id, 'DELETE', 'PROJECT', id!);
         return NextResponse.json({ success: true });
     } catch {
         return NextResponse.json({ error: 'Failed to delete project' }, { status: 500 });

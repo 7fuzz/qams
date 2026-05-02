@@ -10,14 +10,15 @@ import {
   themeQuartz
 } from 'ag-grid-community';
 import { Button, Input } from './ui';
-import { Trash2, Plus, Copy, AlertCircle, ListChecks } from 'lucide-react';
+import { Trash2, Plus, Copy, AlertCircle, ListChecks, Edit2 } from 'lucide-react';
 import { TEST_CASE_TYPE, TEST_CASE_TYPE_OPTIONS } from '@/lib/constants';
 import { GRID_CONTAINER_CLASS } from '@/lib/theme';
+import { EditTestCaseDialog } from './EditTestCaseDialog';
 
 ModuleRegistry.registerModules([AllCommunityModule]);
 
 interface TestCase {
-  test_case_id?: number;
+  test_case_id: number;
   scenario_id: number;
   title: string;
   type: string;
@@ -44,6 +45,9 @@ export const TestManagementGrid = ({ moduleId }: TestManagementGridProps) => {
   const [scenarios, setScenarios] = useState<Scenario[]>([]);
   const [loading, setLoading] = useState(true);
   const [newScenarioName, setNewScenarioName] = useState('');
+  
+  const [selectedTestCase, setSelectedTestCase] = useState<TestCase | null>(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
   const fetchScenarios = () => fetch(`/api/scenarios?moduleId=${moduleId}`).then(res => res.json()).then(setScenarios);
   
@@ -75,21 +79,12 @@ export const TestManagementGrid = ({ moduleId }: TestManagementGridProps) => {
 
   const columnDefs = useMemo<ColDef[]>(() => [
     { 
-        headerName: '', 
-        width: 40, 
-        checkboxSelection: true, 
-        headerCheckboxSelection: true,
-        pinned: 'left',
-        suppressMovable: true,
-        filter: false,
-        sortable: false,
-        resizable: false,
-        cellClass: 'flex justify-center items-center border-r dark:border-gray-800'
-    },
-    { 
         field: 'scenario_id', 
         headerName: 'Scenario', 
-        width: 180,
+        width: 220,
+        pinned: 'left',
+        checkboxSelection: true, 
+        headerCheckboxSelection: true,
         cellEditor: 'agSelectCellEditor',
         cellEditorParams: {
             values: scenarios.map(s => s.scenario_id),
@@ -128,21 +123,28 @@ export const TestManagementGrid = ({ moduleId }: TestManagementGridProps) => {
             return <div className="flex items-center gap-1 text-red-500 font-bold"><AlertCircle size={14} /> {params.value}</div>;
         }
     },
-    { field: 'precondition', headerName: 'Precondition', width: 200 },
-    { 
-        field: 'steps', 
-        headerName: 'Test Steps', 
-        width: 350, 
-        autoHeight: true, 
-        wrapText: true, 
-        cellEditor: 'agLargeTextCellEditor',
-        cellEditorParams: {
-            cols: 50,
-            rows: 6
-        }
-    },
-    { field: 'expected_result', headerName: 'Expected Result', width: 250 },
+    { field: 'precondition', headerName: 'Precondition', width: 200, hide: true },
+    { field: 'steps', headerName: 'Test Steps', width: 300, autoHeight: true, wrapText: true, hide: true },
+    { field: 'expected_result', headerName: 'Expected Result', width: 250, hide: true },
     { field: 'test_data', headerName: 'Test Data', width: 150 },
+    {
+        headerName: '',
+        width: 80,
+        pinned: 'right',
+        cellRenderer: (params: any) => (
+            <Button 
+                size="sm" 
+                variant="ghost" 
+                className="h-8 w-8 p-0 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                onClick={() => {
+                    setSelectedTestCase(params.data);
+                    setIsEditDialogOpen(true);
+                }}
+            >
+                <Edit2 size={16} />
+            </Button>
+        )
+    }
   ], [scenarios]);
 
   const defaultColDef = useMemo<ColDef>(() => ({
@@ -160,7 +162,7 @@ export const TestManagementGrid = ({ moduleId }: TestManagementGridProps) => {
         alert("Please create at least one Scenario first.");
         return;
     }
-    const newRow: TestCase = {
+    const newRow: Partial<TestCase> = {
       scenario_id: scenarios[0].scenario_id,
       title: 'New Test Case',
       type: TEST_CASE_TYPE.POSITIVE,
@@ -175,7 +177,7 @@ export const TestManagementGrid = ({ moduleId }: TestManagementGridProps) => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(newRow),
     })
-    .then(() => fetchTestCases(true)); // Silent update
+    .then(() => fetchTestCases(true));
   };
 
   const deleteSelected = () => {
@@ -251,16 +253,27 @@ export const TestManagementGrid = ({ moduleId }: TestManagementGridProps) => {
             headerTextColor: 'inherit',
             rowBorderColor: 'rgba(128, 128, 128, 0.1)',
             oddRowBackgroundColor: 'rgba(128, 128, 128, 0.03)',
-            checkboxBorderColor: 'rgba(128, 128, 128, 0.5)', // Make checkbox borders visible
+            checkboxBorderColor: 'rgba(128, 128, 128, 0.5)',
           })}
           rowData={rowData}
           columnDefs={columnDefs}
           defaultColDef={defaultColDef}
           onCellValueChanged={onCellValueChanged}
+          onRowDoubleClicked={(params) => {
+            setSelectedTestCase(params.data);
+            setIsEditDialogOpen(true);
+          }}
           rowSelection="multiple"
           animateRows={true}
         />
       </div>
+
+      <EditTestCaseDialog 
+        testCase={selectedTestCase}
+        isOpen={isEditDialogOpen}
+        onClose={() => setIsEditDialogOpen(false)}
+        onSave={() => fetchTestCases(true)}
+      />
     </div>
   );
 };

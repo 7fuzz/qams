@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS users (
     email TEXT UNIQUE NOT NULL,
     password TEXT NOT NULL,
     role_id TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (role_id) REFERENCES roles(role_id)
 );
 
@@ -33,7 +34,9 @@ CREATE TABLE IF NOT EXISTS modules (
     project_id TEXT NOT NULL,
     name TEXT NOT NULL,
     description TEXT,
-    responsible_id TEXT, -- The developer responsible for this module
+    responsible_id TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (project_id) REFERENCES projects(project_id) ON DELETE CASCADE,
     FOREIGN KEY (responsible_id) REFERENCES users(user_id)
 );
@@ -43,6 +46,8 @@ CREATE TABLE IF NOT EXISTS scenarios (
     scenario_id TEXT PRIMARY KEY,
     module_id TEXT NOT NULL,
     name TEXT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (module_id) REFERENCES modules(module_id) ON DELETE CASCADE
 );
 
@@ -52,14 +57,16 @@ CREATE TABLE IF NOT EXISTS test_cases (
     scenario_id TEXT NOT NULL,
     title TEXT NOT NULL,
     type TEXT NOT NULL,
-    priority TEXT, -- P0, P1, P2, P3
-    automation_status TEXT, -- Manual, Automated, etc.
-    requirement_link TEXT, -- Jira/Docs link
-    estimated_duration INTEGER, -- in minutes
+    priority TEXT,
+    automation_status TEXT,
+    requirement_link TEXT,
+    estimated_duration INTEGER,
     precondition TEXT,
     steps TEXT,
     test_data TEXT,
     expected_result TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (scenario_id) REFERENCES scenarios(scenario_id) ON DELETE CASCADE
 );
 
@@ -85,18 +92,19 @@ CREATE TABLE IF NOT EXISTS test_executions (
     notes TEXT,
     proof_url TEXT,
     executed_at DATETIME,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (run_id) REFERENCES test_runs(run_id) ON DELETE CASCADE,
     FOREIGN KEY (test_case_id) REFERENCES test_cases(test_case_id) ON DELETE CASCADE
 );
 
--- Issues Table (Persistent across runs)
+-- Issues Table
 CREATE TABLE IF NOT EXISTS issues (
     issue_id TEXT PRIMARY KEY,
     test_case_id TEXT NOT NULL,
-    snapshot_execution_id TEXT, -- The execution where this issue was FIRST reported/linked
+    snapshot_execution_id TEXT,
     reporter_id TEXT NOT NULL,
-    developer_id TEXT, -- Assigned developer
-    solved_by_id TEXT, -- Developer who solved it
+    developer_id TEXT,
+    solved_by_id TEXT,
     title TEXT NOT NULL,
     description TEXT,
     severity TEXT,
@@ -120,7 +128,7 @@ CREATE TABLE IF NOT EXISTS issue_notes (
     FOREIGN KEY (user_id) REFERENCES users(user_id)
 );
 
--- Issue History (Tracking status across runs)
+-- Issue History
 CREATE TABLE IF NOT EXISTS issue_history (
     history_id TEXT PRIMARY KEY,
     issue_id TEXT NOT NULL,
@@ -149,10 +157,9 @@ CREATE TABLE IF NOT EXISTS activity_log (
 -- Attachments Table
 CREATE TABLE IF NOT EXISTS attachments (
     attachment_id TEXT PRIMARY KEY,
-    entity_type TEXT NOT NULL, -- 'PROJECT', 'TEST_CASE' or 'ISSUE'
+    entity_type TEXT NOT NULL,
     entity_id TEXT NOT NULL,
     url TEXT NOT NULL,
     name TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
-

@@ -87,69 +87,12 @@ export const TestManagementGrid = ({ moduleId }: TestManagementGridProps) => {
   };
 
   const handleDownloadTemplate = () => {
-    const data = [
-        {
-            scenario: 'Login',
-            title: 'Login dengan email terdaftar dan password yang benar',
-            type: 'Positive',
-            priority: 'P0 - Critical',
-            automation_status: 'Manual',
-            requirement_link: '',
-            estimated_duration: 5,
-            precondition: 'User is registered',
-            steps: '1. Open Login Page\n2. Enter email\n3. Enter valid password\n4. Click Login',
-            test_data: 'email: test@example.com',
-            expected_result: 'Dashboard should be displayed'
-        },
-        {
-            scenario: '',
-            title: 'Login menggunakan email yang terdaftar dan password yang salah',
-            type: 'Negative',
-            priority: 'P1 - High',
-            automation_status: 'Manual',
-            requirement_link: '',
-            estimated_duration: 3,
-            precondition: '',
-            steps: '1. Open Login Page\n2. Enter valid email\n3. Enter WRONG password\n4. Click Login',
-            test_data: '',
-            expected_result: 'Error message "Invalid credentials" shown'
-        },
-        {
-            scenario: 'Register',
-            title: 'Register dengan email baru',
-            type: 'Positive',
-            priority: 'P0 - Critical',
-            automation_status: 'Manual',
-            requirement_link: '',
-            estimated_duration: 10,
-            precondition: '',
-            steps: '1. Open Register Page\n2. Fill all data\n3. Submit',
-            test_data: '',
-            expected_result: 'Account created successfully'
-        }
-    ];
-
-    const worksheet = XLSX.utils.json_to_sheet(data);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Test Cases");
-
-    // Adjust column widths
-    const wscols = [
-        { wch: 15 }, // scenario
-        { wch: 40 }, // title
-        { wch: 10 }, // type
-        { wch: 15 }, // priority
-        { wch: 15 }, // automation_status
-        { wch: 20 }, // requirement_link
-        { wch: 10 }, // duration
-        { wch: 20 }, // precondition
-        { wch: 40 }, // steps
-        { wch: 20 }, // test_data
-        { wch: 30 }, // expected_result
-    ];
-    worksheet['!cols'] = wscols;
-
-    XLSX.writeFile(workbook, "test_case_template.xlsx");
+    const link = document.createElement('a');
+    link.href = '/templates/test_case_import_template.xlsx';
+    link.download = 'test_case_import_template.xlsx';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   const handleImportExcel = (event: React.ChangeEvent<HTMLInputElement>) => {

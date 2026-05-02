@@ -12,7 +12,7 @@ import {
 import { Button, Input } from './ui';
 import { Trash2, Plus, Copy, AlertCircle, ListChecks, Edit2 } from 'lucide-react';
 import { TEST_CASE_TYPE, TEST_CASE_TYPE_OPTIONS } from '@/lib/constants';
-import { GRID_CONTAINER_CLASS } from '@/lib/theme';
+import { unifiedGridTheme, GRID_CONTAINER_CLASS } from '@/lib/theme';
 import { EditTestCaseDialog } from './EditTestCaseDialog';
 
 ModuleRegistry.registerModules([AllCommunityModule]);

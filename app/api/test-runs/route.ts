@@ -11,13 +11,27 @@ export async function GET(request: Request) {
     const projectId = searchParams.get('projectId');
 
     try {
-        let query = 'SELECT tr.*, u.name as tester_name FROM test_runs tr JOIN users u ON tr.tester_id = u.user_id';
+        let query = `
+            SELECT 
+                tr.*, 
+                u.name as tester_name, 
+                p.name as project_name, 
+                po.name as project_owner,
+                (SELECT COUNT(*) FROM test_executions WHERE run_id = tr.run_id) as total_cases,
+                (SELECT COUNT(*) FROM test_executions WHERE run_id = tr.run_id AND status = 'Passed') as passed_count,
+                (SELECT COUNT(*) FROM test_executions WHERE run_id = tr.run_id AND status = 'Failed') as failed_count,
+                (SELECT COUNT(*) FROM test_executions WHERE run_id = tr.run_id AND status = 'Pending') as pending_count
+            FROM test_runs tr 
+            JOIN users u ON tr.tester_id = u.user_id
+            JOIN projects p ON tr.project_id = p.project_id
+            JOIN users po ON p.owner_id = po.user_id
+        `;
         const params: string[] = [];
         if (projectId) {
-            query += ' WHERE project_id = ?';
+            query += ' WHERE tr.project_id = ?';
             params.push(projectId);
         }
-        query += ' ORDER BY created_at DESC';
+        query += ' ORDER BY tr.created_at DESC';
         const runs = db.prepare(query).all(...params);
         return NextResponse.json(runs);
     } catch {
@@ -33,17 +47,14 @@ export async function POST(request: Request) {
         const { project_id, name, scenario_ids } = await request.json();
         const runId = generateId();
         
-        // Start a transaction
         const createRun = db.transaction(() => {
             db.prepare('INSERT INTO test_runs (run_id, project_id, tester_id, name, status) VALUES (?, ?, ?, ?, ?)')
                 .run(runId, project_id, session.user_id, name, 'In Progress');
 
-            // Get all test cases for the selected scenarios
             const placeholders = scenario_ids.map(() => '?').join(',');
             const testCases = db.prepare(`SELECT test_case_id FROM test_cases WHERE scenario_id IN (${placeholders})`)
                 .all(...scenario_ids) as { test_case_id: string }[];
 
-            // Create executions for each test case
             const insertExecution = db.prepare('INSERT INTO test_executions (execution_id, run_id, test_case_id, status) VALUES (?, ?, ?, ?)');
             for (const tc of testCases) {
                 insertExecution.run(generateId(), runId, tc.test_case_id, 'Pending');
@@ -80,7 +91,6 @@ export async function PUT(request: Request) {
         params.push(run_id);
 
         db.prepare(updateQuery).run(...params);
-        
         logActivity(session.user_id, 'UPDATE', 'PROJECT', run_id, { action: 'SET_RUN_STATUS', status });
         
         return NextResponse.json({ success: true });

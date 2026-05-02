@@ -86,6 +86,7 @@ CREATE TABLE IF NOT EXISTS test_executions (
 CREATE TABLE IF NOT EXISTS issues (
     issue_id TEXT PRIMARY KEY,
     test_case_id TEXT NOT NULL,
+    snapshot_execution_id TEXT, -- The execution where this issue was FIRST reported/linked
     reporter_id TEXT NOT NULL,
     developer_id TEXT,
     title TEXT NOT NULL,
@@ -107,6 +108,20 @@ CREATE TABLE IF NOT EXISTS issue_notes (
     content TEXT NOT NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (issue_id) REFERENCES issues(issue_id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(user_id)
+);
+
+-- Issue History (Tracking status across runs)
+CREATE TABLE IF NOT EXISTS issue_history (
+    history_id TEXT PRIMARY KEY,
+    issue_id TEXT NOT NULL,
+    run_id TEXT,
+    execution_id TEXT,
+    status TEXT NOT NULL,
+    user_id TEXT NOT NULL,
+    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (issue_id) REFERENCES issues(issue_id) ON DELETE CASCADE,
+    FOREIGN KEY (run_id) REFERENCES test_runs(run_id) ON DELETE SET NULL,
     FOREIGN KEY (user_id) REFERENCES users(user_id)
 );
 

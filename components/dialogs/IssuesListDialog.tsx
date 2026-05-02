@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Modal, Button, Label, Input, Combobox, Textarea } from '../ui';
-import { AlertCircle, MessageSquare, Plus, ChevronDown, ChevronUp, CheckCircle2 } from 'lucide-react';
+import { AlertCircle, MessageSquare, Plus, ChevronDown, ChevronUp, CheckCircle2, History } from 'lucide-react';
 import { 
   ISSUE_SEVERITY_OPTIONS,
   ISSUE_STATUS_OPTIONS,
@@ -30,6 +30,14 @@ interface IssueNote {
   created_at: string;
 }
 
+interface IssueHistoryEntry {
+    history_id: string;
+    run_name: string | null;
+    status: string;
+    user_name: string;
+    timestamp: string;
+}
+
 interface IssuesListDialogProps {
   testCaseId: string | null;
   testCaseTitle: string;
@@ -42,10 +50,11 @@ export const IssuesListDialog = ({ testCaseId, testCaseTitle, isOpen, onClose, o
   const [issues, setIssues] = useState<Issue[]>([]);
   const [expandedIssueId, setExpandedIssueId] = useState<string | null>(null);
   const [issueNotes, setIssueNotes] = useState<Record<string, IssueNote[]>>({});
+  const [issueHistory, setIssueHistory] = useState<Record<string, IssueHistoryEntry[]>>({});
+  
   const [showNewIssueForm, setShowNewIssueForm] = useState(false);
   const [newIssue, setNewIssue] = useState({ title: '', description: '', severity: ISSUE_SEVERITY.MEDIUM as string });
   const [newNoteContent, setNewNoteContent] = useState<Record<string, string>>({});
-  const [loading, setLoading] = useState(false);
 
   const fetchIssues = async () => {
     if (!testCaseId) return;
@@ -54,10 +63,16 @@ export const IssuesListDialog = ({ testCaseId, testCaseTitle, isOpen, onClose, o
     setIssues(data);
   };
 
-  const fetchNotes = async (issueId: string) => {
-    const res = await fetch(`/api/issues/notes?issueId=${issueId}`);
-    const data = await res.json();
-    setIssueNotes(prev => ({ ...prev, [issueId]: data }));
+  const fetchDataForIssue = async (issueId: string) => {
+    // Parallel fetch notes and history
+    const [notesRes, historyRes] = await Promise.all([
+        fetch(`/api/issues/notes?issueId=${issueId}`),
+        fetch(`/api/issues/history?issueId=${issueId}`)
+    ]);
+    const notes = await notesRes.json();
+    const history = await historyRes.json();
+    setIssueNotes(prev => ({ ...prev, [issueId]: notes }));
+    setIssueHistory(prev => ({ ...prev, [issueId]: history }));
   };
 
   useEffect(() => {
@@ -88,6 +103,7 @@ export const IssuesListDialog = ({ testCaseId, testCaseTitle, isOpen, onClose, o
       body: JSON.stringify({ issue_id: issueId, ...data }),
     });
     fetchIssues();
+    fetchDataForIssue(issueId);
     onRefresh();
   };
 
@@ -100,18 +116,18 @@ export const IssuesListDialog = ({ testCaseId, testCaseTitle, isOpen, onClose, o
       body: JSON.stringify({ issue_id: issueId, content }),
     });
     setNewNoteContent(prev => ({ ...prev, [issueId]: '' }));
-    fetchNotes(issueId);
+    fetchDataForIssue(issueId);
   };
 
   if (!testCaseId) return null;
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={`Issues for: ${testCaseTitle}`}>
+    <Modal isOpen={isOpen} onClose={onClose} title={`Issues History: ${testCaseTitle}`}>
       <div className="space-y-6">
         <div className="flex items-center justify-between">
-          <h4 className="font-bold text-sm uppercase tracking-widest text-gray-500">Persistent Issues ({issues.length})</h4>
+          <h4 className="font-bold text-xs uppercase tracking-widest text-gray-500">Known Bugs ({issues.length})</h4>
           <Button variant="outline" size="sm" onClick={() => setShowNewIssueForm(!showNewIssueForm)}>
-            <Plus size={16} className="mr-1" /> New Issue
+            <Plus size={16} className="mr-1" /> New Bug
           </Button>
         </div>
 
@@ -127,60 +143,50 @@ export const IssuesListDialog = ({ testCaseId, testCaseTitle, isOpen, onClose, o
               <div className="flex-1">
                 <Combobox options={ISSUE_SEVERITY_OPTIONS} value={newIssue.severity} onChange={val => setNewIssue({...newIssue, severity: val as string})} />
               </div>
-              <Button size="sm" onClick={handleCreateIssue}>Report Issue</Button>
+              <Button size="sm" onClick={handleCreateIssue}>Report Bug</Button>
             </div>
           </div>
         )}
 
-        <div className="space-y-3 max-h-[500px] overflow-y-auto pr-1">
-          {issues.length === 0 && !showNewIssueForm && (
-            <div className="text-center py-12 text-gray-400 italic text-sm">No issues reported for this test case.</div>
-          )}
+        <div className="space-y-3 max-h-[600px] overflow-y-auto pr-1">
           {issues.map(issue => (
             <div key={issue.issue_id} className="border dark:border-gray-800 rounded-lg overflow-hidden bg-white dark:bg-gray-950">
               <div 
-                className="flex items-center justify-between p-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors"
+                className="flex items-center justify-between p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors"
                 onClick={() => {
                   if (expandedIssueId === issue.issue_id) {
                       setExpandedIssueId(null);
                   } else {
                       setExpandedIssueId(issue.issue_id);
-                      fetchNotes(issue.issue_id);
+                      fetchDataForIssue(issue.issue_id);
                   }
                 }}
               >
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-4">
                   {issue.status === ISSUE_STATUS.CLOSED ? (
-                    <CheckCircle2 size={16} className="text-green-500" />
+                    <CheckCircle2 size={20} className="text-green-500" />
                   ) : (
-                    <AlertCircle size={16} className="text-red-500" />
+                    <AlertCircle size={20} className="text-red-500" />
                   )}
                   <div>
-                    <div className={`text-sm font-semibold ${issue.status === ISSUE_STATUS.CLOSED ? 'line-through text-gray-400' : ''}`}>{issue.title}</div>
-                    <div className="text-[10px] text-gray-500 flex gap-2">
+                    <div className={`font-bold ${issue.status === ISSUE_STATUS.CLOSED ? 'line-through text-gray-400' : ''}`}>{issue.title}</div>
+                    <div className="text-[10px] text-gray-500 flex gap-2 font-medium uppercase tracking-wider">
                       <span>{issue.severity}</span>
                       <span>•</span>
-                      <span>{issue.status}</span>
+                      <span className="text-blue-500">{issue.status}</span>
                     </div>
                   </div>
                 </div>
-                {expandedIssueId === issue.issue_id ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                {expandedIssueId === issue.issue_id ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
               </div>
 
               {expandedIssueId === issue.issue_id && (
-                <div className="p-4 border-t dark:border-gray-800 bg-gray-50/30 space-y-4">
-                  <div className="space-y-1">
-                    <Label className="text-[10px]">Description</Label>
-                    <Textarea 
-                      value={issue.description} 
-                      onChange={e => handleUpdateIssue(issue.issue_id, { description: e.target.value })}
-                      className="text-xs bg-white dark:bg-gray-900"
-                    />
-                  </div>
+                <div className="p-4 border-t dark:border-gray-800 bg-gray-50/20 space-y-6">
+                  <p className="text-sm text-gray-600 dark:text-gray-400 border-l-2 pl-3 italic">{issue.description}</p>
                   
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1">
-                      <Label className="text-[10px]">Status</Label>
+                      <Label className="text-[10px] font-bold text-gray-400">STATUS</Label>
                       <Combobox 
                         options={ISSUE_STATUS_OPTIONS} 
                         value={issue.status} 
@@ -188,7 +194,7 @@ export const IssuesListDialog = ({ testCaseId, testCaseTitle, isOpen, onClose, o
                       />
                     </div>
                     <div className="space-y-1">
-                      <Label className="text-[10px]">Severity</Label>
+                      <Label className="text-[10px] font-bold text-gray-400">SEVERITY</Label>
                       <Combobox 
                         options={ISSUE_SEVERITY_OPTIONS} 
                         value={issue.severity} 
@@ -197,9 +203,29 @@ export const IssuesListDialog = ({ testCaseId, testCaseTitle, isOpen, onClose, o
                     </div>
                   </div>
 
+                  {/* Run History */}
                   <div className="space-y-3">
-                    <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider flex items-center gap-1">
-                      <MessageSquare size={12} /> Notes
+                    <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-1">
+                      <History size={12} /> Run History
+                    </div>
+                    <div className="space-y-2">
+                        {(issueHistory[issue.issue_id] || []).map(entry => (
+                            <div key={entry.history_id} className="flex items-center justify-between text-[11px] p-2 bg-white dark:bg-gray-900 border dark:border-gray-800 rounded">
+                                <div className="flex items-center gap-2">
+                                    <span className="font-bold text-blue-500">{entry.run_name || 'System'}</span>
+                                    <span className="text-gray-400">➔</span>
+                                    <span className="font-bold text-gray-700 dark:text-gray-300">{entry.status}</span>
+                                </div>
+                                <span className="text-gray-400">{new Date(entry.timestamp).toLocaleDateString()}</span>
+                            </div>
+                        ))}
+                    </div>
+                  </div>
+
+                  {/* Notes Thread */}
+                  <div className="space-y-3">
+                    <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-1">
+                      <MessageSquare size={12} /> Notes Thread
                     </div>
                     <div className="space-y-2">
                       {(issueNotes[issue.issue_id] || []).map(note => (
@@ -214,12 +240,12 @@ export const IssuesListDialog = ({ testCaseId, testCaseTitle, isOpen, onClose, o
                     </div>
                     <div className="flex gap-2">
                       <Input 
-                        placeholder="Add a note..." 
-                        className="h-8 text-xs" 
+                        placeholder="Add to thread..." 
+                        className="h-8 text-xs shadow-sm" 
                         value={newNoteContent[issue.issue_id] || ''}
                         onChange={e => setNewNoteContent({...newNoteContent, [issue.issue_id]: e.target.value})}
                       />
-                      <Button size="sm" className="h-8" onClick={() => handleAddNote(issue.issue_id)}>Post</Button>
+                      <Button size="sm" className="h-8 px-4" onClick={() => handleAddNote(issue.issue_id)}>Post</Button>
                     </div>
                   </div>
                 </div>
@@ -228,8 +254,8 @@ export const IssuesListDialog = ({ testCaseId, testCaseTitle, isOpen, onClose, o
           ))}
         </div>
 
-        <div className="flex justify-end border-t dark:border-gray-800 pt-6">
-          <Button onClick={onClose}>Done</Button>
+        <div className="flex justify-end pt-4 border-t dark:border-gray-800">
+          <Button onClick={onClose} className="px-8">Done</Button>
         </div>
       </div>
     </Modal>

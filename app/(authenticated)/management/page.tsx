@@ -1,24 +1,26 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { 
-  Card, 
-  CardHeader, 
-  CardTitle, 
-  CardContent, 
-  Button, 
-  Input, 
-  Table, 
-  TableHeader, 
-  TableRow, 
-  TableHead, 
-  TableBody, 
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardContent,
+  Button,
+  Input,
+  Table,
+  TableHeader,
+  TableRow,
+  TableHead,
+  TableBody,
   TableCell,
   Textarea,
   Combobox,
-  AttachmentManager
+  AttachmentManager,
+  Modal,
+  Label
 } from "@/components/ui";
-import { Trash2, Plus, FolderTree, Layers, ListChecks, AlertCircle, Calendar, Clock, User, Save, FileText } from 'lucide-react';
+import { Trash2, Plus, FolderTree, Layers, ListChecks, AlertCircle, Calendar, Clock, User, Save, FileText, Settings2, Info } from 'lucide-react';
 
 interface Project {
   project_id: string;
@@ -47,8 +49,8 @@ interface Scenario {
 }
 
 interface User {
-    user_id: string;
-    name: string;
+  user_id: string;
+  name: string;
 }
 
 export default function ManagementPage() {
@@ -56,10 +58,11 @@ export default function ManagementPage() {
   const [modules, setModules] = useState<Module[]>([]);
   const [scenarios, setScenarios] = useState<Scenario[]>([]);
   const [users, setUsers] = useState<User[]>([]);
-  
+
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [selectedModuleId, setSelectedModuleId] = useState<string | null>(null);
-  
+  const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
+
   const [newName, setNewName] = useState({ project: '', module: '', scenario: '' });
   const [editData, setEditData] = useState<any>({});
 
@@ -81,7 +84,7 @@ export default function ManagementPage() {
     if (selectedProjectId) {
       fetch(`/api/modules?projectId=${selectedProjectId}`).then(res => res.json()).then(setModules);
       const proj = projects.find(p => p.project_id === selectedProjectId);
-      if (proj) setEditData({ ...editData, project_desc: proj.description });
+      if (proj) setEditData({ project_desc: proj.description });
     } else {
       setModules([]);
     }
@@ -122,20 +125,21 @@ export default function ManagementPage() {
     const proj = projects.find(p => p.project_id === selectedProjectId);
     if (!proj) return;
     await fetch('/api/projects', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...proj, description: editData.project_desc }),
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...proj, description: editData.project_desc }),
     });
     fetchProjects();
+    setIsProjectModalOpen(false);
   };
 
   const handleUpdateModule = async (moduleId: string, data: any) => {
     const mod = modules.find(m => m.module_id === moduleId);
     if (!mod) return;
     await fetch('/api/modules', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...mod, ...data }),
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...mod, ...data }),
     });
     fetch(`/api/modules?projectId=${selectedProjectId}`).then(res => res.json()).then(setModules);
   };
@@ -162,195 +166,206 @@ export default function ManagementPage() {
 
   const userOptions = users.map(u => ({ value: u.user_id, label: u.name }));
 
+  const currentProject = projects.find(p => p.project_id === selectedProjectId);
+
   return (
     <div className="container mx-auto p-8 max-w-full space-y-10">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b dark:border-gray-800 pb-6 text-black dark:text-white">
         <div className="space-y-1">
           <h1 className="text-3xl font-bold tracking-tight">System Configuration</h1>
-          <p className="text-gray-500">Manage projects, define modules, and structure scenarios.</p>
+          <p className="text-gray-500 font-medium">Manage projects, define modules, and structure scenarios.</p>
         </div>
         <div className="flex gap-2">
-            <Input 
-                placeholder="New Project Name" 
-                value={newName.project} 
-                onChange={e => setNewName({...newName, project: e.target.value})}
-                className="max-w-[240px]"
-            />
-            <Button onClick={() => handleAdd('project')}>
-                <Plus size={18} className="mr-2" /> Add Project
-            </Button>
+          <Input
+            placeholder="New Project Name"
+            value={newName.project}
+            onChange={e => setNewName({ ...newName, project: e.target.value })}
+            className="max-w-[240px] bg-white dark:bg-gray-950"
+          />
+          <Button onClick={() => handleAdd('project')} className="shadow-lg shadow-blue-500/20">
+            <Plus size={18} className="mr-2" /> Add Project
+          </Button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
-        <div className="xl:col-span-2 space-y-8">
-            <section className="space-y-4">
-                <div className="flex items-center gap-2 text-gray-500">
-                    <FolderTree size={18} />
-                    <h2 className="font-bold uppercase tracking-widest text-sm">Projects Overview</h2>
-                </div>
-                <Table>
-                <TableHeader>
-                    <TableRow>
-                    <TableHead className="w-[300px]">Project Name</TableHead>
-                    <TableHead>Owner</TableHead>
-                    <TableHead>Issues</TableHead>
-                    <TableHead>Created</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
-                </TableHeader>
-                <TableBody>
-                    {projects.map((project) => (
-                    <TableRow 
-                        key={project.project_id}
-                        onClick={() => setSelectedProjectId(project.project_id)}
-                        className={`cursor-pointer transition-colors ${selectedProjectId === project.project_id ? "bg-blue-50/50 dark:bg-blue-900/10 border-l-4 border-l-blue-500" : ""}`}
-                    >
-                        <TableCell className="font-semibold text-black dark:text-white">{project.name}</TableCell>
-                        <TableCell className="text-gray-500">{project.owner_name}</TableCell>
-                        <TableCell>
-                        <div className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium gap-1 ${project.open_issues_count > 0 ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400" : "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"}`}>
-                            <AlertCircle size={12} />
-                            {project.open_issues_count} Open
-                        </div>
-                        </TableCell>
-                        <TableCell className="text-gray-500 text-xs">{formatDate(project.created_at)}</TableCell>
-                        <TableCell className="text-right">
-                        <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            className="text-red-500"
-                            onClick={(e) => { e.stopPropagation(); handleDelete('project', project.project_id); }}
-                        >
-                            <Trash2 size={16} />
-                        </Button>
-                        </TableCell>
-                    </TableRow>
-                    ))}
-                </TableBody>
-                </Table>
-            </section>
+      <div className="space-y-8">
+        <section className="space-y-4">
+          <div className="flex items-center gap-2 text-gray-500">
+            <FolderTree size={18} />
+            <h2 className="font-bold uppercase tracking-widest text-sm">Projects Overview</h2>
+          </div>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-[300px]">Project Name</TableHead>
+                <TableHead>Owner</TableHead>
+                <TableHead>Issues</TableHead>
+                <TableHead>Created</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {projects.map((project) => (
+                <TableRow
+                  key={project.project_id}
+                  onClick={() => setSelectedProjectId(project.project_id)}
+                  className={`cursor-pointer transition-colors ${selectedProjectId === project.project_id ? "bg-blue-50/50 dark:bg-blue-900/10 border-l-4 border-l-blue-500" : ""}`}
+                >
+                  <TableCell className="font-semibold text-black dark:text-white">{project.name}</TableCell>
+                  <TableCell className="text-gray-500">{project.owner_name}</TableCell>
+                  <TableCell>
+                    <div className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium gap-1 ${project.open_issues_count > 0 ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400" : "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"}`}>
+                      <AlertCircle size={12} />
+                      {project.open_issues_count} Open
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-gray-500 text-xs">{formatDate(project.created_at)}</TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex gap-1 justify-end">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0 text-blue-600"
+                        onClick={(e) => { e.stopPropagation(); setSelectedProjectId(project.project_id); setIsProjectModalOpen(true); }}
+                      >
+                        <Settings2 size={16} />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0 text-red-500"
+                        onClick={(e) => { e.stopPropagation(); handleDelete('project', project.project_id); }}
+                      >
+                        <Trash2 size={16} />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </section>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <section className="space-y-4">
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2 text-gray-500">
-                            <Layers size={18} />
-                            <h2 className="font-bold uppercase tracking-widest text-sm">Modules</h2>
-                        </div>
-                        <div className="flex gap-2">
-                            <Input 
-                                placeholder="New Module" 
-                                disabled={!selectedProjectId}
-                                value={newName.module} 
-                                onChange={e => setNewName({...newName, module: e.target.value})}
-                                className="h-8 text-xs w-[120px]"
-                            />
-                            <Button size="sm" className="h-8" disabled={!selectedProjectId} onClick={() => handleAdd('module')}><Plus size={14} /></Button>
-                        </div>
-                    </div>
-                    
-                    <div className="min-h-[300px] rounded-lg border border-gray-200 dark:border-gray-800 bg-gray-50/30 dark:bg-gray-900/10 p-2 space-y-2">
-                        {!selectedProjectId ? (
-                        <div className="flex items-center justify-center h-full p-8 text-gray-400 text-xs uppercase tracking-widest italic">Select a project</div>
-                        ) : (
-                        modules.map(m => (
-                            <div 
-                                key={m.module_id}
-                                onClick={() => setSelectedModuleId(m.module_id)}
-                                className={`p-4 rounded-xl border transition-all ${
-                                    selectedModuleId === m.module_id 
-                                    ? "bg-white dark:bg-gray-800 shadow-lg border-blue-500/50" 
-                                    : "bg-white/50 dark:bg-gray-800/30 hover:bg-white dark:hover:bg-gray-800 border-transparent"
-                                }`}
-                            >
-                                <div className="flex justify-between items-start mb-3">
-                                    <span className="font-bold text-sm text-black dark:text-white">{m.name}</span>
-                                    <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-red-500" onClick={(e) => { e.stopPropagation(); handleDelete('module', m.module_id); }}><Trash2 size={12} /></Button>
-                                </div>
-                                <div className="space-y-2" onClick={e => e.stopPropagation()}>
-                                    <Label className="text-[10px] text-gray-400 font-bold">RESPONSIBLE DEVELOPER</Label>
-                                    <Combobox 
-                                        options={userOptions} 
-                                        value={m.responsible_id} 
-                                        onChange={(val) => handleUpdateModule(m.module_id, { responsible_id: val })} 
-                                        placeholder="Assign Dev..."
-                                        className="h-8 text-xs"
-                                    />
-                                </div>
-                            </div>
-                        ))
-                        )}
-                    </div>
-                </section>
-
-                <section className="space-y-4">
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2 text-gray-500">
-                            <ListChecks size={18} />
-                            <h2 className="font-bold uppercase tracking-widest text-sm">Scenarios</h2>
-                        </div>
-                        <div className="flex gap-2">
-                            <Input 
-                                placeholder="New Scenario" 
-                                disabled={!selectedModuleId}
-                                value={newName.scenario} 
-                                onChange={e => setNewName({...newName, scenario: e.target.value})}
-                                className="h-8 text-xs w-[120px]"
-                            />
-                            <Button size="sm" className="h-8" disabled={!selectedModuleId} onClick={() => handleAdd('scenario')}><Plus size={14} /></Button>
-                        </div>
-                    </div>
-
-                    <div className="min-h-[300px] rounded-lg border border-gray-200 dark:border-gray-800 bg-gray-50/30 dark:bg-gray-900/10 p-2 space-y-2">
-                        {!selectedModuleId ? (
-                        <div className="flex items-center justify-center h-full p-8 text-gray-400 text-xs uppercase tracking-widest italic">Select a module</div>
-                        ) : (
-                        scenarios.map(s => (
-                            <div key={s.scenario_id} className="flex items-center justify-between p-3 rounded-md bg-white dark:bg-gray-800 border dark:border-gray-700 shadow-sm text-sm text-black dark:text-white">
-                                <span className="font-medium">{s.name}</span>
-                                <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-red-500" onClick={() => handleDelete('scenario', s.scenario_id)}><Trash2 size={14} /></Button>
-                            </div>
-                        ))
-                        )}
-                    </div>
-                </section>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <section className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-gray-500">
+                <Layers size={18} />
+                <h2 className="font-bold uppercase tracking-widest text-sm">Modules</h2>
+              </div>
+              <div className="flex gap-2">
+                <Input
+                  placeholder="New Module"
+                  disabled={!selectedProjectId}
+                  value={newName.module}
+                  onChange={e => setNewName({ ...newName, module: e.target.value })}
+                  className="h-8 text-xs w-[120px] bg-white dark:bg-gray-950"
+                />
+                <Button size="sm" className="h-8" disabled={!selectedProjectId} onClick={() => handleAdd('module')}><Plus size={14} /></Button>
+              </div>
             </div>
-        </div>
 
-        <div className="space-y-8">
-            <Card className="shadow-xl">
-                <CardHeader className="border-b dark:border-gray-800">
-                    <div className="flex items-center gap-2 text-blue-600">
-                        <FileText size={18} />
-                        <CardTitle className="text-sm font-bold uppercase tracking-widest">Project Details</CardTitle>
+            <div className="min-h-[400px] rounded-lg border border-gray-200 dark:border-gray-800 bg-gray-50/30 dark:bg-gray-900/10 p-2 space-y-2">
+              {!selectedProjectId ? (
+                <div className="flex items-center justify-center h-full p-8 text-gray-400 text-xs uppercase tracking-widest italic">Select a project</div>
+              ) : (
+                modules.map(m => (
+                  <div
+                    key={m.module_id}
+                    onClick={() => setSelectedModuleId(m.module_id)}
+                    className={`p-4 rounded-xl border transition-all ${selectedModuleId === m.module_id
+                        ? "bg-white dark:bg-gray-800 shadow-lg border-blue-500/50"
+                        : "bg-white/50 dark:bg-gray-800/30 hover:bg-white dark:hover:bg-gray-800 border-transparent"
+                      }`}
+                  >
+                    <div className="flex justify-between items-start mb-3">
+                      <span className="font-bold text-sm text-black dark:text-white">{m.name}</span>
+                      <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-red-500" onClick={(e) => { e.stopPropagation(); handleDelete('module', m.module_id); }}><Trash2 size={12} /></Button>
                     </div>
-                </CardHeader>
-                <CardContent className="p-6 space-y-6">
-                    {!selectedProjectId ? (
-                        <div className="py-12 text-center text-gray-400 text-xs uppercase italic">Select a project to manage details</div>
-                    ) : (
-                        <>
-                            <div className="space-y-2">
-                                <Label className="text-[10px] font-bold text-gray-400 uppercase">Description</Label>
-                                <Textarea 
-                                    placeholder="Project objectives, environment details, etc..."
-                                    value={editData.project_desc || ''}
-                                    onChange={e => setEditData({...editData, project_desc: e.target.value})}
-                                    className="min-h-[150px] text-sm"
-                                />
-                                <Button size="sm" className="w-full mt-2" onClick={handleSaveProjectDesc}><Save size={14} className="mr-2" /> Save Description</Button>
-                            </div>
+                    <div className="space-y-2" onClick={e => e.stopPropagation()}>
+                      <Label className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Responsible Developer</Label>
+                      <Combobox
+                        options={userOptions}
+                        value={m.responsible_id}
+                        onChange={(val) => handleUpdateModule(m.module_id, { responsible_id: val })}
+                        placeholder="Assign Dev..."
+                        className="h-8 text-xs"
+                      />
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </section>
 
-                            <div className="pt-6 border-t dark:border-gray-800">
-                                <AttachmentManager entityId={selectedProjectId} entityType="PROJECT" />
-                            </div>
-                        </>
-                    )}
-                </CardContent>
-            </Card>
+          <section className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-gray-500">
+                <ListChecks size={18} />
+                <h2 className="font-bold uppercase tracking-widest text-sm">Scenarios</h2>
+              </div>
+              <div className="flex gap-2">
+                <Input
+                  placeholder="New Scenario"
+                  disabled={!selectedModuleId}
+                  value={newName.scenario}
+                  onChange={e => setNewName({ ...newName, scenario: e.target.value })}
+                  className="h-8 text-xs w-[120px] bg-white dark:bg-gray-950"
+                />
+                <Button size="sm" className="h-8" disabled={!selectedModuleId} onClick={() => handleAdd('scenario')}><Plus size={14} /></Button>
+              </div>
+            </div>
+
+            <div className="min-h-[400px] rounded-lg border border-gray-200 dark:border-gray-800 bg-gray-50/30 dark:bg-gray-900/10 p-2 space-y-2">
+              {!selectedModuleId ? (
+                <div className="flex items-center justify-center h-full p-8 text-gray-400 text-xs uppercase tracking-widest italic">Select a module</div>
+              ) : (
+                scenarios.map(s => (
+                  <div key={s.scenario_id} className="flex items-center justify-between p-3 rounded-md bg-white dark:bg-gray-800 border dark:border-gray-700 shadow-sm text-sm text-black dark:text-white">
+                    <span className="font-medium">{s.name}</span>
+                    <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-red-500" onClick={() => handleDelete('scenario', s.scenario_id)}><Trash2 size={14} /></Button>
+                  </div>
+                ))
+              )}
+            </div>
+          </section>
         </div>
       </div>
+
+      {/* Project Details Modal */}
+      <Modal
+        isOpen={isProjectModalOpen}
+        onClose={() => setIsProjectModalOpen(false)}
+        title={`Project Details: ${currentProject?.name}`}
+      >
+        <div className="space-y-8">
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 text-blue-600 font-bold text-xs uppercase tracking-widest">
+              <FileText size={18} /> Context & Description
+            </div>
+            <div className="space-y-2">
+              <Label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">PROJECT DESCRIPTION</Label>
+              <Textarea
+                placeholder="Project objectives, environment details, or key information..."
+                value={editData.project_desc || ''}
+                onChange={e => setEditData({ ...editData, project_desc: e.target.value })}
+                className="min-h-[150px] text-sm bg-white dark:bg-gray-950"
+              />
+              <Button onClick={handleSaveProjectDesc} className="w-full shadow-lg shadow-blue-500/20">
+                <Save size={16} className="mr-2" /> Save Project Context
+              </Button>
+            </div>
+          </div>
+
+          <div className="pt-6 border-t dark:border-gray-800">
+            <AttachmentManager entityId={selectedProjectId || ''} entityType="PROJECT" />
+          </div>
+
+          <div className="flex justify-end pt-4 border-t dark:border-gray-800">
+            <Button variant="outline" onClick={() => setIsProjectModalOpen(false)}>Dismiss</Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

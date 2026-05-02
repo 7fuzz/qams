@@ -10,7 +10,7 @@ import {
   themeQuartz
 } from 'ag-grid-community';
 import { Button, Input } from '../ui';
-import { Trash2, Plus, Copy, AlertCircle, Edit2, CheckCircle2, ExternalLink } from 'lucide-react';
+import { Trash2, Plus, Copy, AlertCircle, Edit2, CheckCircle2, ExternalLink, Download, Upload } from 'lucide-react';
 import { TEST_CASE_TYPE, TEST_CASE_TYPE_OPTIONS, TEST_PRIORITY, TEST_PRIORITY_OPTIONS, AUTOMATION_STATUS, AUTOMATION_STATUS_OPTIONS } from '@/lib/constants';
 import { GRID_CONTAINER_CLASS, unifiedGridTheme } from '@/lib/theme';
 import { EditTestCaseDialog } from '../dialogs/EditTestCaseDialog';
@@ -47,6 +47,7 @@ interface TestManagementGridProps {
 
 export const TestManagementGrid = ({ moduleId }: TestManagementGridProps) => {
   const gridRef = useRef<AgGridReact>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [rowData, setRowData] = useState<TestCase[]>([]);
   const [scenarios, setScenarios] = useState<Scenario[]>([]);
   const [loading, setLoading] = useState(true);
@@ -82,6 +83,77 @@ export const TestManagementGrid = ({ moduleId }: TestManagementGridProps) => {
     });
     setNewScenarioName('');
     fetchScenarios();
+  };
+
+  const handleDownloadTemplate = () => {
+    const headers = ['title', 'type', 'priority', 'automation_status', 'requirement_link', 'estimated_duration', 'precondition', 'steps', 'test_data', 'expected_result'];
+    const sampleRow = ['Verify login success', 'Positive', 'P1 - High', 'Manual', 'https://jira.com/req-1', '5', 'Valid user exists', '1. Enter email\n2. Enter pass\n3. Click Login', 'email: admin@test.com', 'Dashboard loads'];
+    
+    const csvContent = [
+        headers.join(','),
+        sampleRow.map(val => `"${val.replace(/"/g, '""')}"`).join(',')
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', 'test_case_template.csv');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleImportCSV = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || scenarios.length === 0) return;
+
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+        const text = e.target?.result as string;
+        const lines = text.split('\n');
+        const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+        
+        const testCases = lines.slice(1).filter(line => line.trim()).map(line => {
+            // Basic CSV parser that handles quotes
+            const values: string[] = [];
+            let current = '';
+            let inQuotes = false;
+            for (let i = 0; i < line.length; i++) {
+                const char = line[i];
+                if (char === '"') inQuotes = !inQuotes;
+                else if (char === ',' && !inQuotes) {
+                    values.push(current.trim());
+                    current = '';
+                } else {
+                    current += char;
+                }
+            }
+            values.push(current.trim());
+
+            const obj: any = {};
+            headers.forEach((header, idx) => {
+                obj[header] = values[idx];
+            });
+            return obj;
+        });
+
+        if (testCases.length > 0) {
+            await fetch('/api/test-cases/import', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    moduleId,
+                    scenarioId: scenarios[0].scenario_id, // Default to first scenario
+                    testCases
+                }),
+            });
+            fetchTestCases();
+            alert(`Imported ${testCases.length} test cases successfully.`);
+        }
+    };
+    reader.readAsText(file);
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   const columnDefs = useMemo<ColDef[]>(() => [
@@ -279,19 +351,35 @@ export const TestManagementGrid = ({ moduleId }: TestManagementGridProps) => {
                     placeholder="New Scenario..." 
                     value={newScenarioName}
                     onChange={e => setNewScenarioName(e.target.value)}
-                    className="h-7 text-[10px] w-[140px]"
+                    className="h-7 text-[10px] w-[140px] bg-white dark:bg-gray-950"
                 />
                 <Button size="sm" variant="outline" className="h-7 px-2" onClick={handleAddScenario}><Plus size={14} /></Button>
             </div>
         </div>
         <div className="flex gap-2">
+          <Button onClick={handleDownloadTemplate} variant="ghost" size="sm" className="h-8 text-gray-600 hover:bg-gray-50">
+            <Download size={16} className="mr-2" /> Template
+          </Button>
+          <Button onClick={() => fileInputRef.current?.click()} variant="ghost" size="sm" className="h-8 text-gray-600 hover:bg-gray-50">
+            <Upload size={16} className="mr-2" /> Import
+          </Button>
+          <input 
+            type="file" 
+            ref={fileInputRef} 
+            onChange={handleImportCSV} 
+            accept=".csv" 
+            className="hidden" 
+          />
+
+          <div className="w-px h-6 bg-gray-200 dark:border-gray-800 mx-2 self-center" />
+
           <Button onClick={deleteSelected} variant="ghost" size="sm" className="h-8 text-red-600 hover:bg-red-50">
             <Trash2 size={16} className="mr-2" /> Delete
           </Button>
           <Button onClick={duplicateSelected} variant="ghost" size="sm" className="h-8 text-blue-600 hover:bg-blue-50">
             <Copy size={16} className="mr-2" /> Duplicate
           </Button>
-          <Button onClick={addRow} size="sm" className="h-8">
+          <Button onClick={addRow} size="sm" className="h-8 shadow-lg shadow-blue-500/20">
             <Plus size={16} className="mr-2" /> Add Case
           </Button>
         </div>

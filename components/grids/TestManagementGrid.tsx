@@ -132,10 +132,11 @@ export const TestManagementGrid = ({ moduleId }: TestManagementGridProps) => {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ moduleId, testCases }),
             });
+            const result = await res.json();
             if (res.ok) {
                 fetchScenarios();
                 fetchTestCases();
-                alert(`Imported ${testCases.length} test cases successfully.`);
+                alert(`Import Complete:\n- ${result.count} cases imported\n- ${result.skipped} cases skipped (invalid type/priority)`);
             } else {
                 alert('Import failed. Please check your data.');
             }

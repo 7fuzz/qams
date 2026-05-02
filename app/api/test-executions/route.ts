@@ -11,7 +11,7 @@ export async function GET(request: Request) {
 
     try {
         const executions = db.prepare(`
-            SELECT te.*, tc.title, tc.steps, tc.expected_result, tc.precondition
+            SELECT te.*, tc.title, tc.steps, tc.expected_result, tc.precondition, tc.test_data
             FROM test_executions te
             JOIN test_cases tc ON te.test_case_id = tc.test_case_id
             WHERE te.run_id = ?
@@ -31,12 +31,12 @@ export async function PUT(request: Request) {
         
         db.prepare(`
             UPDATE test_executions 
-            SET status = ?, notes = ?, proof_url = ?, executed_at = CURRENT_TIMESTAMP
+            SET status = ?, notes = COALESCE(?, notes), proof_url = COALESCE(?, proof_url), executed_at = CURRENT_TIMESTAMP
             WHERE execution_id = ?
-        `).run(status, notes, proof_url, execution_id);
+        `).run(status, notes || null, proof_url || null, execution_id);
 
         // Fetch execution details for logging
-        const execution = db.prepare('SELECT run_id, test_case_id FROM test_executions WHERE execution_id = ?').get(execution_id) as { run_id: number, test_case_id: number };
+        const execution = db.prepare('SELECT run_id, test_case_id FROM test_executions WHERE execution_id = ?').get(execution_id) as { run_id: string, test_case_id: string };
         const testCase = db.prepare('SELECT title FROM test_cases WHERE test_case_id = ?').get(execution.test_case_id) as { title: string };
 
         logActivity(session.user_id, 'UPDATE', 'TEST_CASE', execution.test_case_id, { 

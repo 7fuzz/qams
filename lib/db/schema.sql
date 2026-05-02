@@ -136,3 +136,4 @@ CREATE TABLE IF NOT EXISTS activity_log (
     timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(user_id)
 );
+

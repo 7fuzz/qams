@@ -4,6 +4,11 @@ import React, { useState, useEffect } from 'react';
 import { Modal, Button, Label, Input, Combobox, Textarea, AttachmentManager } from '../ui';
 import { TEST_CASE_TYPE_OPTIONS, TEST_PRIORITY_OPTIONS, AUTOMATION_STATUS_OPTIONS } from '@/lib/constants';
 
+interface Scenario {
+    scenario_id: string;
+    name: string;
+}
+
 interface TestCase {
   test_case_id: string;
   scenario_id: string;
@@ -21,12 +26,13 @@ interface TestCase {
 
 interface EditTestCaseDialogProps {
   testCase: TestCase | null;
+  scenarios: Scenario[];
   isOpen: boolean;
   onClose: () => void;
   onSave: () => void;
 }
 
-export const EditTestCaseDialog = ({ testCase, isOpen, onClose, onSave }: EditTestCaseDialogProps) => {
+export const EditTestCaseDialog = ({ testCase, scenarios, isOpen, onClose, onSave }: EditTestCaseDialogProps) => {
   const [formData, setFormData] = useState<Partial<TestCase>>({});
   const [loading, setLoading] = useState(false);
 
@@ -55,6 +61,14 @@ export const EditTestCaseDialog = ({ testCase, isOpen, onClose, onSave }: EditTe
     <Modal isOpen={isOpen} onClose={onClose} title={`Edit: ${testCase.title}`}>
       <div className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2 col-span-2">
+                <Label>Scenario</Label>
+                <Combobox 
+                    options={scenarios.map(s => ({ value: s.scenario_id, label: s.name }))}
+                    value={formData.scenario_id}
+                    onChange={val => setFormData({...formData, scenario_id: val as string})}
+                />
+            </div>
             <div className="space-y-2 col-span-2">
                 <Label>Case Title</Label>
                 <Input value={formData.title || ''} onChange={e => setFormData({...formData, title: e.target.value})} />

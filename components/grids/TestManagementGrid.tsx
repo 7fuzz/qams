@@ -110,12 +110,10 @@ export const TestManagementGrid = ({ moduleId }: TestManagementGridProps) => {
         let lastScenario = '';
         const testCases = json.map(row => {
             const obj: any = {};
-            // Map headers to lowercase keys to be flexible
             Object.keys(row).forEach(key => {
                 obj[key.trim().toLowerCase()] = row[key];
             });
 
-            // Handle scenario inheritance
             if (obj.scenario && obj.scenario.trim() !== "") {
                 lastScenario = obj.scenario.trim();
             } else {
@@ -123,7 +121,7 @@ export const TestManagementGrid = ({ moduleId }: TestManagementGridProps) => {
             }
 
             return obj;
-        }).filter(tc => tc.title || tc.case); // Only import rows with a title
+        }).filter(tc => tc.title || tc.case);
 
         if (testCases.length > 0) {
             setLoading(true);
@@ -177,8 +175,12 @@ export const TestManagementGrid = ({ moduleId }: TestManagementGridProps) => {
         cellEditor: 'agSelectCellEditor',
         cellEditorParams: {
             values: scenarios.map(s => s.scenario_id),
+            // Map the ID to the name in the dropdown list
+            valueListGap: 0,
+            valueListMaxWidth: 200,
             formatValue: (id: string) => scenarios.find(s => s.scenario_id === id)?.name || id,
         },
+        valueFormatter: (params) => scenarios.find(s => s.scenario_id === params.value)?.name || params.value,
         filter: true,
     },
     { 
@@ -328,12 +330,12 @@ export const TestManagementGrid = ({ moduleId }: TestManagementGridProps) => {
     }
   };
 
-  if (loading) return <div className="p-8 text-center text-gray-500 text-sm">Loading library data...</div>;
+  if (loading) return <div className="p-8 text-center text-gray-500 text-sm font-bold uppercase tracking-widest animate-pulse">Syncing Library...</div>;
 
   return (
     <div className="flex flex-col h-[calc(100vh-320px)] min-w-[1000px]">
       <div className="flex justify-between items-center px-6 py-3 border-b dark:border-gray-800 bg-gray-50/50 dark:bg-gray-900/50">
-        <div className="flex items-center gap-6">
+        <div className="flex items-center gap-6 text-black dark:text-white">
             <h3 className="text-sm font-bold text-gray-500 uppercase tracking-widest flex items-center gap-2">
                 Cases <span className="bg-blue-100 dark:bg-blue-900/30 text-blue-600 px-2 py-0.5 rounded-full text-[10px]">{rowData.length}</span>
             </h3>
@@ -394,6 +396,7 @@ export const TestManagementGrid = ({ moduleId }: TestManagementGridProps) => {
 
       <EditTestCaseDialog 
         testCase={selectedTestCase}
+        scenarios={scenarios}
         isOpen={isEditDialogOpen}
         onClose={() => setIsEditDialogOpen(false)}
         onSave={() => fetchTestCases(true)}

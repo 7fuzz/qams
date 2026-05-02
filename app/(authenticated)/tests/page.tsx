@@ -5,6 +5,7 @@ import { Card, CardHeader, CardTitle, CardContent, Input, Button } from "@/compo
 import { Combobox } from "@/components/ui/Combobox";
 import { TestManagementGrid } from "@/components/TestManagementGrid";
 import { Plus, FolderTree, Layers, ListChecks } from 'lucide-react';
+import { saveState, loadState } from '@/lib/persistence';
 
 interface Project {
   project_id: number;
@@ -24,23 +25,49 @@ export default function TestsPage() {
   const [selectedModuleId, setSelectedModuleId] = useState<number | null>(null);
   
   const [newModuleName, setNewModuleName] = useState('');
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
 
   const fetchProjects = () => fetch('/api/projects').then(res => res.json()).then(setProjects);
   const fetchModules = (id: number) => fetch(`/api/modules?projectId=${id}`).then(res => res.json()).then(setModules);
 
+  // Load persistent state on mount
   useEffect(() => {
-    fetchProjects();
+    const savedProject = loadState<number>('test_project_id');
+    const savedModule = loadState<number>('test_module_id');
+    
+    fetchProjects().then(() => {
+        if (savedProject) {
+            setSelectedProjectId(savedProject);
+            fetchModules(savedProject).then((mods: Module[]) => {
+                if (savedModule && mods.some(m => m.module_id === savedModule)) {
+                    setSelectedModuleId(savedModule);
+                }
+                setIsInitialLoad(false);
+            });
+        } else {
+            setIsInitialLoad(false);
+        }
+    });
   }, []);
 
   useEffect(() => {
+    if (isInitialLoad) return;
     if (selectedProjectId) {
       fetchModules(selectedProjectId);
-      setSelectedModuleId(null);
+      saveState('test_project_id', selectedProjectId);
     } else {
       setModules([]);
-      setSelectedModuleId(null);
     }
+    setSelectedModuleId(null);
+    saveState('test_module_id', null);
   }, [selectedProjectId]);
+
+  useEffect(() => {
+    if (isInitialLoad) return;
+    if (selectedModuleId) {
+      saveState('test_module_id', selectedModuleId);
+    }
+  }, [selectedModuleId]);
 
   const handleAddModule = async () => {
     if (!newModuleName || !selectedProjectId) return;
@@ -52,6 +79,8 @@ export default function TestsPage() {
     setNewModuleName('');
     fetchModules(selectedProjectId);
   };
+
+  if (isInitialLoad) return <div className="p-8 text-center text-gray-500">Restoring session...</div>;
 
   return (
     <div className="container mx-auto p-4 md:p-8 flex flex-col gap-6 max-w-full">

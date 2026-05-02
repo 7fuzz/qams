@@ -47,8 +47,8 @@ export const TestManagementGrid = ({ moduleId }: TestManagementGridProps) => {
 
   const fetchScenarios = () => fetch(`/api/scenarios?moduleId=${moduleId}`).then(res => res.json()).then(setScenarios);
   
-  const fetchTestCases = () => {
-    setLoading(true);
+  const fetchTestCases = (silent = false) => {
+    if (!silent) setLoading(true);
     fetch(`/api/test-cases?moduleId=${moduleId}`)
       .then(res => res.json())
       .then(data => {
@@ -75,10 +75,18 @@ export const TestManagementGrid = ({ moduleId }: TestManagementGridProps) => {
 
   const columnDefs = useMemo<ColDef[]>(() => [
     { 
+        headerName: '', 
+        width: 50, 
+        checkboxSelection: true, 
+        headerCheckboxSelection: true,
+        pinned: 'left',
+        suppressMovable: true,
+        cellClass: 'flex justify-center items-center bg-gray-50 dark:bg-gray-900 border-r dark:border-gray-800'
+    },
+    { 
         field: 'scenario_id', 
         headerName: 'Scenario', 
         width: 180,
-        pinned: 'left',
         cellEditor: 'agSelectCellEditor',
         cellEditorParams: {
             values: scenarios.map(s => s.scenario_id),
@@ -91,8 +99,6 @@ export const TestManagementGrid = ({ moduleId }: TestManagementGridProps) => {
       field: 'title', 
       headerName: 'Case Title', 
       width: 250, 
-      checkboxSelection: true, 
-      headerCheckboxSelection: true,
       filter: true
     },
     { 
@@ -143,7 +149,7 @@ export const TestManagementGrid = ({ moduleId }: TestManagementGridProps) => {
     filter: true,
     suppressHeaderMenuButton: true,
     minWidth: 100,
-    cellClass: 'border-r dark:border-gray-800', // Explicit cell borders
+    cellClass: 'border-r dark:border-gray-800',
   }), []);
 
   const addRow = () => {
@@ -166,7 +172,7 @@ export const TestManagementGrid = ({ moduleId }: TestManagementGridProps) => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(newRow),
     })
-    .then(() => fetchTestCases());
+    .then(() => fetchTestCases(true)); // Silent update
   };
 
   const deleteSelected = () => {
@@ -174,7 +180,7 @@ export const TestManagementGrid = ({ moduleId }: TestManagementGridProps) => {
     if (!selectedNodes || selectedNodes.length === 0) return;
     if (!confirm(`Delete ${selectedNodes.length} test cases?`)) return;
     Promise.all(selectedNodes.map(node => fetch(`/api/test-cases?id=${node.data.test_case_id}`, { method: 'DELETE' })))
-      .then(() => fetchTestCases());
+      .then(() => fetchTestCases(true));
   };
 
   const duplicateSelected = () => {
@@ -185,7 +191,7 @@ export const TestManagementGrid = ({ moduleId }: TestManagementGridProps) => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ test_case_id: node.data.test_case_id })
       })))
-      .then(() => fetchTestCases());
+      .then(() => fetchTestCases(true));
   };
 
   const onCellValueChanged = (event: CellValueChangedEvent) => {
@@ -241,6 +247,7 @@ export const TestManagementGrid = ({ moduleId }: TestManagementGridProps) => {
             headerBackgroundColor: 'transparent',
             headerTextColor: 'inherit',
             rowBorderColor: 'rgba(128, 128, 128, 0.1)',
+            oddRowBackgroundColor: 'rgba(128, 128, 128, 0.03)', // Force zebra striping in theme
           })}
           rowData={rowData}
           columnDefs={columnDefs}
@@ -248,9 +255,6 @@ export const TestManagementGrid = ({ moduleId }: TestManagementGridProps) => {
           onCellValueChanged={onCellValueChanged}
           rowSelection="multiple"
           animateRows={true}
-          rowClassRules={{
-            'bg-gray-50/30 dark:bg-gray-900/20': 'node.rowIndex % 2 !== 0', // Zebra striping
-          }}
         />
       </div>
     </div>

@@ -1,3 +1,5 @@
+"use client";
+
 import React from 'react';
 
 type CheckboxProps = Omit<React.InputHTMLAttributes<HTMLInputElement>, 'onChange'> & {

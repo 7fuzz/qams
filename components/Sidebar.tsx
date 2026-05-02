@@ -10,7 +10,8 @@ import {
   ChevronLeft, 
   ChevronRight,
   ClipboardList,
-  FileText
+  FileText,
+  FolderTree
 } from "lucide-react";
 
 interface SidebarProps {

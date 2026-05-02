@@ -49,6 +49,10 @@ CREATE TABLE IF NOT EXISTS test_cases (
     scenario_id TEXT NOT NULL,
     title TEXT NOT NULL,
     type TEXT NOT NULL,
+    priority TEXT, -- P0, P1, P2, P3
+    automation_status TEXT, -- Manual, Automated, etc.
+    requirement_link TEXT, -- Jira/Docs link
+    estimated_duration INTEGER, -- in minutes
     precondition TEXT,
     steps TEXT,
     test_data TEXT,

@@ -10,8 +10,8 @@ import {
   themeQuartz
 } from 'ag-grid-community';
 import { Button, Input } from '../ui';
-import { Trash2, Plus, Copy, AlertCircle, ListChecks, Edit2, CheckCircle2 } from 'lucide-react';
-import { TEST_CASE_TYPE, TEST_CASE_TYPE_OPTIONS } from '@/lib/constants';
+import { Trash2, Plus, Copy, AlertCircle, Edit2, CheckCircle2, ExternalLink } from 'lucide-react';
+import { TEST_CASE_TYPE, TEST_CASE_TYPE_OPTIONS, TEST_PRIORITY, TEST_PRIORITY_OPTIONS, AUTOMATION_STATUS, AUTOMATION_STATUS_OPTIONS } from '@/lib/constants';
 import { GRID_CONTAINER_CLASS, unifiedGridTheme } from '@/lib/theme';
 import { EditTestCaseDialog } from '../dialogs/EditTestCaseDialog';
 import { IssuesListDialog } from '../dialogs/IssuesListDialog';
@@ -23,6 +23,10 @@ interface TestCase {
   scenario_id: string;
   title: string;
   type: string;
+  priority: string;
+  automation_status: string;
+  requirement_link: string;
+  estimated_duration: number;
   precondition: string;
   steps: string;
   test_data: string;
@@ -84,7 +88,7 @@ export const TestManagementGrid = ({ moduleId }: TestManagementGridProps) => {
     { 
         field: 'scenario_id', 
         headerName: 'Scenario & Action', 
-        width: 240,
+        width: 200,
         pinned: 'left',
         checkboxSelection: true, 
         headerCheckboxSelection: true,
@@ -116,10 +120,25 @@ export const TestManagementGrid = ({ moduleId }: TestManagementGridProps) => {
         filter: true,
     },
     { 
-      field: 'title', 
-      headerName: 'Case Title', 
-      width: 250, 
-      filter: true
+        field: 'priority', 
+        headerName: 'Prio', 
+        width: 100,
+        cellEditor: 'agSelectCellEditor',
+        cellEditorParams: { values: TEST_PRIORITY_OPTIONS.map(o => o.value) },
+        cellClassRules: {
+            'text-red-500 font-bold': `x === "${TEST_PRIORITY.P0}"`,
+            'text-orange-500 font-bold': `x === "${TEST_PRIORITY.P1}"`,
+            'text-blue-500': `x === "${TEST_PRIORITY.P2}"`,
+            'text-gray-400': `x === "${TEST_PRIORITY.P3}"`,
+        }
+    },
+    { field: 'title', headerName: 'Case Title', width: 250, filter: true },
+    { 
+        field: 'automation_status', 
+        headerName: 'Automation', 
+        width: 130,
+        cellEditor: 'agSelectCellEditor',
+        cellEditorParams: { values: AUTOMATION_STATUS_OPTIONS.map(o => o.value) },
     },
     { 
       field: 'type', 
@@ -137,7 +156,7 @@ export const TestManagementGrid = ({ moduleId }: TestManagementGridProps) => {
     },
     { 
         headerName: 'Issues', 
-        width: 140,
+        width: 120,
         editable: false,
         cellRenderer: (params: any) => {
             const open = params.data.open_issues_count || 0;
@@ -155,6 +174,15 @@ export const TestManagementGrid = ({ moduleId }: TestManagementGridProps) => {
                     {closed > 0 && <span className="flex items-center gap-0.5 text-green-500 font-bold"><CheckCircle2 size={12} />{closed}</span>}
                 </div>
             );
+        }
+    },
+    { 
+        field: 'requirement_link', 
+        headerName: 'Link', 
+        width: 100,
+        cellRenderer: (params: any) => {
+            if (!params.value) return null;
+            return <a href={params.value} target="_blank" className="text-blue-500 hover:text-blue-600"><ExternalLink size={14} /></a>
         }
     },
     { field: 'precondition', headerName: 'Precondition', width: 200 },
@@ -193,6 +221,8 @@ export const TestManagementGrid = ({ moduleId }: TestManagementGridProps) => {
       scenario_id: scenarios[0].scenario_id,
       title: 'New Test Case',
       type: TEST_CASE_TYPE.POSITIVE,
+      priority: TEST_PRIORITY.P2,
+      automation_status: AUTOMATION_STATUS.MANUAL,
       precondition: '',
       steps: '',
       test_data: '',
@@ -246,7 +276,6 @@ export const TestManagementGrid = ({ moduleId }: TestManagementGridProps) => {
                 Cases <span className="bg-blue-100 dark:bg-blue-900/30 text-blue-600 px-2 py-0.5 rounded-full text-[10px]">{rowData.length}</span>
             </h3>
             <div className="flex items-center gap-2 border-l dark:border-gray-800 pl-6">
-                <ListChecks size={14} className="text-gray-400" />
                 <Input 
                     placeholder="New Scenario..." 
                     value={newScenarioName}
@@ -280,7 +309,7 @@ export const TestManagementGrid = ({ moduleId }: TestManagementGridProps) => {
           rowSelection="multiple"
           animateRows={true}
           rowClassRules={{
-            'bg-gray-50/30 dark:bg-gray-900/20': 'node.rowIndex % 2 !== 0', // Zebra striping
+            'bg-gray-50/30 dark:bg-gray-900/20': 'node.rowIndex % 2 !== 0',
           }}
         />
       </div>

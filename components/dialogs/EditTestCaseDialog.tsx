@@ -2,13 +2,17 @@
 
 import React, { useState, useEffect } from 'react';
 import { Modal, Button, Label, Input, Combobox, Textarea, AttachmentManager } from '../ui';
-import { TEST_CASE_TYPE_OPTIONS } from '@/lib/constants';
+import { TEST_CASE_TYPE_OPTIONS, TEST_PRIORITY_OPTIONS, AUTOMATION_STATUS_OPTIONS } from '@/lib/constants';
 
 interface TestCase {
   test_case_id: string;
   scenario_id: string;
   title: string;
   type: string;
+  priority: string;
+  automation_status: string;
+  requirement_link: string;
+  estimated_duration: number;
   precondition: string;
   steps: string;
   test_data: string;
@@ -50,7 +54,7 @@ export const EditTestCaseDialog = ({ testCase, isOpen, onClose, onSave }: EditTe
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={`Edit: ${testCase.title}`}>
       <div className="space-y-6">
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2 col-span-2">
                 <Label>Case Title</Label>
                 <Input value={formData.title || ''} onChange={e => setFormData({...formData, title: e.target.value})} />
@@ -64,8 +68,28 @@ export const EditTestCaseDialog = ({ testCase, isOpen, onClose, onSave }: EditTe
                 />
             </div>
             <div className="space-y-2">
-                <Label>Reference/External ID</Label>
-                <Input value={formData.test_data || ''} onChange={e => setFormData({...formData, test_data: e.target.value})} />
+                <Label>Priority</Label>
+                <Combobox 
+                    options={TEST_PRIORITY_OPTIONS} 
+                    value={formData.priority} 
+                    onChange={val => setFormData({...formData, priority: val as string})} 
+                />
+            </div>
+            <div className="space-y-2">
+                <Label>Automation</Label>
+                <Combobox 
+                    options={AUTOMATION_STATUS_OPTIONS} 
+                    value={formData.automation_status} 
+                    onChange={val => setFormData({...formData, automation_status: val as string})} 
+                />
+            </div>
+            <div className="space-y-2">
+                <Label>Duration (Min)</Label>
+                <Input type="number" value={formData.estimated_duration || 0} onChange={e => setFormData({...formData, estimated_duration: parseInt(e.target.value)})} />
+            </div>
+            <div className="space-y-2 col-span-2">
+                <Label>Requirement Link (Jira/Doc)</Label>
+                <Input placeholder="https://..." value={formData.requirement_link || ''} onChange={e => setFormData({...formData, requirement_link: e.target.value})} />
             </div>
         </div>
 
@@ -108,7 +132,7 @@ export const EditTestCaseDialog = ({ testCase, isOpen, onClose, onSave }: EditTe
 
         <div className="flex justify-end gap-3 border-t dark:border-gray-800 pt-6">
           <Button variant="outline" onClick={onClose}>Cancel</Button>
-          <Button onClick={handleSave} disabled={loading}>
+          <Button onClick={handleSave} disabled={loading} className="bg-blue-600 text-white hover:bg-blue-700">
             {loading ? 'Saving...' : 'Save Changes'}
           </Button>
         </div>

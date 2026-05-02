@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Modal, Button, Label, Input, Combobox, Textarea, AttachmentManager } from '../ui';
-import { AlertCircle, MessageSquare, Plus, ChevronDown, ChevronUp, History, CheckCircle2, FileText, Database } from 'lucide-react';
+import { AlertCircle, MessageSquare, Plus, ChevronDown, ChevronUp, History, CheckCircle2, FileText, Database, Clock, Link as LinkIcon, BarChart } from 'lucide-react';
 import { 
   TEST_STATUS, 
   TEST_STATUS_OPTIONS, 
@@ -42,6 +42,10 @@ interface Execution {
   precondition: string;
   test_data: string;
   notes: string;
+  priority?: string;
+  automation_status?: string;
+  requirement_link?: string;
+  estimated_duration?: number;
 }
 
 interface ExecutionDialogProps {
@@ -171,9 +175,23 @@ export const ExecutionDialog = ({ execution, isOpen, onClose, onSave }: Executio
         
         {/* Section 1: Definition */}
         <section className="space-y-4">
-            <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400">
-                <FileText size={18} />
-                <h4 className="font-bold text-xs uppercase tracking-widest">Test Definition</h4>
+            <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400">
+                    <FileText size={18} />
+                    <h4 className="font-bold text-xs uppercase tracking-widest">Test Definition</h4>
+                </div>
+                <div className="flex gap-3">
+                    {execution.priority && (
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-500 flex items-center gap-1">
+                            <BarChart size={10} /> {execution.priority}
+                        </span>
+                    )}
+                    {execution.estimated_duration && (
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-500 flex items-center gap-1">
+                            <Clock size={10} /> {execution.estimated_duration}m
+                        </span>
+                    )}
+                </div>
             </div>
             <div className="grid gap-4 p-5 bg-gray-50 dark:bg-gray-900 rounded-xl border dark:border-gray-800 text-sm">
                 <div>
@@ -184,12 +202,22 @@ export const ExecutionDialog = ({ execution, isOpen, onClose, onSave }: Executio
                     <Label className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Expected Result</Label>
                     <p className="mt-1 text-gray-900 dark:text-gray-100">{execution.expected_result}</p>
                 </div>
-                {execution.precondition && (
-                    <div>
-                        <Label className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Precondition</Label>
-                        <p className="mt-1 text-gray-900 dark:text-gray-100 italic text-xs">{execution.precondition}</p>
-                    </div>
-                )}
+                <div className="grid grid-cols-2 gap-4">
+                    {execution.precondition && (
+                        <div>
+                            <Label className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Precondition</Label>
+                            <p className="mt-1 text-gray-900 dark:text-gray-100 italic text-xs">{execution.precondition}</p>
+                        </div>
+                    )}
+                    {execution.requirement_link && (
+                        <div>
+                            <Label className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Requirement</Label>
+                            <a href={execution.requirement_link} target="_blank" className="mt-1 flex items-center gap-1 text-blue-500 hover:underline text-xs">
+                                <LinkIcon size={12} /> View Doc
+                            </a>
+                        </div>
+                    )}
+                </div>
                 {execution.test_data && (
                     <div className="pt-2 border-t dark:border-gray-800">
                         <Label className="text-[10px] text-gray-500 font-bold uppercase tracking-wider flex items-center gap-1">

@@ -72,3 +72,33 @@ export const TEST_RUN_STATUS = {
 } as const;
 
 export type TestRunStatus = typeof TEST_RUN_STATUS[keyof typeof TEST_RUN_STATUS];
+
+// Test Case Priority
+export const TEST_PRIORITY = {
+  P0: 'P0 - Critical',
+  P1: 'P1 - High',
+  P2: 'P2 - Medium',
+  P3: 'P3 - Low',
+} as const;
+
+export type TestPriority = typeof TEST_PRIORITY[keyof typeof TEST_PRIORITY];
+
+export const TEST_PRIORITY_OPTIONS = Object.values(TEST_PRIORITY).map(val => ({
+  value: val,
+  label: val
+}));
+
+// Automation Status
+export const AUTOMATION_STATUS = {
+  MANUAL: 'Manual',
+  AUTOMATED: 'Automated',
+  CANDIDATE: 'Can be automated',
+  NOT_APPLICABLE: 'N/A',
+} as const;
+
+export type AutomationStatus = typeof AUTOMATION_STATUS[keyof typeof AUTOMATION_STATUS];
+
+export const AUTOMATION_STATUS_OPTIONS = Object.values(AUTOMATION_STATUS).map(val => ({
+  value: val,
+  label: val
+}));

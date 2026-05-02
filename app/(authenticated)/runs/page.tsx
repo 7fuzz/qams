@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import Link from 'next/link';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, Button, Pagination } from "@/components/ui";
 import { AgGridReact } from 'ag-grid-react';
@@ -16,6 +16,7 @@ import { RunDetailDialog } from '@/components/dialogs/RunDetailDialog';
 ModuleRegistry.registerModules([AllCommunityModule]);
 
 export default function TestRunsPage() {
+  const gridRef = useRef<AgGridReact>(null);
   const [runs, setRuns] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedRun, setSelectedRun] = useState<any>(null);
@@ -54,6 +55,14 @@ export default function TestRunsPage() {
   useEffect(() => {
     fetchRuns();
   }, [page, limit]);
+
+  useEffect(() => {
+    const handleResize = () => {
+        gridRef.current?.api?.sizeColumnsToFit();
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const columnDefs = useMemo<ColDef[]>(() => [
     { 
@@ -154,10 +163,12 @@ export default function TestRunsPage() {
         </Link>
       </div>
 
-      <div className="w-full border dark:border-gray-800 overflow-hidden bg-white dark:bg-gray-950">
+      <div className="w-full border dark:border-gray-800 rounded-lg overflow-hidden bg-white dark:bg-gray-950 shadow-sm">
           <AgGridReact
+            ref={gridRef}
             theme={unifiedGridTheme}
             rowData={runs}
+
             columnDefs={columnDefs}
             animateRows={true}
             domLayout="autoHeight"

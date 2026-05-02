@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, Button, Modal, Input, Label, Combobox, Pagination } from "@/components/ui";
 import { AgGridReact } from 'ag-grid-react';
 import { 
@@ -203,6 +203,7 @@ export default function UserManagementPage() {
 
       <div className="w-full border dark:border-gray-800 rounded-lg overflow-hidden bg-white dark:bg-gray-950 shadow-sm">
           <AgGridReact
+            ref={gridRef}
             theme={unifiedGridTheme}
             rowData={users}
             columnDefs={columnDefs}
@@ -216,6 +217,9 @@ export default function UserManagementPage() {
             totalItems={total}
             onPageChange={setPage}
             onPageSizeChange={(s) => { setLimit(s); setPage(1); }}
+          />
+      </div>
+
           />
       </div>
 

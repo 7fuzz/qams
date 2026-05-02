@@ -1,23 +1,14 @@
 "use client";
 
-import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { AgGridReact } from 'ag-grid-react';
-import { 
-  ColDef, 
-  AllCommunityModule,
-  ModuleRegistry,
-  themeQuartz
-} from 'ag-grid-community';
-import { Button } from './ui';
+import React, { useState, useEffect } from 'react';
+import { Button, Card, CardContent } from './ui';
 import { ExecutionDialog } from './ExecutionDialog';
-import { Play } from 'lucide-react';
+import { Play, CheckCircle2, AlertCircle, Clock, PauseCircle, HelpCircle } from 'lucide-react';
 import { TEST_STATUS, TestStatus } from '@/lib/constants';
-import { unifiedGridTheme, GRID_CONTAINER_CLASS } from '@/lib/theme';
-
-ModuleRegistry.registerModules([AllCommunityModule]);
 
 interface Execution {
   execution_id: number;
+  test_case_id: number;
   title: string;
   status: TestStatus;
   steps: string;
@@ -27,8 +18,7 @@ interface Execution {
 }
 
 export const TestExecutionGrid = ({ runId }: { runId: number }) => {
-  const gridRef = useRef<AgGridReact>(null);
-  const [rowData, setRowData] = useState<Execution[]>([]);
+  const [executions, setExecutions] = useState<Execution[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedExecution, setSelectedExecution] = useState<Execution | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -38,7 +28,7 @@ export const TestExecutionGrid = ({ runId }: { runId: number }) => {
     fetch(`/api/test-executions?runId=${runId}`)
       .then(res => res.json())
       .then(data => {
-        setRowData(data);
+        setExecutions(data);
         setLoading(false);
       });
   };
@@ -47,59 +37,75 @@ export const TestExecutionGrid = ({ runId }: { runId: number }) => {
     fetchExecutions();
   }, [runId]);
 
-  const columnDefs = useMemo<ColDef[]>(() => [
-    { 
-      headerName: 'Action', 
-      width: 100, 
-      cellRenderer: (params: any) => (
-        <Button 
-          size="sm" 
-          variant="ghost" 
-          className="h-8 w-8 p-0 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-          onClick={() => {
-            setSelectedExecution(params.data);
-            setIsDialogOpen(true);
-          }}
-        >
-          <Play size={16} fill="currentColor" />
-        </Button>
-      ),
-      pinned: 'left'
-    },
-    { field: 'title', headerName: 'Test Case', width: 200, filter: true },
-    { 
-      field: 'status', 
-      headerName: 'Status', 
-      width: 150,
-      cellClassRules: {
-        'bg-green-50 text-green-700 font-semibold border-l-4 border-green-500': `x === "${TEST_STATUS.PASSED}"`,
-        'bg-emerald-50 text-emerald-700 font-semibold border-l-4 border-emerald-500': `x === "${TEST_STATUS.PASSED_WITH_NOTE}"`,
-        'bg-red-50 text-red-700 font-semibold border-l-4 border-red-500': `x === "${TEST_STATUS.FAILED}"`,
-        'bg-orange-50 text-orange-700 font-semibold border-l-4 border-orange-500': `x === "${TEST_STATUS.ON_HOLD}"`,
-        'bg-gray-100 text-gray-500 border-l-4 border-gray-400': `x === "${TEST_STATUS.PENDING}"`,
-        'bg-gray-50 text-gray-400 border-l-4 border-gray-300': `x === "${TEST_STATUS.UNKNOWN}"`,
-      }
-    },
-    { field: 'notes', headerName: 'Notes', flex: 1, filter: true },
-    { field: 'steps', headerName: 'Steps', width: 250, hide: true },
-  ], []);
+  const getStatusIcon = (status: TestStatus) => {
+    switch (status) {
+      case TEST_STATUS.PASSED:
+        return <CheckCircle2 className="text-green-500" size={20} />;
+      case TEST_STATUS.PASSED_WITH_NOTE:
+        return <CheckCircle2 className="text-emerald-500" size={20} />;
+      case TEST_STATUS.FAILED:
+        return <AlertCircle className="text-red-500" size={20} />;
+      case TEST_STATUS.ON_HOLD:
+        return <PauseCircle className="text-orange-500" size={20} />;
+      case TEST_STATUS.PENDING:
+        return <Clock className="text-gray-400" size={20} />;
+      default:
+        return <HelpCircle className="text-gray-400" size={20} />;
+    }
+  };
+
+  const getStatusClass = (status: TestStatus) => {
+    switch (status) {
+      case TEST_STATUS.PASSED:
+        return 'border-green-500/50 bg-green-50/5 dark:bg-green-500/5';
+      case TEST_STATUS.PASSED_WITH_NOTE:
+        return 'border-emerald-500/50 bg-emerald-50/5 dark:bg-emerald-500/5';
+      case TEST_STATUS.FAILED:
+        return 'border-red-500/50 bg-red-50/5 dark:bg-red-500/5';
+      case TEST_STATUS.ON_HOLD:
+        return 'border-orange-500/50 bg-orange-50/5 dark:bg-orange-500/5';
+      default:
+        return 'border-gray-200 dark:border-gray-800';
+    }
+  };
 
   if (loading) return <div className="p-8 text-center text-gray-500">Loading execution data...</div>;
 
   return (
-    <div className="flex flex-col h-[calc(100vh-300px)]">
-      <div className={GRID_CONTAINER_CLASS}>
-        <AgGridReact
-          ref={gridRef}
-          theme={unifiedGridTheme}
-          rowData={rowData}
-          columnDefs={columnDefs}
-          animateRows={true}
-          onRowDoubleClicked={(params) => {
-            setSelectedExecution(params.data);
-            setIsDialogOpen(true);
-          }}
-        />
+    <div className="flex flex-col gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {executions.map((exec) => (
+          <Card 
+            key={exec.execution_id} 
+            className={`cursor-pointer transition-all hover:shadow-md hover:scale-[1.01] border-l-4 ${getStatusClass(exec.status)}`}
+            onClick={() => {
+              setSelectedExecution(exec);
+              setIsDialogOpen(true);
+            }}
+          >
+            <CardContent className="p-5 flex flex-col h-full justify-between gap-4">
+              <div className="space-y-3">
+                <div className="flex justify-between items-start gap-2">
+                  <h4 className="font-bold text-sm line-clamp-2 leading-tight flex-1">{exec.title}</h4>
+                  {getStatusIcon(exec.status)}
+                </div>
+                
+                <div className="text-xs text-gray-500 dark:text-gray-400 space-y-1">
+                  <p className="line-clamp-2 italic">“{exec.notes || 'No notes yet...'}”</p>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between mt-auto pt-4 border-t dark:border-gray-800">
+                <span className="text-[10px] font-bold uppercase tracking-widest text-gray-400">
+                  {exec.status}
+                </span>
+                <Button size="sm" variant="ghost" className="h-8 px-2 text-blue-600">
+                  <Play size={14} className="mr-1" fill="currentColor" /> Execute
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
       </div>
 
       <ExecutionDialog 

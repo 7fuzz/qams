@@ -12,18 +12,39 @@ export async function GET(request: Request) {
     const testCaseId = searchParams.get('testCaseId');
     const runId = searchParams.get('runId');
     const projectId = searchParams.get('projectId');
+    const moduleId = searchParams.get('moduleId');
+    const developerId = searchParams.get('developerId');
+    const status = searchParams.get('status');
+    
+    const page = parseInt(searchParams.get('page') || '1');
+    const limit = parseInt(searchParams.get('limit') || '50');
+    const offset = (page - 1) * limit;
 
     try {
-        let query = '';
-        const params: string[] = [];
+        let baseQuery = `
+            FROM issues i 
+            JOIN users u ON i.reporter_id = u.user_id
+            LEFT JOIN users d ON i.developer_id = d.user_id
+            LEFT JOIN users s ON i.solved_by_id = s.user_id
+            JOIN test_cases tc ON i.test_case_id = tc.test_case_id
+            JOIN scenarios sc ON tc.scenario_id = sc.scenario_id
+            JOIN modules m ON sc.module_id = m.module_id
+            JOIN projects p ON m.project_id = p.project_id
+            WHERE 1=1
+        `;
+        const params: any[] = [];
 
         if (runId) {
-            query = `
+            // This is a special snapshot lookup - we keep the old logic for runs
+            // to maintain the temporal integrity user asked for before.
+            const data = db.prepare(`
                 SELECT 
                     i.*,
                     u.name as reporter_name,
                     d.name as developer_name,
                     s.name as solver_name,
+                    m.name as module_name,
+                    p.name as project_name,
                     COALESCE(
                         (SELECT status FROM issue_history h 
                          WHERE h.issue_id = i.issue_id 
@@ -35,36 +56,62 @@ export async function GET(request: Request) {
                 JOIN users u ON i.reporter_id = u.user_id
                 LEFT JOIN users d ON i.developer_id = d.user_id
                 LEFT JOIN users s ON i.solved_by_id = s.user_id
+                JOIN test_cases tc ON i.test_case_id = tc.test_case_id
+                JOIN scenarios sc ON tc.scenario_id = sc.scenario_id
+                JOIN modules m ON sc.module_id = m.module_id
+                JOIN projects p ON m.project_id = p.project_id
                 WHERE i.test_case_id IN (SELECT test_case_id FROM test_executions WHERE run_id = ?)
-            `;
-            params.push(runId, runId);
-        } else {
-            query = `
-                SELECT i.*, u.name as reporter_name, d.name as developer_name, s.name as solver_name 
-                FROM issues i 
-                JOIN users u ON i.reporter_id = u.user_id
-                LEFT JOIN users d ON i.developer_id = d.user_id
-                LEFT JOIN users s ON i.solved_by_id = s.user_id
-                WHERE 1=1
-            `;
-            if (testCaseId) {
-                query += ' AND i.test_case_id = ?';
-                params.push(testCaseId);
-            } else if (projectId) {
-                query += ` AND i.test_case_id IN (
-                    SELECT tc.test_case_id 
-                    FROM test_cases tc
-                    JOIN scenarios sc ON tc.scenario_id = sc.scenario_id
-                    JOIN modules m ON sc.module_id = m.module_id
-                    WHERE m.project_id = ?
-                )`;
-                params.push(projectId);
-            }
+                ORDER BY i.created_at DESC
+            `).all(runId, runId);
+            return NextResponse.json(data);
         }
 
-        query += ' ORDER BY i.created_at DESC';
-        const issues = db.prepare(query).all(...params);
-        return NextResponse.json(issues);
+        if (testCaseId) {
+            baseQuery += ' AND i.test_case_id = ?';
+            params.push(testCaseId);
+        }
+        if (projectId) {
+            baseQuery += ' AND p.project_id = ?';
+            params.push(projectId);
+        }
+        if (moduleId) {
+            baseQuery += ' AND m.module_id = ?';
+            params.push(moduleId);
+        }
+        if (developerId) {
+            baseQuery += ' AND i.developer_id = ?';
+            params.push(developerId);
+        }
+        if (status) {
+            baseQuery += ' AND i.status = ?';
+            params.push(status);
+        }
+
+        // 1. Total
+        const total = (db.prepare(`SELECT COUNT(*) as total ${baseQuery}`).get(...params) as any).total;
+
+        // 2. Data
+        const query = `
+            SELECT 
+                i.*, 
+                u.name as reporter_name, 
+                d.name as developer_name, 
+                s.name as solver_name,
+                m.name as module_name,
+                p.name as project_name,
+                m.module_id,
+                p.project_id
+            ${baseQuery}
+            ORDER BY i.updated_at DESC
+            LIMIT ? OFFSET ?
+        `;
+        const issues = db.prepare(query).all(...params, limit, offset);
+
+        return NextResponse.json({
+            data: issues,
+            total,
+            totalPages: Math.ceil(total / limit)
+        });
     } catch (error) {
         console.error(error);
         return NextResponse.json({ error: 'Failed to fetch issues' }, { status: 500 });
@@ -119,7 +166,8 @@ export async function PUT(request: Request) {
     const updateTransaction = db.transaction(() => {
         let solved_by_id = null;
         if (status === ISSUE_STATUS.CLOSED) {
-            solved_by_id = session.user_id;
+            const currentIssue = db.prepare('SELECT solved_by_id FROM issues WHERE issue_id = ?').get(issue_id) as any;
+            solved_by_id = currentIssue?.solved_by_id || session.user_id;
         }
 
         db.prepare(`

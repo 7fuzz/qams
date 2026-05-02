@@ -12,7 +12,8 @@ import {
   ClipboardList,
   FileText,
   FolderTree,
-  Tag
+  Tag,
+  AlertTriangle
 } from "lucide-react";
 
 interface SidebarProps {
@@ -28,6 +29,7 @@ export const Sidebar = ({ userRole }: SidebarProps) => {
     { name: "System Management", href: "/management", icon: FolderTree },
     { name: "Test Library", href: "/tests", icon: ClipboardList },
     { name: "Test Executions", href: "/runs", icon: FileText },
+    { name: "Issue Management", href: "/issues", icon: AlertTriangle },
     { name: "Releases", href: "/releases", icon: Tag },
   ];
 

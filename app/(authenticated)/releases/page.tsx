@@ -33,14 +33,13 @@ interface Issue {
 interface ReleaseChange {
   change_id: string;
   release_id: string;
-  module_id: string | null;
-  module_name?: string;
+  module_ids: string[];
+  module_names: string[];
   type: 'Feature' | 'Bugfix' | 'Enhancement';
   title: string;
   description: string;
-  issue_id: string | null;
-  issue_title?: string;
-  issue_status?: string;
+  issue_ids: string[];
+  issue_titles: string[];
 }
 
 const RELEASE_STATUS_OPTIONS = [
@@ -70,7 +69,7 @@ export default function ReleasesPage() {
   const [isChangeModalOpen, setIsChangeModalOpen] = useState(false);
   
   const [releaseForm, setReleaseForm] = useState<Partial<Release>>({ version_name: '', status: 'Planning', description: '' });
-  const [changeForm, setChangeForm] = useState<Partial<ReleaseChange>>({ type: 'Feature', title: '', description: '', issue_id: null, module_id: null });
+  const [changeForm, setChangeForm] = useState<Partial<ReleaseChange>>({ type: 'Feature', title: '', description: '', issue_ids: [], module_ids: [] });
 
   const fetchProjects = useCallback(() => fetch('/api/projects').then(res => res.json()).then(setProjects), []);
   
@@ -255,7 +254,7 @@ export default function ReleasesPage() {
                                         <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-gray-500 flex items-center gap-2">
                                             <GitCommit size={14} /> Changelog ({changes.length})
                                         </h3>
-                                        <Button size="sm" className="h-7 text-[10px] uppercase font-bold text-black dark:text-white" onClick={() => { setChangeForm({ type: 'Feature', title: '', issue_id: null, module_id: null }); setIsChangeModalOpen(true); }}>
+                                        <Button size="sm" className="h-7 text-[10px] uppercase font-bold text-black dark:text-white" onClick={() => { setChangeForm({ type: 'Feature', title: '', issue_ids: [], module_ids: [] }); setIsChangeModalOpen(true); }}>
                                             <Plus size={14} className="mr-1" /> Add Item
                                         </Button>
                                     </div>
@@ -270,24 +269,24 @@ export default function ReleasesPage() {
                                                             change.type === 'Bugfix' ? 'bg-red-500' : 'bg-green-500'
                                                         }`} />
                                                         <div className="space-y-1">
-                                                            <div className="flex items-center gap-2">
+                                                            <div className="flex flex-wrap items-center gap-2">
                                                                 <span className="text-[9px] font-black uppercase tracking-widest text-gray-400">{change.type}</span>
                                                                 <span className="font-bold text-sm">{change.title}</span>
-                                                                {change.module_name && (
-                                                                    <span className="flex items-center gap-1 text-[9px] bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 px-1.5 py-0.5 rounded-full font-bold uppercase">
-                                                                        <Layers size={10} /> {change.module_name}
+                                                                {change.module_names?.map((mName, idx) => (
+                                                                    <span key={idx} className="flex items-center gap-1 text-[9px] bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 px-1.5 py-0.5 rounded-full font-bold uppercase">
+                                                                        <Layers size={10} /> {mName}
                                                                     </span>
-                                                                )}
+                                                                ))}
                                                             </div>
                                                             <p className="text-xs text-gray-500 leading-relaxed">{change.description}</p>
-                                                            {change.issue_id && (
-                                                                <div className="mt-2 flex items-center gap-2 p-1.5 px-2 bg-red-50 dark:bg-red-900/10 rounded-md border border-red-100 dark:border-red-900/20 w-fit">
-                                                                    <AlertCircle size={10} className="text-red-500" />
-                                                                    <span className="text-[9px] font-bold text-red-700 dark:text-red-400 uppercase tracking-wider">Related Issue: {change.issue_title}</span>
-                                                                    <ArrowRight size={10} className="text-red-300" />
-                                                                    <span className="text-[9px] font-medium text-red-500">{change.issue_status}</span>
-                                                                </div>
-                                                            )}
+                                                            <div className="flex flex-wrap gap-2">
+                                                                {change.issue_titles?.map((iTitle, idx) => (
+                                                                    <div key={idx} className="mt-2 flex items-center gap-2 p-1.5 px-2 bg-red-50 dark:bg-red-900/10 rounded-md border border-red-100 dark:border-red-900/20 w-fit">
+                                                                        <AlertCircle size={10} className="text-red-500" />
+                                                                        <span className="text-[9px] font-bold text-red-700 dark:text-red-400 uppercase tracking-wider">Issue: {iTitle}</span>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
                                                         </div>
                                                     </div>
                                                     <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -348,21 +347,23 @@ export default function ReleasesPage() {
                     <Combobox options={CHANGE_TYPE_OPTIONS} value={changeForm.type} onChange={val => setChangeForm({...changeForm, type: val as 'Feature' | 'Bugfix' | 'Enhancement'})} />
                 </div>
                 <div className="space-y-2">
-                    <Label className="text-black dark:text-white flex items-center gap-1.5"><Layers size={12}/> Link Module</Label>
+                    <Label className="text-black dark:text-white flex items-center gap-1.5"><Layers size={12}/> Link Modules</Label>
                     <Combobox 
+                        multiSelect
                         options={projectModules.map(m => ({ value: m.module_id, label: m.name }))} 
-                        value={changeForm.module_id || undefined} 
-                        onChange={val => setChangeForm({...changeForm, module_id: val as string})}
+                        value={changeForm.module_ids || []} 
+                        onChange={val => setChangeForm({...changeForm, module_ids: val as string[]})}
                         placeholder="Optional..."
                     />
                 </div>
               </div>
               <div className="space-y-2">
-                  <Label className="text-black dark:text-white flex items-center gap-1.5"><LinkIcon size={12}/> Link Issue</Label>
+                  <Label className="text-black dark:text-white flex items-center gap-1.5"><LinkIcon size={12}/> Link Issues</Label>
                   <Combobox 
+                      multiSelect
                       options={projectIssues.map(i => ({ value: i.issue_id, label: i.title }))} 
-                      value={changeForm.issue_id || undefined} 
-                      onChange={val => setChangeForm({...changeForm, issue_id: val as string})}
+                      value={changeForm.issue_ids || []} 
+                      onChange={val => setChangeForm({...changeForm, issue_ids: val as string[]})}
                       placeholder="Optional..."
                   />
               </div>

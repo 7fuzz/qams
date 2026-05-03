@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Search, ChevronDown, Check } from 'lucide-react';
+import { Search, ChevronDown, Check, X } from 'lucide-react';
 
 interface Option {
   value: string | number;
@@ -10,13 +10,21 @@ interface Option {
 
 interface ComboboxProps {
   options: Option[];
-  value?: string | number;
-  onChange: (value: string | number) => void;
+  value?: string | number | (string | number)[];
+  onChange: (value: string | number | (string | number)[]) => void;
   placeholder?: string;
   className?: string;
+  multiSelect?: boolean;
 }
 
-export const Combobox = ({ options, value, onChange, placeholder = "Select...", className = "" }: ComboboxProps) => {
+export const Combobox = ({ 
+  options, 
+  value, 
+  onChange, 
+  placeholder = "Select...", 
+  className = "",
+  multiSelect = false 
+}: ComboboxProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState("");
   const containerRef = useRef<HTMLDivElement>(null);
@@ -25,7 +33,55 @@ export const Combobox = ({ options, value, onChange, placeholder = "Select...", 
     option.label.toLowerCase().includes(search.toLowerCase())
   );
 
-  const selectedOption = options.find(option => option.value === value);
+  const isSelected = (val: string | number) => {
+    if (multiSelect && Array.isArray(value)) {
+      return value.includes(val);
+    }
+    return value === val;
+  };
+
+  const toggleOption = (val: string | number) => {
+    if (multiSelect) {
+      const currentValues = Array.isArray(value) ? value : [];
+      if (currentValues.includes(val)) {
+        onChange(currentValues.filter(v => v !== val));
+      } else {
+        onChange([...currentValues, val]);
+      }
+    } else {
+      onChange(val);
+      setIsOpen(false);
+      setSearch("");
+    }
+  };
+
+  const removeValue = (e: React.MouseEvent, val: string | number) => {
+    e.stopPropagation();
+    if (multiSelect && Array.isArray(value)) {
+      onChange(value.filter(v => v !== val));
+    }
+  };
+
+  const getLabel = () => {
+    if (multiSelect && Array.isArray(value)) {
+        if (value.length === 0) return placeholder;
+        return (
+            <div className="flex flex-wrap gap-1">
+                {value.map(v => {
+                    const opt = options.find(o => o.value === v);
+                    return (
+                        <span key={v} className="flex items-center gap-1 bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded text-[10px] font-medium">
+                            {opt?.label || v}
+                            <X size={10} className="cursor-pointer hover:text-red-500" onClick={(e) => removeValue(e, v)} />
+                        </span>
+                    );
+                })}
+            </div>
+        );
+    }
+    const selectedOption = options.find(option => option.value === value);
+    return selectedOption ? selectedOption.label : placeholder;
+  };
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -42,12 +98,12 @@ export const Combobox = ({ options, value, onChange, placeholder = "Select...", 
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="flex h-10 w-full items-center justify-between rounded-md border border-gray-300 bg-white dark:bg-gray-950 px-3 py-2 text-sm focus:outline-hidden focus:ring-2 focus:ring-gray-400 dark:border-gray-800"
+        className="flex min-h-[40px] w-full items-center justify-between rounded-md border border-gray-300 bg-white dark:bg-gray-950 px-3 py-2 text-sm focus:outline-hidden focus:ring-2 focus:ring-gray-400 dark:border-gray-800"
       >
-        <span className={!selectedOption ? "text-gray-500" : "text-gray-900 dark:text-gray-100"}>
-          {selectedOption ? selectedOption.label : placeholder}
-        </span>
-        <ChevronDown size={16} className="text-gray-500" />
+        <div className="flex-1 text-left overflow-hidden">
+            {getLabel()}
+        </div>
+        <ChevronDown size={16} className="text-gray-500 shrink-0 ml-2" />
       </button>
 
       {isOpen && (
@@ -70,19 +126,15 @@ export const Combobox = ({ options, value, onChange, placeholder = "Select...", 
                 <button
                   key={option.value}
                   type="button"
-                  onClick={() => {
-                    onChange(option.value);
-                    setIsOpen(false);
-                    setSearch("");
-                  }}
+                  onClick={() => toggleOption(option.value)}
                   className={`flex w-full items-center rounded-sm px-2 py-2 text-sm transition-colors bg-white dark:bg-gray-950 hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-900 dark:text-gray-100 ${
-                    value === option.value ? "bg-gray-50 dark:bg-gray-900" : ""
+                    isSelected(option.value) ? "bg-gray-50 dark:bg-gray-900" : ""
                   }`}
                 >
                   <Check
                     size={14}
                     className={`mr-2 transition-opacity ${
-                      value === option.value ? "opacity-100" : "opacity-0"
+                      isSelected(option.value) ? "opacity-100" : "opacity-0"
                     }`}
                   />
                   {option.label}

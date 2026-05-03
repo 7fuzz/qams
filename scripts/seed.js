@@ -141,9 +141,18 @@ async function seed() {
         VALUES (?, ?, ?, ?, ?, ?)
     `).run(releaseId, projects.hr.id, 'v2.5.0', 'Released', '2024-05-15', 'Major Q2 update with new auth features.');
 
-    const insertChange = db.prepare('INSERT INTO release_changes (change_id, release_id, type, title, description, issue_id) VALUES (?, ?, ?, ?, ?, ?)');
-    insertChange.run(randomUUID(), releaseId, 'Feature', 'Support for MFA', 'Added Google Authenticator integration.', null);
-    insertChange.run(randomUUID(), releaseId, 'Bugfix', 'Fix Tax Rounding', 'Corrected decimal precision in payroll engine.', issueId);
+    const insertChange = db.prepare('INSERT INTO release_changes (change_id, release_id, type, title, description) VALUES (?, ?, ?, ?, ?)');
+    const insertChangeModule = db.prepare('INSERT INTO release_change_modules (change_id, module_id) VALUES (?, ?)');
+    const insertChangeIssue = db.prepare('INSERT INTO release_change_issues (change_id, issue_id) VALUES (?, ?)');
+    
+    const change1Id = randomUUID();
+    insertChange.run(change1Id, releaseId, 'Feature', 'Support for MFA', 'Added Google Authenticator integration.');
+    insertChangeModule.run(change1Id, modules.auth.id);
+
+    const change2Id = randomUUID();
+    insertChange.run(change2Id, releaseId, 'Bugfix', 'Fix Tax Rounding', 'Corrected decimal precision in payroll engine.');
+    insertChangeModule.run(change2Id, modules.payroll.id);
+    insertChangeIssue.run(change2Id, issueId);
 
     console.log('--- SEEDING COMPLETED SUCCESSFULLY ---');
     db.close();

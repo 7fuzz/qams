@@ -31,11 +31,10 @@ interface MenuGroup {
 }
 
 interface SidebarProps {
-  userRole: string;
   userPermissions?: string[];
 }
 
-export const Sidebar = ({ userRole, userPermissions = [] }: SidebarProps) => {
+export const Sidebar = ({ userPermissions = [] }: SidebarProps) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const pathname = usePathname();
 

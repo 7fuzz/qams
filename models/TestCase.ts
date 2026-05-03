@@ -150,7 +150,7 @@ export const TestCaseModel = {
         return true;
     },
 
-    importTestCases(moduleId: string, cases: any[], normalizers: { type: Function, priority: Function, automation: Function }) {
+    importTestCases(moduleId: string, cases: unknown[], normalizers: { type: (value: unknown) => string, priority: (value: unknown) => string, automation: (value: unknown) => string }) {
         let importedCount = 0;
         let skippedCount = 0;
 

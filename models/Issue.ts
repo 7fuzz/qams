@@ -48,7 +48,7 @@ export const IssueModel = {
         }
 
         let whereClause = 'WHERE 1=1';
-        const params: any[] = [];
+        const params: unknown[] = [];
 
         if (filters.testCaseId) {
             whereClause += ' AND i.test_case_id = ?';

@@ -17,7 +17,7 @@ export default async function AuthenticatedLayout({
 
   return (
     <div className="flex min-h-[calc(100vh-4rem)] overflow-hidden bg-surface-muted">
-      <Sidebar userRole={session.role} userPermissions={session.permissions} />
+      <Sidebar userPermissions={session.permissions} />
       <div className="flex flex-1 flex-col overflow-hidden" style={{ marginLeft: "var(--app-sidebar-width, 16rem)" }}>
         <main className="flex-1 overflow-auto">
           {children}

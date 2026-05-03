@@ -48,9 +48,9 @@ export const ReleaseModel = {
             FROM release_changes rc
             WHERE rc.release_id = ?
             ORDER BY rc.created_at ASC
-        `).all(releaseId) as any[];
+        `).all(releaseId) as unknown[];
 
-        return changes.map((c: any) => ({
+        return changes.map((c: unknown) => ({
             ...c,
             module_names: c.module_names ? c.module_names.split('||') : [],
             module_ids: c.module_ids ? c.module_ids.split('||') : [],

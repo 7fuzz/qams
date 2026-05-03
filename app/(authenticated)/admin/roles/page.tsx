@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button, IconButton, Modal, Input, Label, Checkbox } from "@/components/ui";
 import { Shield, Plus, Edit2, Trash2, Lock } from 'lucide-react';
 
@@ -24,27 +24,26 @@ export default function RoleManagementPage() {
     const [selectedRole, setSelectedRole] = useState<Role | null>(null);
     const [formData, setFormData] = useState({ name: '', permissionIds: [] as string[] });
 
-    const fetchData = useCallback(async () => {
-        setLoading(true);
-        try {
-            const [rolesRes, permsRes] = await Promise.all([
-                fetch('/api/roles'),
-                fetch('/api/permissions')
-            ]);
-            const rolesData = await rolesRes.json();
-            const permsData = await permsRes.json();
-            setRoles(rolesData);
-            setAllPermissions(permsData);
-        } catch (err) {
-            console.error('Failed to fetch data', err);
-        } finally {
-            setLoading(false);
-        }
-    }, []);
-
     useEffect(() => {
+        const fetchData = async () => {
+            setLoading(true);
+            try {
+                const [rolesRes, permsRes] = await Promise.all([
+                    fetch('/api/roles'),
+                    fetch('/api/permissions')
+                ]);
+                const rolesData = await rolesRes.json();
+                const permsData = await permsRes.json();
+                setRoles(rolesData);
+                setAllPermissions(permsData);
+            } catch (err) {
+                console.error('Failed to fetch data', err);
+            } finally {
+                setLoading(false);
+            }
+        };
         fetchData();
-    }, [fetchData]);
+    }, []);
 
     const handleOpenCreate = () => {
         setSelectedRole(null);

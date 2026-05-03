@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   Card, CardHeader, CardTitle, CardContent, Button, IconButton, Modal, Input, Label, Textarea, Combobox
 } from "@/components/ui";
-import { Tag, Plus, Calendar, Clock, GitCommit, AlertCircle, Trash2, Edit2, Info, ArrowRight, Link as LinkIcon, Layers } from 'lucide-react';
+import { Tag, Plus, Calendar, Clock, GitCommit, AlertCircle, Trash2, Edit2, Info, Link as LinkIcon, Layers } from 'lucide-react';
 import { Project, Module, Release, Issue, ReleaseChange } from '@/types/app';
 
 const RELEASE_STATUS_OPTIONS = [

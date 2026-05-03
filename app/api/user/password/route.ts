@@ -11,7 +11,6 @@ export async function PUT(request: Request) {
 
     try {
         const { currentPassword, newPassword } = await request.json();
-        const user = UserModel.findById(session.user_id) as any; // Need password field which is not in User type but in DB result
         
         // Re-fetch with full data including password
         const fullUser = UserModel.findByEmail(session.email);

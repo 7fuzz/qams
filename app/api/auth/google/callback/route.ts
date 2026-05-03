@@ -57,7 +57,7 @@ export async function GET(request: Request) {
           roleId: qaRole.role_id
         });
         
-        user = UserModel.findById(userId) as any;
+        user = UserModel.findById(userId) as User;
       }
     }
 

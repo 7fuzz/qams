@@ -46,6 +46,11 @@ interface CurrentUser {
   isLoggedIn: boolean;
 }
 
+const SortIcon = ({ field, sortBy, sortOrder }: { field: string; sortBy: string; sortOrder: string }) => {
+  if (sortBy !== field) return null;
+  return sortOrder === 'ASC' ? <ChevronUp size={14} className="ml-1 inline" /> : <ChevronDown size={14} className="ml-1 inline" />;
+};
+
 export default function IssueManagementPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [modules, setModules] = useState<Module[]>([]);
@@ -161,11 +166,6 @@ export default function IssueManagementPage() {
     setPage(1);
   };
 
-  const SortIcon = ({ field }: { field: string }) => {
-    if (sortBy !== field) return null;
-    return sortOrder === 'ASC' ? <ChevronUp size={14} className="ml-1 inline" /> : <ChevronDown size={14} className="ml-1 inline" />;
-  };
-
   return (
     <div className="container mx-auto p-4 md:p-8 flex flex-col gap-8 max-w-full text-text-theme-main">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -240,37 +240,37 @@ export default function IssueManagementPage() {
                 className="w-[350px] cursor-pointer hover:bg-surface-accent transition-colors"
                 onClick={() => handleSort('title')}
               >
-                Issue Details <SortIcon field="title" />
+                Issue Details <SortIcon field="title" sortBy={sortBy} sortOrder={sortOrder} />
               </TableHead>
               <TableHead 
                 className="cursor-pointer hover:bg-surface-accent transition-colors"
                 onClick={() => handleSort('project_name')}
               >
-                Location <SortIcon field="project_name" />
+                Location <SortIcon field="project_name" sortBy={sortBy} sortOrder={sortOrder} />
               </TableHead>
               <TableHead 
                 className="cursor-pointer hover:bg-surface-accent transition-colors"
                 onClick={() => handleSort('status')}
               >
-                Status <SortIcon field="status" />
+                Status <SortIcon field="status" sortBy={sortBy} sortOrder={sortOrder} />
               </TableHead>
               <TableHead 
                 className="cursor-pointer hover:bg-surface-accent transition-colors"
                 onClick={() => handleSort('estimated_date')}
               >
-                ETA <SortIcon field="estimated_date" />
+                ETA <SortIcon field="estimated_date" sortBy={sortBy} sortOrder={sortOrder} />
               </TableHead>
               <TableHead 
                 className="cursor-pointer hover:bg-surface-accent transition-colors"
                 onClick={() => handleSort('developer_name')}
               >
-                Assignment <SortIcon field="developer_name" />
+                Assignment <SortIcon field="developer_name" sortBy={sortBy} sortOrder={sortOrder} />
               </TableHead>
               <TableHead 
                 className="cursor-pointer hover:bg-surface-accent transition-colors"
                 onClick={() => handleSort('updated_at')}
               >
-                Last Update <SortIcon field="updated_at" />
+                Last Update <SortIcon field="updated_at" sortBy={sortBy} sortOrder={sortOrder} />
               </TableHead>
               <TableHead className="text-right">Action</TableHead>
             </TableRow>

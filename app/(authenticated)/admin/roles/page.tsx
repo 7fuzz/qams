@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Button, Modal, Input, Label, Checkbox } from "@/components/ui";
+import { Button, IconButton, Modal, Input, Label, Checkbox } from "@/components/ui";
 import { Shield, Plus, Edit2, Trash2, Lock } from 'lucide-react';
 
 interface Permission {
@@ -127,12 +127,8 @@ export default function RoleManagementPage() {
                                 </p>
                             </div>
                             <div className="flex gap-1">
-                                <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-primary-theme" onClick={() => handleOpenEdit(role)}>
-                                    <Edit2 size={14} />
-                                </Button>
-                                <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-danger-theme" onClick={() => handleDelete(role.role_id)}>
-                                    <Trash2 size={14} />
-                                </Button>
+                                <IconButton icon={Edit2} size="sm" variant="ghost" className="text-primary-theme" aria-label="Edit role" onClick={() => handleOpenEdit(role)} title="Edit" />
+                                <IconButton icon={Trash2} size="sm" variant="ghost" className="text-danger-theme" aria-label="Delete role" onClick={() => handleDelete(role.role_id)} title="Delete" />
                             </div>
                         </div>
                         

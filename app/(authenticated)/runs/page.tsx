@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import Link from 'next/link';
-import { Button, Pagination } from "@/components/ui";
+import { Button, IconButton, Pagination } from "@/components/ui";
 import { AgGridReact } from 'ag-grid-react';
 import { 
   ColDef, 
@@ -129,28 +129,24 @@ export default function TestRunsPage() {
       pinned: 'right',
       cellRenderer: (params: ICellRendererParams<TestRun>) => (
         <div className="flex gap-1 h-full items-center justify-center">
-          <Button 
+          <IconButton 
+            icon={Info} 
             size="sm" 
             variant="ghost" 
-            className="h-7 w-7 p-0 text-gray-500 hover:bg-gray-100" 
+            className="text-gray-500 hover:bg-gray-100" 
             title="View Summary"
+            aria-label="View summary"
             onClick={() => {
                 if (params.data) {
                     setSelectedRun(params.data);
                     setIsDetailOpen(true);
                 }
             }}
-          >
-            <Info size={14} />
-          </Button>
+          />
           <Link href={params.data ? `/runs/${params.data.run_id}` : '#'}>
-            <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-blue-600 hover:bg-blue-50" title="Execute">
-              <Play size={14} fill="currentColor" />
-            </Button>
+            <IconButton icon={Play} size="sm" variant="ghost" className="text-blue-600 hover:bg-blue-50" title="Execute" aria-label="Execute run" />
           </Link>
-          <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-red-600 hover:bg-red-50" onClick={() => params.data && deleteRun(params.data.run_id)} title="Delete">
-            <Trash2 size={14} />
-          </Button>
+          <IconButton icon={Trash2} size="sm" variant="ghost" className="text-red-600 hover:bg-red-50" aria-label="Delete run" title="Delete" onClick={() => params.data && deleteRun(params.data.run_id)} />
         </div>
       )
     },

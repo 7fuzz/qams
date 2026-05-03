@@ -1,6 +1,7 @@
 "use client";
 
 import React from 'react';
+import { IconButton } from './IconButton';
 import { Button } from './Button';
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
 
@@ -75,42 +76,38 @@ export const Pagination = ({
           </div>
 
           <div className="flex gap-1">
-            <Button
+              <IconButton
+              icon={ChevronsLeft}
               variant="outline"
               size="sm"
-              className="h-8 w-8 p-0"
+              aria-label="First page"
               onClick={() => onPageChange(1)}
               disabled={currentPage === 1}
-            >
-              <ChevronsLeft size={14} />
-            </Button>
-            <Button
+            />
+            <IconButton
+              icon={ChevronLeft}
               variant="outline"
               size="sm"
-              className="h-8 w-8 p-0"
+              aria-label="Previous page"
               onClick={() => onPageChange(currentPage - 1)}
               disabled={currentPage === 1}
-            >
-              <ChevronLeft size={14} />
-            </Button>
-            <Button
+            />
+            <IconButton
+              icon={ChevronRight}
               variant="outline"
               size="sm"
-              className="h-8 w-8 p-0"
+              aria-label="Next page"
               onClick={() => onPageChange(currentPage + 1)}
               disabled={currentPage === totalPages}
-            >
-              <ChevronRight size={14} />
-            </Button>
-            <Button
+            />
+            <IconButton
+              icon={ChevronsRight}
               variant="outline"
               size="sm"
-              className="h-8 w-8 p-0"
+              aria-label="Last page"
               onClick={() => onPageChange(totalPages)}
               disabled={currentPage === totalPages}
-            >
-              <ChevronsRight size={14} />
-            </Button>
+            />
           </div>
         </div>
       </div>

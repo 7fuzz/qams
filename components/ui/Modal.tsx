@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useRef } from 'react';
+import { IconButton } from './IconButton';
 import { X } from 'lucide-react';
 
 interface ModalProps {
@@ -32,12 +33,14 @@ export const Modal = ({ isOpen, onClose, title, children }: ModalProps) => {
       >
         <div className="flex items-center justify-between px-6 py-4 border-b border-border-theme">
           <h3 className="text-xl font-semibold tracking-tight text-text-theme-main">{title}</h3>
-          <button 
+          <IconButton
+            icon={X}
+            variant="ghost"
+            size="sm"
+            aria-label="Close dialog"
             onClick={onClose}
-            className="p-1 rounded-md hover:bg-surface-accent transition-colors text-text-theme-muted"
-          >
-            <X size={20} />
-          </button>
+            className="text-text-theme-muted"
+          />
         </div>
         <div className="flex-1 overflow-y-auto p-6 bg-surface">
           {children}

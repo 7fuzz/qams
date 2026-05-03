@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import { Button, Modal, Input, Label, Combobox, Pagination } from "@/components/ui";
+import { Button, IconButton, Modal, Input, Label, Combobox, Pagination } from "@/components/ui";
 import { AgGridReact } from 'ag-grid-react';
 import { 
   ColDef, 
@@ -170,11 +170,11 @@ export default function UserManagementPage() {
         headerName: 'System Role', 
         width: 140,
         cellRenderer: (p: ICellRendererParams<User>) => (
-            <div className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase gap-1 ${
+            <div className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase gap-1.5 ${
                 p.value === 'Admin' ? 'bg-red-100 text-red-700' : 
                 p.value === 'Developer' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'
             }`}>
-                <Shield size={10} />
+                <Shield size={14} />
                 {p.value}
             </div>
         )
@@ -185,12 +185,8 @@ export default function UserManagementPage() {
       pinned: 'right',
       cellRenderer: (params: ICellRendererParams<User>) => (
         <div className="flex gap-1 h-full items-center justify-center">
-          <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-blue-600" onClick={() => params.data && handleOpenEdit(params.data)}>
-            <Edit2 size={14} />
-          </Button>
-          <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-red-600" onClick={() => params.data && handleDelete(params.data.user_id)}>
-            <Trash2 size={14} />
-          </Button>
+          <IconButton icon={Edit2} size="sm" variant="ghost" className="text-blue-600" aria-label="Edit user" onClick={() => params.data && handleOpenEdit(params.data)} title="Edit" />
+          <IconButton icon={Trash2} size="sm" variant="ghost" className="text-red-600" aria-label="Delete user" onClick={() => params.data && handleDelete(params.data.user_id)} title="Delete" />
         </div>
       )
     },

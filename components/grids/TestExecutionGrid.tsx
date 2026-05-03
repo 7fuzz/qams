@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Button, Card, CardContent } from '../ui';
+import { Button, Card, CardContent, IconButton } from '../ui';
 import { ExecutionDialog } from '../dialogs/ExecutionDialog';
 import { Play, CheckCircle2, AlertCircle, Clock, PauseCircle, HelpCircle, FastForward } from 'lucide-react';
 import { TEST_STATUS, TestStatus } from '@/lib/constants';
@@ -119,15 +119,15 @@ export const TestExecutionGrid = ({ runId }: { runId: string }) => {
                 
                 <div className="flex gap-1">
                     {exec.status === TEST_STATUS.PENDING && (
-                        <Button 
+                        <IconButton 
+                            icon={FastForward} 
                             size="sm" 
                             variant="ghost" 
-                            className="h-8 w-8 p-0 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20" 
+                            className="text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20" 
+                            aria-label="Quick pass"
                             title="Quick Pass"
                             onClick={(e) => handleQuickPass(e, exec.execution_id)}
-                        >
-                            <FastForward size={16} />
-                        </Button>
+                        />
                     )}
                     <Button size="sm" variant="ghost" className="h-8 px-2 text-blue-600 font-bold text-[10px] uppercase tracking-wider">
                     <Play size={12} className="mr-1" fill="currentColor" /> Execute

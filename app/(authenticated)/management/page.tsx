@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   Button,
+  IconButton,
   Input,
   Table,
   TableHeader,
@@ -244,22 +245,24 @@ export default function ManagementPage() {
                   <TableCell className="text-text-theme-subtle text-[10px] uppercase font-bold">{formatDate(project.created_at)}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex gap-1 justify-end">
-                      <Button
-                        variant="ghost"
+                      <IconButton
+                        icon={Settings2}
                         size="sm"
-                        className="h-8 w-8 p-0 text-primary-theme"
+                        variant="ghost"
+                        className="text-primary-theme"
+                        aria-label="Edit project"
                         onClick={(e) => { e.stopPropagation(); setSelectedProjectId(project.project_id); setEditData({ project_desc: project.description }); setIsProjectModalOpen(true); }}
-                      >
-                        <Settings2 size={16} />
-                      </Button>
-                      <Button
-                        variant="ghost"
+                        title="Edit"
+                      />
+                      <IconButton
+                        icon={Trash2}
                         size="sm"
-                        className="h-8 w-8 p-0 text-danger-theme"
+                        variant="ghost"
+                        className="text-danger-theme"
+                        aria-label="Delete project"
                         onClick={(e) => { e.stopPropagation(); handleDelete('project', project.project_id); }}
-                      >
-                        <Trash2 size={16} />
-                      </Button>
+                        title="Delete"
+                      />
                     </div>
                   </TableCell>
                 </TableRow>
@@ -283,7 +286,7 @@ export default function ManagementPage() {
                   onChange={e => setNewName({ ...newName, module: e.target.value })}
                   className="h-8 text-xs w-[120px]"
                 />
-                <Button size="sm" className="h-8" disabled={!selectedProjectId} onClick={() => handleAdd('module')}><Plus size={14} /></Button>
+                <IconButton icon={Plus} size="sm" className="h-8" aria-label="Add module" onClick={() => handleAdd('module')} disabled={!selectedProjectId} />
               </div>
             </div>
 
@@ -302,7 +305,7 @@ export default function ManagementPage() {
                   >
                     <div className="flex justify-between items-start mb-3">
                       <span className="font-bold text-sm text-text-theme-main">{m.name}</span>
-                      <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-danger-theme" onClick={(e) => { e.stopPropagation(); handleDelete('module', m.module_id); }}><Trash2 size={12} /></Button>
+                      <IconButton icon={Trash2} size="xs" variant="ghost" className="text-danger-theme" aria-label="Delete module" onClick={(e) => { e.stopPropagation(); handleDelete('module', m.module_id); }} title="Delete module" />
                     </div>
                     <div className="space-y-2" onClick={e => e.stopPropagation()}>
                       <Label className="text-[10px] text-text-theme-subtle font-bold uppercase tracking-widest">Responsible Developer</Label>
@@ -334,7 +337,7 @@ export default function ManagementPage() {
                   onChange={e => setNewName({ ...newName, scenario: e.target.value })}
                   className="h-8 text-xs w-[120px]"
                 />
-                <Button size="sm" className="h-8" disabled={!selectedModuleId} onClick={() => handleAdd('scenario')}><Plus size={14} /></Button>
+                <IconButton icon={Plus} size="sm" className="h-8" aria-label="Add scenario" onClick={() => handleAdd('scenario')} disabled={!selectedModuleId} />
               </div>
             </div>
 
@@ -345,7 +348,7 @@ export default function ManagementPage() {
                 scenarios.map(s => (
                   <div key={s.scenario_id} className="flex items-center justify-between p-3 rounded-md bg-surface border border-border-theme shadow-sm text-sm text-text-theme-main">
                     <span className="font-medium">{s.name}</span>
-                    <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-danger-theme" onClick={() => handleDelete('scenario', s.scenario_id)}><Trash2 size={14} /></Button>
+                    <IconButton icon={Trash2} size="sm" variant="ghost" className="text-danger-theme" aria-label="Delete scenario" onClick={() => handleDelete('scenario', s.scenario_id)} title="Delete scenario" />
                   </div>
                 ))
               )}

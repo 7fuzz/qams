@@ -9,7 +9,7 @@ import {
   ModuleRegistry,
   ICellRendererParams
 } from 'ag-grid-community';
-import { Button, Input, Pagination } from '../ui';
+import { Button, IconButton, Input, Pagination } from '../ui';
 import { Trash2, Plus, Copy, AlertCircle, Edit2, CheckCircle2, ExternalLink, Download, Upload } from 'lucide-react';
 import { TEST_CASE_TYPE, TEST_CASE_TYPE_OPTIONS, TEST_PRIORITY, TEST_PRIORITY_OPTIONS, AUTOMATION_STATUS, AUTOMATION_STATUS_OPTIONS } from '@/lib/constants';
 import { unifiedGridTheme } from '@/lib/theme';
@@ -179,9 +179,12 @@ export const TestManagementGrid = ({ moduleId }: TestManagementGridProps) => {
             return (
                 <div className="flex items-center justify-between w-full h-full gap-2">
                     <span className="truncate font-bold">{scenarioName}</span>
-                    <Button 
+                    <IconButton 
+                        icon={Edit2} 
                         size="sm" 
-                        className="h-8 w-8 p-0 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-800/50 border border-blue-200 dark:border-blue-800 shadow-sm shrink-0"
+                        className="bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-800/50 border border-blue-200 dark:border-blue-800 shadow-sm shrink-0"
+                        aria-label="Edit test case"
+                        title="Edit"
                         onClick={(e) => {
                             e.stopPropagation();
                             if (params.data) {
@@ -189,9 +192,7 @@ export const TestManagementGrid = ({ moduleId }: TestManagementGridProps) => {
                                 setIsEditDialogOpen(true);
                             }
                         }}
-                    >
-                        <Edit2 size={16} />
-                    </Button>
+                    />
                 </div>
             );
         },
@@ -400,7 +401,7 @@ export const TestManagementGrid = ({ moduleId }: TestManagementGridProps) => {
                     onChange={e => setNewScenarioName(e.target.value)}
                     className="h-7 text-[10px] w-[140px] bg-white dark:bg-gray-950"
                 />
-                <Button size="sm" variant="outline" className="h-7 px-2" onClick={handleAddScenario}><Plus size={14} /></Button>
+                <IconButton icon={Plus} size="sm" variant="outline" className="h-7 px-2" aria-label="Add scenario" onClick={handleAddScenario} />
             </div>
         </div>
         <div className="flex gap-2">

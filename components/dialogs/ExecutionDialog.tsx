@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Modal, Button, Label, Input, Combobox, Textarea, AttachmentManager } from '../ui';
+import { Modal, Button, IconButton, Label, Input, Combobox, Textarea, AttachmentManager } from '../ui';
 import { AlertCircle, Plus, ChevronDown, ChevronUp, History, CheckCircle2, FileText, Database, Clock, Link as LinkIcon, BarChart, UserCheck, ShieldCheck } from 'lucide-react';
 import { 
   TEST_STATUS, 
@@ -319,15 +319,15 @@ export const ExecutionDialog = ({ execution, isOpen, onClose, onSave }: Executio
                             </div>
                             <div className="flex items-center gap-3">
                                 {issue.status !== ISSUE_STATUS.CLOSED && (
-                                    <Button 
-                                        size="sm" 
-                                        variant="ghost" 
-                                        className="h-6 w-6 p-0 text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-900/10"
+                                    <IconButton
+                                        icon={History}
+                                        size="xs"
+                                        variant="ghost"
+                                        className="text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-900/10"
+                                        aria-label="Log still present"
                                         onClick={(e) => { e.stopPropagation(); handleLogObservation(issue); }}
                                         title="Log Still Present"
-                                    >
-                                        <History size={12} />
-                                    </Button>
+                                    />
                                 )}
                                 {expandedIssueId === issue.issue_id ? <ChevronUp size={14} className="text-black dark:text-white" /> : <ChevronDown size={14} className="text-black dark:text-white" />}
                             </div>

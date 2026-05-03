@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Button } from "../ui/Button";
+import { Button, IconButton } from "../ui";
 import { User } from "@/types/auth";
 import { useTheme } from "@/lib/theme-provider";
 import { Sun, Moon } from "lucide-react";
@@ -67,16 +67,14 @@ export const Navbar = () => {
         {/* Right: Actions & Profile */}
         <div className="flex items-center gap-4">
           {/* Utility Group */}
-          <div className="flex items-center gap-1 bg-surface-muted p-1 rounded-lg border border-border-theme">
-            <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={toggleTheme} 
-                className="h-7 w-7 p-0 text-text-theme-muted hover:text-text-theme-main rounded-md transition-all"
-            >
-              {theme === "light" ? <Moon size={14} /> : <Sun size={14} />}
-            </Button>
-          </div>
+            <IconButton
+              icon={theme === "light" ? Moon : Sun}
+              variant="ghost"
+              size="md"
+              className="h-9 w-9 text-text-theme-muted hover:text-text-theme-main rounded-md transition-all"
+              aria-label="Toggle theme"
+              onClick={toggleTheme}
+            />
 
           <div className="h-6 w-px bg-border-theme hidden sm:block" />
 

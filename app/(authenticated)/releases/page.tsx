@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-  Card, CardHeader, CardTitle, CardContent, Button, Modal, Input, Label, Textarea, Combobox
+  Card, CardHeader, CardTitle, CardContent, Button, IconButton, Modal, Input, Label, Textarea, Combobox
 } from "@/components/ui";
 import { Tag, Plus, Calendar, Clock, GitCommit, AlertCircle, Trash2, Edit2, Info, ArrowRight, Link as LinkIcon, Layers } from 'lucide-react';
 import { Project, Module, Release, Issue, ReleaseChange } from '@/types/app';
@@ -210,7 +210,7 @@ export default function ReleasesPage() {
                     <div className="space-y-1">
                       <CardTitle className="text-2xl font-bold flex items-center gap-2 text-text-theme-main">
                         Release {selectedRelease.version_name}
-                        <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-text-theme-main" onClick={() => { setReleaseForm(selectedRelease); setIsReleaseModalOpen(true); }}><Edit2 size={14} /></Button>
+                        <IconButton icon={Edit2} size="xs" variant="ghost" className="text-text-theme-main" aria-label="Edit release" onClick={() => { setReleaseForm(selectedRelease); setIsReleaseModalOpen(true); }} title="Edit release" />
                       </CardTitle>
                       <div className="flex items-center gap-4 text-xs text-text-theme-muted">
                         <span className="flex items-center gap-1"><Clock size={12} /> Target: {selectedRelease.target_date || 'No date set'}</span>
@@ -262,8 +262,8 @@ export default function ReleasesPage() {
                                 </div>
                               </div>
                               <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-text-theme-main" onClick={() => { setChangeForm(change); setIsChangeModalOpen(true); }}><Edit2 size={14} /></Button>
-                                <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-danger-theme" onClick={() => deleteChange(change.change_id)}><Trash2 size={14} /></Button>
+                                <IconButton icon={Edit2} size="sm" variant="ghost" className="text-text-theme-main" aria-label="Edit change" onClick={() => { setChangeForm(change); setIsChangeModalOpen(true); }} title="Edit change" />
+                                <IconButton icon={Trash2} size="sm" variant="ghost" className="text-danger-theme" aria-label="Delete change" onClick={() => deleteChange(change.change_id)} title="Delete change" />
                               </div>
                             </div>
                           </div>

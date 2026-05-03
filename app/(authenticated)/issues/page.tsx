@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-  Card, CardContent, Button, Combobox, Table, TableHeader, TableRow, TableHead, TableBody, TableCell, Pagination, Label
+  Card, CardContent, Button, IconButton, Combobox, Table, TableHeader, TableRow, TableHead, TableBody, TableCell, Pagination, Label
 } from "@/components/ui";
 import { AlertTriangle, UserCheck, ShieldCheck, ExternalLink, LayoutPanelTop, Layers, ChevronUp, ChevronDown, Calendar } from 'lucide-react';
 import { ISSUE_STATUS_OPTIONS, ISSUE_STATUS } from '@/lib/constants';
@@ -296,8 +296,8 @@ export default function IssueManagementPage() {
                   </TableCell>
                   <TableCell>
                     <div className="space-y-0.5">
-                      <div className="text-[10px] font-bold text-primary-theme flex items-center gap-1 uppercase"><LayoutPanelTop size={10} /> {issue.project_name}</div>
-                      <div className="text-[10px] font-medium text-text-theme-muted flex items-center gap-1 uppercase"><Layers size={10} /> {issue.module_name}</div>
+                      <div className="text-[10px] font-bold text-primary-theme flex items-center gap-1 uppercase"><LayoutPanelTop size={14} /> {issue.project_name}</div>
+                      <div className="text-[10px] font-medium text-text-theme-muted flex items-center gap-1 uppercase"><Layers size={14} /> {issue.module_name}</div>
                     </div>
                   </TableCell>
                   <TableCell>
@@ -307,18 +307,18 @@ export default function IssueManagementPage() {
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-1.5 text-[10px] font-medium uppercase text-gray-500">
-                      <Calendar size={12} className="text-text-theme-muted" />
+                      <Calendar size={14} className="text-text-theme-muted" />
                       {issue.estimated_date ? new Date(issue.estimated_date).toLocaleDateString() : 'No ETA'}
                     </div>
                   </TableCell>
                   <TableCell>
                     {issue.status === ISSUE_STATUS.CLOSED ? (
                       <div className="flex items-center gap-1.5 text-success-theme text-[10px] font-bold uppercase">
-                        <ShieldCheck size={12} /> {issue.solver_name}
+                        <ShieldCheck size={14} /> {issue.solver_name}
                       </div>
                     ) : (
                       <div className="flex items-center gap-1.5 text-text-theme-muted text-[10px] font-bold uppercase">
-                        <UserCheck size={12} /> {issue.developer_name || 'Unassigned'}
+                        <UserCheck size={14} /> {issue.developer_name || 'Unassigned'}
                       </div>
                     )}
                   </TableCell>
@@ -326,15 +326,15 @@ export default function IssueManagementPage() {
                     {new Date(issue.updated_at).toLocaleDateString()}
                   </TableCell>
                   <TableCell className="text-right">
-                    <Button
+                    <IconButton
+                      icon={ExternalLink}
                       size="sm"
                       variant="ghost"
-                      className="h-8 w-8 p-0 text-blue-600"
-                      onClick={() => handleOpenIssue(issue)}
+                      className="text-blue-600"
+                      aria-label="View details and manage issue"
                       title="View Details & Manage"
-                    >
-                      <ExternalLink size={16} />
-                    </Button>
+                      onClick={() => handleOpenIssue(issue)}
+                    />
                   </TableCell>
                 </TableRow>
               ))

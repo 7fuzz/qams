@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Button, Input } from '.';
+import { Button, IconButton, Input } from '.';
 import { Link as LinkIcon, Trash2, Plus, ExternalLink } from 'lucide-react';
 
 interface Attachment {
@@ -78,9 +78,14 @@ export const AttachmentManager = ({ entityId, entityType }: AttachmentManagerPro
               <ExternalLink size={12} />
               {att.name}
             </a>
-            <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-danger-theme" onClick={() => handleDelete(att.attachment_id)}>
-              <Trash2 size={12} />
-            </Button>
+            <IconButton
+              icon={Trash2}
+              variant="ghost"
+              size="xs"
+              className="text-danger-theme"
+              aria-label="Remove attachment"
+              onClick={() => handleDelete(att.attachment_id)}
+            />
           </div>
         ))}
       </div>

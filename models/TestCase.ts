@@ -124,5 +124,85 @@ export const TestCaseModel = {
             params.push(moduleId);
         }
         return db.prepare(query).all(...params) as Scenario[];
+    },
+
+    createScenario(moduleId: string, name: string) {
+        const id = generateId();
+        db.prepare('INSERT INTO scenarios (scenario_id, module_id, name) VALUES (?, ?, ?)')
+            .run(id, moduleId, name);
+        return id;
+    },
+
+    updateScenario(id: string, name: string) {
+        db.prepare('UPDATE scenarios SET name = ? WHERE scenario_id = ?').run(name, id);
+        return true;
+    },
+
+    deleteScenario(id: string) {
+        db.prepare('DELETE FROM scenarios WHERE scenario_id = ?').run(id);
+        return true;
+    },
+
+    importTestCases(moduleId: string, cases: any[], normalizers: { type: Function, priority: Function, automation: Function }) {
+        let importedCount = 0;
+        let skippedCount = 0;
+
+        const importTransaction = db.transaction((testCases) => {
+            const scenarioCache: Record<string, string> = {};
+
+            const insertCase = db.prepare(`
+                INSERT INTO test_cases (
+                    test_case_id, scenario_id, title, type, priority, 
+                    automation_status, requirement_link, estimated_duration, 
+                    precondition, steps, test_data, expected_result
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            `);
+
+            const findScenario = db.prepare('SELECT scenario_id FROM scenarios WHERE name = ? AND module_id = ?');
+            const createScenario = db.prepare('INSERT INTO scenarios (scenario_id, module_id, name) VALUES (?, ?, ?)');
+
+            for (const tc of testCases) {
+                const type = normalizers.type(tc.type);
+                const priority = normalizers.priority(tc.priority);
+
+                if (!type || !priority) {
+                    skippedCount++;
+                    continue;
+                }
+
+                const scenarioName = tc.scenario || 'Default Scenario';
+                
+                let scenarioId = scenarioCache[scenarioName];
+                if (!scenarioId) {
+                    const existing = findScenario.get(scenarioName, moduleId) as { scenario_id: string };
+                    if (existing) {
+                        scenarioId = existing.scenario_id;
+                    } else {
+                        scenarioId = generateId();
+                        createScenario.run(scenarioId, moduleId, scenarioName);
+                    }
+                    scenarioCache[scenarioName] = scenarioId;
+                }
+
+                insertCase.run(
+                    generateId(),
+                    scenarioId,
+                    tc.title || tc.case || 'Untitled Case',
+                    type,
+                    priority,
+                    normalizers.automation(tc.automation_status),
+                    tc.requirement_link || null,
+                    parseInt(tc.estimated_duration) || 0,
+                    tc.precondition || '',
+                    tc.steps || '',
+                    tc.test_data || '',
+                    tc.expected_result || ''
+                );
+                importedCount++;
+            }
+        });
+
+        importTransaction(cases);
+        return { importedCount, skippedCount };
     }
 };

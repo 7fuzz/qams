@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server';
-import db from '@/lib/db';
+import { RoleModel } from '@/models/Role';
 
 export async function GET() {
     try {
-        const roles = db.prepare('SELECT role_id, name FROM roles ORDER BY name ASC').all();
+        const roles = RoleModel.findAll();
         return NextResponse.json(roles);
     } catch {
         return NextResponse.json({ error: 'Failed to fetch roles' }, { status: 500 });

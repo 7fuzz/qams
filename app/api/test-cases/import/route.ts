@@ -2,9 +2,8 @@ import { NextResponse } from 'next/server';
 import { getIronSession } from "iron-session";
 import { cookies } from "next/headers";
 import { sessionOptions, SessionData } from "@/lib/session";
-import db from '@/lib/db';
+import { TestCaseModel } from '@/models/TestCase';
 import { logActivity } from '@/lib/logger';
-import { generateId } from '@/lib/id-utils';
 import { TEST_CASE_TYPE, TEST_PRIORITY, AUTOMATION_STATUS } from '@/lib/constants';
 
 function normalizeType(val: string): string | null {
@@ -43,68 +42,11 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Invalid data format' }, { status: 400 });
         }
 
-        let importedCount = 0;
-        let skippedCount = 0;
-
-        const importTransaction = db.transaction((cases) => {
-            const scenarioCache: Record<string, string> = {};
-
-            const insertCase = db.prepare(`
-                INSERT INTO test_cases (
-                    test_case_id, scenario_id, title, type, priority, 
-                    automation_status, requirement_link, estimated_duration, 
-                    precondition, steps, test_data, expected_result
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            `);
-
-            const findScenario = db.prepare('SELECT scenario_id FROM scenarios WHERE name = ? AND module_id = ?');
-            const createScenario = db.prepare('INSERT INTO scenarios (scenario_id, module_id, name) VALUES (?, ?, ?)');
-
-            for (const tc of cases) {
-                // 1. Normalize and Validate Required Enums
-                const type = normalizeType(tc.type);
-                const priority = normalizePriority(tc.priority);
-
-                if (!type || !priority) {
-                    skippedCount++;
-                    continue; // Discard invalid row
-                }
-
-                const scenarioName = tc.scenario || 'Default Scenario';
-                
-                // 2. Get or Create Scenario ID
-                let scenarioId = scenarioCache[scenarioName];
-                if (!scenarioId) {
-                    const existing = findScenario.get(scenarioName, moduleId) as { scenario_id: string };
-                    if (existing) {
-                        scenarioId = existing.scenario_id;
-                    } else {
-                        scenarioId = generateId();
-                        createScenario.run(scenarioId, moduleId, scenarioName);
-                    }
-                    scenarioCache[scenarioName] = scenarioId;
-                }
-
-                // 3. Insert Test Case
-                insertCase.run(
-                    generateId(),
-                    scenarioId,
-                    tc.title || tc.case || 'Untitled Case',
-                    type,
-                    priority,
-                    normalizeAutomation(tc.automation_status),
-                    tc.requirement_link || null,
-                    parseInt(tc.estimated_duration) || 0,
-                    tc.precondition || '',
-                    tc.steps || '',
-                    tc.test_data || '',
-                    tc.expected_result || ''
-                );
-                importedCount++;
-            }
+        const { importedCount, skippedCount } = TestCaseModel.importTestCases(moduleId, testCases, {
+            type: normalizeType,
+            priority: normalizePriority,
+            automation: normalizeAutomation
         });
-
-        importTransaction(testCases);
         
         logActivity(session.user_id, 'CREATE', 'TEST_CASE', moduleId, { action: 'IMPORT_BATCH', count: importedCount, skipped: skippedCount });
         

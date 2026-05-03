@@ -28,15 +28,42 @@ async function seed() {
     const salt = await bcrypt.genSalt(10);
     const hashed = await bcrypt.hash('123', salt);
 
-    // 1. Seed Roles
-    console.log('Seeding roles...');
+    // 1. Seed Roles & Permissions
+    console.log('Seeding roles and permissions...');
     const adminRoleId = randomUUID();
     const devRoleId = randomUUID();
     const qaRoleId = randomUUID();
-    const insertRole = db.prepare('INSERT INTO roles (role_id, name, permissions) VALUES (?, ?, ?)');
-    insertRole.run(adminRoleId, 'Admin', JSON.stringify({ all: true }));
-    insertRole.run(devRoleId, 'Developer', JSON.stringify({ edit: true }));
-    insertRole.run(qaRoleId, 'QA', JSON.stringify({ test: true }));
+    
+    db.prepare('INSERT INTO roles (role_id, name) VALUES (?, ?)').run(adminRoleId, 'Admin');
+    db.prepare('INSERT INTO roles (role_id, name) VALUES (?, ?)').run(devRoleId, 'Developer');
+    db.prepare('INSERT INTO roles (role_id, name) VALUES (?, ?)').run(qaRoleId, 'QA');
+
+    const perms = [
+        { id: randomUUID(), name: 'users:manage', desc: 'Create, update, delete users' },
+        { id: randomUUID(), name: 'roles:manage', desc: 'Create, update, delete roles' },
+        { id: randomUUID(), name: 'projects:write', desc: 'Create, update, delete projects/modules/scenarios' },
+        { id: randomUUID(), name: 'projects:read', desc: 'View projects' },
+        { id: randomUUID(), name: 'tests:write', desc: 'Create and update test cases' },
+        { id: randomUUID(), name: 'tests:run', desc: 'Execute test runs' },
+        { id: randomUUID(), name: 'issues:manage', desc: 'Update/close any issue' },
+        { id: randomUUID(), name: 'logs:read', desc: 'View system activity logs' }
+    ];
+
+    const insertPerm = db.prepare('INSERT INTO permissions (permission_id, name, description) VALUES (?, ?, ?)');
+    perms.forEach(p => insertPerm.run(p.id, p.name, p.desc));
+
+    const insertRolePerm = db.prepare('INSERT INTO role_permissions (role_id, permission_id) VALUES (?, ?)');
+    
+    // Admin gets everything
+    perms.forEach(p => insertRolePerm.run(adminRoleId, p.id));
+    
+    // Dev gets projects:write, projects:read, tests:write, issues:manage
+    perms.filter(p => ['projects:write', 'projects:read', 'tests:write', 'issues:manage'].includes(p.name))
+         .forEach(p => insertRolePerm.run(devRoleId, p.id));
+         
+    // QA gets projects:read, tests:run, tests:write
+    perms.filter(p => ['projects:read', 'tests:run', 'tests:write'].includes(p.name))
+         .forEach(p => insertRolePerm.run(qaRoleId, p.id));
 
     // 2. Seed Users
     console.log('Seeding users...');

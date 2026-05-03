@@ -13,14 +13,16 @@ import {
   FileText,
   FolderTree,
   Tag,
-  AlertTriangle
+  AlertTriangle,
+  Lock
 } from "lucide-react";
 
 interface SidebarProps {
   userRole: string;
+  userPermissions?: string[];
 }
 
-export const Sidebar = ({ userRole }: SidebarProps) => {
+export const Sidebar = ({ userRole, userPermissions = [] }: SidebarProps) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const pathname = usePathname();
 
@@ -33,8 +35,12 @@ export const Sidebar = ({ userRole }: SidebarProps) => {
     { name: "Releases", href: "/releases", icon: Tag },
   ];
 
-  if (userRole === 'Admin') {
+  if (userPermissions.includes('users:manage')) {
     menuItems.push({ name: "User Admin", href: "/admin/users", icon: Users });
+  }
+
+  if (userPermissions.includes('roles:manage')) {
+    menuItems.push({ name: "Role Matrix", href: "/admin/roles", icon: Lock });
   }
 
   menuItems.push({ name: "Settings", href: "/settings", icon: Settings });

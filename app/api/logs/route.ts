@@ -1,7 +1,15 @@
 import { NextResponse } from 'next/server';
+import { getIronSession } from "iron-session";
+import { cookies } from "next/headers";
+import { sessionOptions, SessionData } from "@/lib/session";
 import db from '@/lib/db';
 
 export async function GET() {
+    const session = await getIronSession<SessionData>(await cookies(), sessionOptions);
+    if (!session.isLoggedIn || !session.permissions.includes('logs:read')) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     try {
         const logs = db.prepare(`
             SELECT l.*, u.name as user_name 

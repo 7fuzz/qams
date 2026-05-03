@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { sessionOptions, SessionData } from "@/lib/session";
 import { comparePassword } from "@/lib/auth-utils";
 import { UserModel } from "@/models/User";
+import { RoleModel } from "@/models/Role";
 
 export async function POST(request: Request) {
   const session = await getIronSession<SessionData>(await cookies(), sessionOptions);
@@ -21,10 +22,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Invalid email or password" }, { status: 401 });
     }
 
+    const permissions = RoleModel.getPermissions(user.role_id);
+
     session.user_id = user.user_id;
     session.name = user.name;
     session.email = user.email;
     session.role = user.role_name;
+    session.permissions = permissions.map(p => p.name);
     session.isLoggedIn = true;
     await session.save();
 

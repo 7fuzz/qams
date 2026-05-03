@@ -42,7 +42,9 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   const session = await getIronSession<SessionData>(await cookies(), sessionOptions);
-  if (!session.isLoggedIn) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!session.isLoggedIn || !session.permissions.includes('tests:run')) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
 
   try {
     const { test_case_id, title, description, severity, execution_id, developer_id } = await request.json();
@@ -67,7 +69,9 @@ export async function POST(request: Request) {
 
 export async function PUT(request: Request) {
   const session = await getIronSession<SessionData>(await cookies(), sessionOptions);
-  if (!session.isLoggedIn) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!session.isLoggedIn || !session.permissions.includes('issues:manage')) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
 
   try {
     const { issue_id, status, severity, title, description, execution_id, developer_id } = await request.json();

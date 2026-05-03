@@ -5,6 +5,11 @@ import { sessionOptions, SessionData } from "@/lib/session";
 import { UserModel } from '@/models/User';
 
 export async function GET(request: Request) {
+    const session = await getIronSession<SessionData>(await cookies(), sessionOptions);
+    if (!session.isLoggedIn || !session.permissions.includes('users:manage')) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '20');
@@ -25,7 +30,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
     const session = await getIronSession<SessionData>(await cookies(), sessionOptions);
-    if (!session.isLoggedIn || session.role !== 'Admin') return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!session.isLoggedIn || !session.permissions.includes('users:manage')) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     try {
         const { name, email, password, role_id } = await request.json();
@@ -43,7 +48,7 @@ export async function POST(request: Request) {
 
 export async function PUT(request: Request) {
     const session = await getIronSession<SessionData>(await cookies(), sessionOptions);
-    if (!session.isLoggedIn || session.role !== 'Admin') return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!session.isLoggedIn || !session.permissions.includes('users:manage')) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     try {
         const { user_id, name, email, password, role_id } = await request.json();
@@ -57,7 +62,7 @@ export async function PUT(request: Request) {
 
 export async function DELETE(request: Request) {
     const session = await getIronSession<SessionData>(await cookies(), sessionOptions);
-    if (!session.isLoggedIn || session.role !== 'Admin') return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!session.isLoggedIn || !session.permissions.includes('users:manage')) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');

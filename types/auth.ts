@@ -3,6 +3,7 @@ export interface User {
   name: string;
   email: string;
   role: string;
+  permissions: string[];
   isLoggedIn: boolean;
 }
 
@@ -12,6 +13,7 @@ export interface LoginUser {
     email: string;
     password: string;
     role_name: string;
+    role_id: string;
 }
 
 export interface SessionData {
@@ -19,5 +21,6 @@ export interface SessionData {
   name: string;
   email: string;
   role: string;
+  permissions: string[];
   isLoggedIn: boolean;
 }

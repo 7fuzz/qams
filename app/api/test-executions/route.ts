@@ -21,7 +21,9 @@ export async function GET(request: Request) {
 
 export async function PUT(request: Request) {
     const session = await getIronSession<SessionData>(await cookies(), sessionOptions);
-    if (!session.isLoggedIn) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!session.isLoggedIn || !session.permissions.includes('tests:run')) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
     try {
         const body = await request.json();

@@ -65,10 +65,13 @@ export async function GET(request: Request) {
 
     // 3. Set Session
     const session = await getIronSession<SessionData>(await cookies(), sessionOptions);
+    const permissions = RoleModel.getPermissions(user.role_id);
+
     session.user_id = user.user_id;
     session.name = user.name;
     session.email = user.email;
     session.role = user.role_name;
+    session.permissions = permissions.map(p => p.name);
     session.isLoggedIn = true;
     await session.save();
 

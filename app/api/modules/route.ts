@@ -19,7 +19,9 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
     const session = await getIronSession<SessionData>(await cookies(), sessionOptions);
-    if (!session.isLoggedIn) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!session.isLoggedIn || !session.permissions.includes('projects:write')) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
     try {
         const { project_id, name, description, responsible_id } = await request.json();
@@ -40,7 +42,9 @@ export async function POST(request: Request) {
 
 export async function PUT(request: Request) {
     const session = await getIronSession<SessionData>(await cookies(), sessionOptions);
-    if (!session.isLoggedIn) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!session.isLoggedIn || !session.permissions.includes('projects:write')) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
     try {
         const { module_id, name, description, responsible_id } = await request.json();
@@ -59,7 +63,9 @@ export async function PUT(request: Request) {
 
 export async function DELETE(request: Request) {
     const session = await getIronSession<SessionData>(await cookies(), sessionOptions);
-    if (!session.isLoggedIn) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!session.isLoggedIn || !session.permissions.includes('projects:write')) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');

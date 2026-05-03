@@ -44,33 +44,33 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="container mx-auto p-4 md:p-8 max-w-4xl space-y-8 text-black dark:text-white">
+    <div className="container mx-auto p-4 md:p-8 max-w-4xl space-y-8 text-text-theme-main">
       <div className="space-y-1">
-          <h1 className="text-3xl font-bold tracking-tight">Account Settings</h1>
-          <p className="text-gray-500 text-sm">Manage your profile and security preferences.</p>
+        <h1 className="text-3xl font-bold tracking-tight">Account Settings</h1>
+        <p className="text-text-theme-muted text-sm font-medium uppercase tracking-widest text-[10px]">Manage your profile and security preferences.</p>
       </div>
-
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
         <div className="md:col-span-1 space-y-4">
             <h2 className="text-lg font-bold">Security</h2>
-            <p className="text-xs text-gray-500 leading-relaxed">
+            <p className="text-xs text-text-theme-muted leading-relaxed">
                 Ensure your account is using a long, random password to stay secure. 
-                Google-linked accounts can also set a password for manual login.
+                Google-linked accounts use external authentication.
             </p>
         </div>
-
-        <Card className="md:col-span-2 shadow-sm border dark:border-gray-800 bg-white dark:bg-gray-950">
-            <CardHeader className="border-b dark:border-gray-800">
+        <Card className="md:col-span-2 shadow-sm border border-border-theme bg-surface">
+            <CardHeader className="border-b border-border-theme">
                 <CardTitle className="text-lg flex items-center gap-2">
-                    <Key size={20} className="text-indigo-500" /> Password Management
+                    <Key size={20} className="text-primary-theme" /> Password Management
                 </CardTitle>
+            </CardHeader>
+
                 <CardDescription>Update your login credentials.</CardDescription>
             </CardHeader>
             <CardContent className="pt-6">
                 <form onSubmit={handlePasswordChange} className="space-y-4">
                     {status && (
                         <div className={`p-4 rounded-lg flex items-center gap-3 text-sm font-medium ${
-                            status.type === 'success' ? "bg-green-50 text-green-700 border border-green-100" : "bg-red-50 text-red-700 border border-red-100"
+                            status.type === 'success' ? "bg-success-theme/10 text-success-theme border border-success-theme/20" : "bg-danger-theme/10 text-danger-theme border border-danger-theme/20"
                         }`}>
                             {status.type === 'success' ? <ShieldCheck size={18}/> : <AlertCircle size={18}/>}
                             {status.message}
@@ -84,7 +84,7 @@ export default function SettingsPage() {
                             value={passwords.current} 
                             onChange={e => setPasswords({...passwords, current: e.target.value})} 
                             placeholder="••••••••"
-                            className="bg-white dark:bg-gray-950"
+                            className="bg-surface text-text-theme-main"
                         />
                     </div>
 
@@ -96,7 +96,7 @@ export default function SettingsPage() {
                                 value={passwords.new} 
                                 onChange={e => setPasswords({...passwords, new: e.target.value})}
                                 placeholder="New password"
-                                className="bg-white dark:bg-gray-950"
+                                className="bg-surface text-text-theme-main"
                             />
                         </div>
                         <div className="space-y-2">
@@ -106,7 +106,7 @@ export default function SettingsPage() {
                                 value={passwords.confirm} 
                                 onChange={e => setPasswords({...passwords, confirm: e.target.value})}
                                 placeholder="Confirm new password"
-                                className="bg-white dark:bg-gray-950"
+                                className="bg-surface text-text-theme-main"
                             />
                         </div>
                     </div>

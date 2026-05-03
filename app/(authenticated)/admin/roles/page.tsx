@@ -99,38 +99,38 @@ export default function RoleManagementPage() {
     if (loading) return <div className="p-12 text-center text-gray-500 uppercase tracking-widest text-xs font-bold animate-pulse">Loading Permission Matrix...</div>;
 
     return (
-        <div className="container mx-auto p-8 max-w-5xl space-y-8 text-black dark:text-white">
-            <div className="flex justify-between items-center border-b dark:border-gray-800 pb-6">
+        <div className="container mx-auto p-8 max-w-5xl space-y-8 text-text-theme-main">
+            <div className="flex justify-between items-center border-b border-border-theme pb-6">
                 <div className="space-y-1">
                     <h1 className="text-3xl font-bold tracking-tight flex items-center gap-3">
-                        <Lock size={32} className="text-purple-500" /> Role & Permission Matrix
+                        <Lock size={32} className="text-admin-theme" /> Role & Permission Matrix
                     </h1>
-                    <p className="text-gray-500 font-medium uppercase tracking-wider text-[10px]">
+                    <p className="text-text-theme-muted font-medium uppercase tracking-wider text-[10px]">
                         Define access levels and granular capabilities.
                     </p>
                 </div>
-                <Button onClick={handleOpenCreate} className="bg-purple-600 hover:bg-purple-700 shadow-lg shadow-purple-500/20">
+                <Button onClick={handleOpenCreate} className="bg-admin-theme hover:opacity-90 shadow-lg shadow-admin-theme/20">
                     <Plus size={18} className="mr-2" /> New Role
                 </Button>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {roles.map(role => (
-                    <div key={role.role_id} className="border dark:border-gray-800 rounded-xl p-6 bg-white dark:bg-gray-950 shadow-sm space-y-4">
+                    <div key={role.role_id} className="border border-border-theme rounded-xl p-6 bg-surface shadow-sm space-y-4">
                         <div className="flex justify-between items-start">
                             <div className="space-y-1">
                                 <h3 className="font-bold text-lg flex items-center gap-2">
-                                    <Shield size={18} className="text-purple-500" /> {role.name}
+                                    <Shield size={18} className="text-admin-theme" /> {role.name}
                                 </h3>
-                                <p className="text-[10px] text-gray-400 uppercase tracking-widest font-bold">
+                                <p className="text-[10px] text-text-theme-subtle uppercase tracking-widest font-bold">
                                     {role.permissions.length} PERMISSIONS ASSIGNED
                                 </p>
                             </div>
                             <div className="flex gap-1">
-                                <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-blue-600" onClick={() => handleOpenEdit(role)}>
+                                <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-primary-theme" onClick={() => handleOpenEdit(role)}>
                                     <Edit2 size={14} />
                                 </Button>
-                                <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-red-600" onClick={() => handleDelete(role.role_id)}>
+                                <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-danger-theme" onClick={() => handleDelete(role.role_id)}>
                                     <Trash2 size={14} />
                                 </Button>
                             </div>
@@ -138,7 +138,7 @@ export default function RoleManagementPage() {
                         
                         <div className="flex flex-wrap gap-2">
                             {role.permissions.map(p => (
-                                <span key={p.permission_id} className="px-2 py-1 rounded-md bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 text-[10px] font-bold uppercase tracking-tight">
+                                <span key={p.permission_id} className="px-2 py-1 rounded-md bg-admin-theme/10 text-admin-theme text-[10px] font-bold uppercase tracking-tight">
                                     {p.name.replace(':', ' ')}
                                 </span>
                             ))}
@@ -155,17 +155,17 @@ export default function RoleManagementPage() {
                 <div className="space-y-6">
                     <div className="space-y-4">
                         <div className="space-y-2">
-                            <Label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Role Identifier</Label>
+                            <Label className="text-[10px] font-bold text-text-theme-subtle uppercase tracking-widest">Role Identifier</Label>
                             <Input 
                                 value={formData.name} 
                                 onChange={e => setFormData({...formData, name: e.target.value})} 
                                 placeholder="e.g. Lead Developer"
-                                className="bg-white dark:bg-gray-950"
+                                className="bg-surface text-text-theme-main"
                             />
                         </div>
                         
                         <div className="space-y-3">
-                            <Label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Capabilities</Label>
+                            <Label className="text-[10px] font-bold text-text-theme-subtle uppercase tracking-widest">Capabilities</Label>
                             <div className="grid grid-cols-1 gap-2 max-h-[300px] overflow-y-auto pr-2">
                                 {allPermissions.map(perm => (
                                     <div 
@@ -173,8 +173,8 @@ export default function RoleManagementPage() {
                                         onClick={() => handleTogglePermission(perm.permission_id)}
                                         className={`flex items-start gap-3 p-3 rounded-lg border transition-all cursor-pointer ${
                                             formData.permissionIds.includes(perm.permission_id)
-                                                ? "border-purple-500 bg-purple-50/50 dark:bg-purple-900/10"
-                                                : "border-transparent bg-gray-50 dark:bg-gray-900/50 hover:bg-gray-100 dark:hover:bg-gray-900"
+                                                ? "border-admin-theme bg-admin-theme/5"
+                                                : "border-transparent bg-surface-muted hover:bg-surface-accent"
                                         }`}
                                     >
                                         <Checkbox 
@@ -182,8 +182,8 @@ export default function RoleManagementPage() {
                                             onCheckedChange={() => handleTogglePermission(perm.permission_id)}
                                         />
                                         <div className="space-y-0.5">
-                                            <p className="text-xs font-bold uppercase tracking-wider text-black dark:text-white">{perm.name}</p>
-                                            <p className="text-[10px] text-gray-500">{perm.description}</p>
+                                            <p className="text-xs font-bold uppercase tracking-wider text-text-theme-main">{perm.name}</p>
+                                            <p className="text-[10px] text-text-theme-muted">{perm.description}</p>
                                         </div>
                                     </div>
                                 ))}
@@ -191,9 +191,9 @@ export default function RoleManagementPage() {
                         </div>
                     </div>
 
-                    <div className="flex justify-end gap-3 pt-6 border-t dark:border-gray-800">
+                    <div className="flex justify-end gap-3 pt-6 border-t border-border-theme">
                         <Button variant="outline" onClick={() => setIsModalOpen(false)}>Cancel</Button>
-                        <Button onClick={handleSave} className="bg-purple-600 hover:bg-purple-700 px-8 shadow-lg shadow-purple-600/20">
+                        <Button onClick={handleSave} className="bg-admin-theme hover:opacity-90 px-8 shadow-lg shadow-admin-theme/20 text-white">
                             {selectedRole ? 'Update Access' : 'Provision Role'}
                         </Button>
                     </div>

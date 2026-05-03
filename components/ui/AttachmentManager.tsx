@@ -61,31 +61,31 @@ export const AttachmentManager = ({ entityId, entityType }: AttachmentManagerPro
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-2 text-gray-500">
+      <div className="flex items-center gap-2 text-text-theme-muted">
         <LinkIcon size={16} />
         <span className="text-[10px] font-bold uppercase tracking-widest">Attachments ({attachments.length})</span>
       </div>
 
       <div className="grid grid-cols-1 gap-2">
         {attachments.map(att => (
-          <div key={att.attachment_id} className="flex items-center justify-between p-2 rounded bg-gray-50 dark:bg-gray-900 border dark:border-gray-800 text-xs">
+          <div key={att.attachment_id} className="flex items-center justify-between p-2 rounded bg-surface-muted border border-border-theme text-xs">
             <a
               href={att.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-2 text-blue-600 hover:underline truncate flex-1 mr-4 font-medium"
+              className="flex items-center gap-2 text-primary-theme hover:underline truncate flex-1 mr-4 font-medium"
             >
               <ExternalLink size={12} />
               {att.name}
             </a>
-            <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-red-500" onClick={() => handleDelete(att.attachment_id)}>
+            <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-danger-theme" onClick={() => handleDelete(att.attachment_id)}>
               <Trash2 size={12} />
             </Button>
           </div>
         ))}
       </div>
 
-      <div className="flex flex-col gap-2 p-3 rounded-lg border border-dashed dark:border-gray-800 bg-gray-50/50 dark:bg-gray-900/10">
+      <div className="flex flex-col gap-2 p-3 rounded-lg border border-dashed border-border-theme bg-surface-muted/50">
         <div className="grid grid-cols-2 gap-2">
           <Input
             placeholder="Link Name (e.g. Screenshot)"

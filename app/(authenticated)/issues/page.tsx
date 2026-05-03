@@ -167,13 +167,13 @@ export default function IssueManagementPage() {
   };
 
   return (
-    <div className="container mx-auto p-4 md:p-8 flex flex-col gap-8 max-w-full text-black dark:text-white">
+    <div className="container mx-auto p-4 md:p-8 flex flex-col gap-8 max-w-full text-text-theme-main">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="space-y-1">
           <h1 className="text-3xl font-bold tracking-tight flex items-center gap-3">
-            <AlertTriangle size={32} className="text-red-500" /> Issue Management
+            <AlertTriangle size={32} className="text-danger-theme" /> Issue Management
           </h1>
-          <p className="text-gray-500 font-medium uppercase tracking-wider text-[10px]">
+          <p className="text-text-theme-muted font-medium uppercase tracking-wider text-[10px]">
             Triage, assign, and track bug resolution across all modules.
           </p>
         </div>
@@ -196,7 +196,7 @@ export default function IssueManagementPage() {
         <CardContent className="p-4 mt-4">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="space-y-1.5">
-              <Label className="text-[10px] font-bold text-gray-400 uppercase flex items-center gap-1"><LayoutPanelTop size={10} /> Project</Label>
+              <Label className="text-[10px] font-bold text-text-theme-muted uppercase flex items-center gap-1"><LayoutPanelTop size={10} /> Project</Label>
               <Combobox
                 options={[{ value: 'all', label: 'All Projects' }, ...projects.map(p => ({ value: p.project_id, label: p.name }))]}
                 value={selectedProjectId}
@@ -204,7 +204,7 @@ export default function IssueManagementPage() {
               />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-[10px] font-bold text-gray-400 uppercase flex items-center gap-1"><Layers size={10} /> Module</Label>
+              <Label className="text-[10px] font-bold text-text-theme-muted uppercase flex items-center gap-1"><Layers size={10} /> Module</Label>
               <Combobox
                 options={[{ value: 'all', label: 'All Modules' }, ...modules.map(m => ({ value: m.module_id, label: m.name }))]}
                 value={selectedModuleId}
@@ -213,7 +213,7 @@ export default function IssueManagementPage() {
               />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-[10px] font-bold text-gray-400 uppercase flex items-center gap-1"><AlertTriangle size={10} /> Status</Label>
+              <Label className="text-[10px] font-bold text-text-theme-muted uppercase flex items-center gap-1"><AlertTriangle size={10} /> Status</Label>
               <Combobox
                 options={[{ value: 'all', label: 'All Statuses' }, ...ISSUE_STATUS_OPTIONS]}
                 value={selectedStatus}
@@ -221,7 +221,7 @@ export default function IssueManagementPage() {
               />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-[10px] font-bold text-gray-400 uppercase flex items-center gap-1"><UserCheck size={10} /> Developer</Label>
+              <Label className="text-[10px] font-bold text-text-theme-muted uppercase flex items-center gap-1"><UserCheck size={10} /> Developer</Label>
               <Combobox
                 options={[{ value: 'all', label: 'All Developers' }, ...users.map(u => ({ value: u.user_id, label: u.name }))]}
                 value={selectedDevId}
@@ -232,42 +232,42 @@ export default function IssueManagementPage() {
         </CardContent>
       </Card>
 
-      <div className="w-full border dark:border-gray-800 rounded-lg overflow-hidden bg-white dark:bg-gray-950 shadow-sm">
+      <div className="w-full border border-border-theme rounded-lg overflow-hidden bg-surface shadow-sm">
         <Table>
-          <TableHeader className="bg-gray-50/50 dark:bg-gray-900/50">
+          <TableHeader className="bg-surface-muted">
             <TableRow>
               <TableHead 
-                className="w-[350px] cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                className="w-[350px] cursor-pointer hover:bg-surface-accent transition-colors"
                 onClick={() => handleSort('title')}
               >
                 Issue Details <SortIcon field="title" />
               </TableHead>
               <TableHead 
-                className="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                className="cursor-pointer hover:bg-surface-accent transition-colors"
                 onClick={() => handleSort('project_name')}
               >
                 Location <SortIcon field="project_name" />
               </TableHead>
               <TableHead 
-                className="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                className="cursor-pointer hover:bg-surface-accent transition-colors"
                 onClick={() => handleSort('status')}
               >
                 Status <SortIcon field="status" />
               </TableHead>
               <TableHead 
-                className="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                className="cursor-pointer hover:bg-surface-accent transition-colors"
                 onClick={() => handleSort('estimated_date')}
               >
                 ETA <SortIcon field="estimated_date" />
               </TableHead>
               <TableHead 
-                className="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                className="cursor-pointer hover:bg-surface-accent transition-colors"
                 onClick={() => handleSort('developer_name')}
               >
                 Assignment <SortIcon field="developer_name" />
               </TableHead>
               <TableHead 
-                className="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                className="cursor-pointer hover:bg-surface-accent transition-colors"
                 onClick={() => handleSort('updated_at')}
               >
                 Last Update <SortIcon field="updated_at" />
@@ -277,27 +277,27 @@ export default function IssueManagementPage() {
           </TableHeader>
           <TableBody>
             {loading ? (
-              <TableRow><TableCell colSpan={6} className="text-center py-20 text-gray-400 uppercase tracking-widest text-xs font-bold animate-pulse">Syncing Issue Matrix...</TableCell></TableRow>
+              <TableRow><TableCell colSpan={6} className="text-center py-20 text-text-theme-muted uppercase tracking-widest text-xs font-bold animate-pulse">Syncing Issue Matrix...</TableCell></TableRow>
             ) : issues.length === 0 ? (
-              <TableRow><TableCell colSpan={6} className="text-center py-20 text-gray-400 italic">No issues found matching your filters.</TableCell></TableRow>
+              <TableRow><TableCell colSpan={6} className="text-center py-20 text-text-theme-muted italic">No issues found matching your filters.</TableCell></TableRow>
             ) : (
               issues.map(issue => (
-                <TableRow key={issue.issue_id} className="hover:bg-gray-50/50 dark:hover:bg-gray-900/50 transition-colors">
+                <TableRow key={issue.issue_id} className="hover:bg-surface-accent transition-colors">
                   <TableCell>
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
-                        <span className={`text-[9px] font-black uppercase px-1.5 py-0.5 rounded ${issue.severity.includes('High') ? 'bg-red-500 text-white' :
-                          issue.severity.includes('Medium') ? 'bg-orange-500 text-white' : 'bg-blue-500 text-white'
+                        <span className={`text-[9px] font-black uppercase px-1.5 py-0.5 rounded ${issue.severity.includes('High') ? 'bg-danger-theme text-white' :
+                          issue.severity.includes('Medium') ? 'bg-warning-theme text-white' : 'bg-primary-theme text-white'
                           }`}>{issue.severity.split(' ')[0]}</span>
-                        <span className="font-bold text-sm text-black dark:text-white line-clamp-1">{issue.title}</span>
+                        <span className="font-bold text-sm text-text-theme-main line-clamp-1">{issue.title}</span>
                       </div>
-                      <p className="text-xs text-gray-500 line-clamp-1 italic">Reported by: {issue.reporter_name}</p>
+                      <p className="text-xs text-text-theme-muted line-clamp-1 italic">Reported by: {issue.reporter_name}</p>
                     </div>
                   </TableCell>
                   <TableCell>
                     <div className="space-y-0.5">
-                      <div className="text-[10px] font-bold text-blue-600 dark:text-blue-400 flex items-center gap-1 uppercase"><LayoutPanelTop size={10} /> {issue.project_name}</div>
-                      <div className="text-[10px] font-medium text-gray-500 flex items-center gap-1 uppercase"><Layers size={10} /> {issue.module_name}</div>
+                      <div className="text-[10px] font-bold text-primary-theme flex items-center gap-1 uppercase"><LayoutPanelTop size={10} /> {issue.project_name}</div>
+                      <div className="text-[10px] font-medium text-text-theme-muted flex items-center gap-1 uppercase"><Layers size={10} /> {issue.module_name}</div>
                     </div>
                   </TableCell>
                   <TableCell>
@@ -307,22 +307,22 @@ export default function IssueManagementPage() {
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-1.5 text-[10px] font-medium uppercase text-gray-500">
-                      <Calendar size={12} className="text-gray-400" />
+                      <Calendar size={12} className="text-text-theme-muted" />
                       {issue.estimated_date ? new Date(issue.estimated_date).toLocaleDateString() : 'No ETA'}
                     </div>
                   </TableCell>
                   <TableCell>
                     {issue.status === ISSUE_STATUS.CLOSED ? (
-                      <div className="flex items-center gap-1.5 text-green-600 dark:text-green-400 text-[10px] font-bold uppercase">
+                      <div className="flex items-center gap-1.5 text-success-theme text-[10px] font-bold uppercase">
                         <ShieldCheck size={12} /> {issue.solver_name}
                       </div>
                     ) : (
-                      <div className="flex items-center gap-1.5 text-gray-500 text-[10px] font-bold uppercase">
+                      <div className="flex items-center gap-1.5 text-text-theme-muted text-[10px] font-bold uppercase">
                         <UserCheck size={12} /> {issue.developer_name || 'Unassigned'}
                       </div>
                     )}
                   </TableCell>
-                  <TableCell className="text-[10px] text-gray-400 uppercase font-medium">
+                  <TableCell className="text-[10px] text-text-theme-muted uppercase font-medium">
                     {new Date(issue.updated_at).toLocaleDateString()}
                   </TableCell>
                   <TableCell className="text-right">

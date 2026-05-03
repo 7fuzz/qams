@@ -96,21 +96,21 @@ export default function TestsPage() {
     fetchModules(selectedProjectId);
   };
 
-  if (isInitialLoad) return <div className="p-8 text-center text-gray-500">Restoring session...</div>;
+  if (isInitialLoad) return <div className="p-8 text-center text-text-theme-muted font-medium uppercase tracking-widest text-[10px] animate-pulse">Restoring session...</div>;
 
   return (
-    <div className="container mx-auto p-4 md:p-8 flex flex-col gap-6 max-w-full">
+    <div className="container mx-auto p-4 md:p-8 flex flex-col gap-6 max-w-full text-text-theme-main">
       <div className="space-y-1">
-        <h1 className="text-3xl font-bold tracking-tight text-black dark:text-white">Test Case Library</h1>
-        <p className="text-gray-500 text-sm italic uppercase tracking-wider font-medium">Select a project and module to manage its test cases.</p>
+        <h1 className="text-3xl font-bold tracking-tight">Test Case Library</h1>
+        <p className="text-text-theme-muted text-[10px] italic uppercase tracking-wider font-medium">Select a project and module to manage its test cases.</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Project Selection */}
-        <Card className={selectedProjectId ? "border-blue-500/30" : ""}>
+        <Card className={selectedProjectId ? "border-primary-theme/30" : "border-border-theme"}>
           <CardHeader className="pb-3 flex flex-row items-center gap-2">
-            <FolderTree size={16} className="text-gray-400" />
-            <CardTitle className="text-sm font-bold uppercase tracking-wider text-gray-500">1. Select Project</CardTitle>
+            <FolderTree size={16} className="text-text-theme-muted" />
+            <CardTitle className="text-[10px] font-bold uppercase tracking-wider text-text-theme-muted">1. Select Project</CardTitle>
           </CardHeader>
           <CardContent>
             <Combobox 
@@ -123,11 +123,11 @@ export default function TestsPage() {
         </Card>
 
         {/* Module Selection */}
-        <Card className={selectedModuleId ? "border-blue-500/30" : ""}>
+        <Card className={selectedModuleId ? "border-primary-theme/30" : "border-border-theme"}>
           <CardHeader className="pb-3 flex flex-row items-center justify-between">
             <div className="flex items-center gap-2">
-                <Layers size={16} className="text-gray-400" />
-                <CardTitle className="text-sm font-bold uppercase tracking-wider text-gray-500">2. Select Module</CardTitle>
+                <Layers size={16} className="text-text-theme-muted" />
+                <CardTitle className="text-[10px] font-bold uppercase tracking-wider text-text-theme-muted">2. Select Module</CardTitle>
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -154,11 +154,11 @@ export default function TestsPage() {
       </div>
 
       {selectedModuleId ? (
-        <Card className="shadow-2xl border-gray-200 dark:border-gray-800 overflow-hidden bg-white dark:bg-gray-950">
+        <Card className="shadow-2xl border-border-theme overflow-hidden bg-surface">
           <TestManagementGrid moduleId={selectedModuleId} key={selectedModuleId} />
         </Card>
       ) : (
-        <Card className="border-dashed border-2 flex flex-col items-center justify-center p-16 text-gray-400 bg-gray-50/50 dark:bg-gray-900/10">
+        <Card className="border-dashed border-2 flex flex-col items-center justify-center p-16 text-text-theme-subtle bg-surface-muted/50 border-border-theme">
           <ListChecks size={48} className="mb-4 opacity-20" />
           <p className="text-sm font-medium italic">Please select a project and a module to view and manage test cases.</p>
         </Card>

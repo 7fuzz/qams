@@ -163,7 +163,7 @@ export default function UserManagementPage() {
         field: 'email', 
         headerName: 'Email Address', 
         flex: 1,
-        cellRenderer: (p: ICellRendererParams<User>) => <span className="text-gray-500 dark:text-gray-400">{p.value}</span>
+        cellRenderer: (p: ICellRendererParams<User>) => <span className="text-text-theme-muted dark:text-gray-400">{p.value}</span>
     },
     { 
         field: 'role_name', 
@@ -196,26 +196,27 @@ export default function UserManagementPage() {
     },
   ], [handleDelete]);
 
-  if (loading && total === 0) return <div className="p-12 text-center text-gray-500 uppercase tracking-widest text-xs font-bold animate-pulse">Initializing User Matrix...</div>;
+  if (loading && total === 0) return <div className="p-12 text-center text-text-theme-muted uppercase tracking-widest text-xs font-bold animate-pulse">Initializing User Matrix...</div>;
   if (error) return <div className="p-12 text-center text-red-500 font-bold">FAILURE: {error}</div>;
 
   return (
-    <div className="container mx-auto p-8 max-w-5xl space-y-8 text-black dark:text-white">
-      <div className="flex justify-between items-center border-b dark:border-gray-800 pb-6">
+    <div className="container mx-auto p-8 max-w-5xl space-y-8 text-text-theme-main">
+      <div className="flex justify-between items-center border-b border-border-theme pb-6">
         <div className="space-y-1">
           <h1 className="text-3xl font-bold tracking-tight flex items-center gap-3">
-              <UserIcon size={32} className="text-blue-500" /> User Directory
+            <UserIcon size={32} className="text-primary-theme" /> User Directory
           </h1>
-          <p className="text-gray-500 font-medium uppercase tracking-wider text-[10px]">
-            Manage organizational access and role hierarchy.
+          <p className="text-text-theme-muted font-medium uppercase tracking-wider text-[10px]">
+            Manage system access, roles, and contributor profiles.
           </p>
         </div>
-        <Button onClick={handleOpenCreate} className="shadow-lg shadow-blue-500/20">
-            <Plus size={18} className="mr-2" /> New Account
+        <Button onClick={handleOpenCreate} className="shadow-lg shadow-primary-theme/20">
+          <Plus size={18} className="mr-2" /> Add Account
         </Button>
       </div>
 
-      <div className="w-full border dark:border-gray-800 rounded-lg overflow-hidden bg-white dark:bg-gray-950 shadow-sm">
+      <div className="w-full border border-border-theme rounded-lg overflow-hidden bg-surface shadow-sm">
+
           <AgGridReact
             ref={gridRef}
             theme={unifiedGridTheme}
@@ -245,26 +246,26 @@ export default function UserManagementPage() {
             <div className="space-y-4">
                 <div className="grid gap-4">
                     <div className="space-y-2">
-                        <Label className="flex items-center gap-2 text-gray-500 text-[10px] font-bold uppercase tracking-widest"><UserIcon size={12} /> Full Name</Label>
+                        <Label className="flex items-center gap-2 text-text-theme-muted text-[10px] font-bold uppercase tracking-widest"><UserIcon size={12} /> Full Name</Label>
                         <Input 
                             value={formData.name} 
                             onChange={e => setFormData({...formData, name: e.target.value})} 
                             placeholder="John Doe"
-                            className="bg-white dark:bg-gray-950 text-black dark:text-white"
+                            className="bg-surface text-text-theme-main"
                         />
                     </div>
                     <div className="space-y-2">
-                        <Label className="flex items-center gap-2 text-gray-500 text-[10px] font-bold uppercase tracking-widest"><Mail size={12} /> Email Address</Label>
+                        <Label className="flex items-center gap-2 text-text-theme-muted text-[10px] font-bold uppercase tracking-widest"><Mail size={12} /> Email Address</Label>
                         <Input 
                             type="email"
                             value={formData.email} 
                             onChange={e => setFormData({...formData, email: e.target.value})} 
                             placeholder="john@example.com"
-                            className="bg-white dark:bg-gray-950 text-black dark:text-white"
+                            className="bg-surface text-text-theme-main"
                         />
                     </div>
                     <div className="space-y-2">
-                        <Label className="flex items-center gap-2 text-gray-500 text-[10px] font-bold uppercase tracking-widest"><Shield size={12} /> System Role</Label>
+                        <Label className="flex items-center gap-2 text-text-theme-muted text-[10px] font-bold uppercase tracking-widest"><Shield size={12} /> System Role</Label>
                         <Combobox 
                             options={roles.map(r => ({ value: r.role_id, label: r.name }))} 
                             value={formData.role_id} 
@@ -272,7 +273,7 @@ export default function UserManagementPage() {
                         />
                     </div>
                     <div className="space-y-2">
-                        <Label className="flex items-center gap-2 text-gray-500 text-[10px] font-bold uppercase tracking-widest">
+                        <Label className="flex items-center gap-2 text-text-theme-muted text-[10px] font-bold uppercase tracking-widest">
                             <Key size={12} /> Password {selectedUser ? '(Leave blank to keep current)' : '(Optional for Google users)'}
                         </Label>
                         <Input 
@@ -280,15 +281,15 @@ export default function UserManagementPage() {
                             value={formData.password} 
                             onChange={e => setFormData({...formData, password: e.target.value})} 
                             placeholder={selectedUser ? "••••••••" : "Initial password or leave empty for Google Login"}
-                            className="bg-white dark:bg-gray-950 text-black dark:text-white"
+                            className="bg-surface text-text-theme-main"
                         />
                     </div>
                 </div>
             </div>
 
-            <div className="flex justify-end gap-3 pt-6 border-t dark:border-gray-800">
+            <div className="flex justify-end gap-3 pt-6 border-t border-border-theme">
                 <Button variant="outline" onClick={() => setIsModalOpen(false)}>Cancel</Button>
-                <Button onClick={handleSave} className="px-8 shadow-lg shadow-blue-600/20">
+                <Button onClick={handleSave} className="px-8 shadow-lg shadow-primary-theme/20">
                     {selectedUser ? 'Update Account' : 'Create Account'}
                 </Button>
             </div>

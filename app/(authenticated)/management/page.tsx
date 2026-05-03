@@ -191,19 +191,20 @@ export default function ManagementPage() {
 
   return (
     <div className="container mx-auto p-8 max-w-full space-y-10">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b dark:border-gray-800 pb-6 text-black dark:text-white">
-        <div className="space-y-1">
-          <h1 className="text-3xl font-bold tracking-tight">System Configuration</h1>
-          <p className="text-gray-500 font-medium">Manage projects, define modules, and structure scenarios.</p>
-        </div>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border-theme pb-6 text-text-theme-main">
+          <div className="space-y-1">
+            <h1 className="text-3xl font-bold tracking-tight">System Configuration</h1>
+            <p className="text-text-theme-muted font-medium uppercase tracking-widest text-[10px]">Manage projects, define modules, and structure scenarios.</p>
+          </div>
+
         <div className="flex gap-2">
           <Input
             placeholder="New Project Name"
             value={newName.project}
             onChange={e => setNewName({ ...newName, project: e.target.value })}
-            className="max-w-[240px] bg-white dark:bg-gray-950"
+            className="max-w-[240px]"
           />
-          <Button onClick={() => handleAdd('project')} className="shadow-lg shadow-blue-500/20">
+          <Button onClick={() => handleAdd('project')} className="shadow-lg shadow-primary-theme/20">
             <Plus size={18} className="mr-2" /> Add Project
           </Button>
         </div>
@@ -211,9 +212,9 @@ export default function ManagementPage() {
 
       <div className="space-y-8">
         <section className="space-y-4">
-          <div className="flex items-center gap-2 text-gray-500">
+          <div className="flex items-center gap-2 text-text-theme-muted">
             <FolderTree size={18} />
-            <h2 className="font-bold uppercase tracking-widest text-sm">Projects Overview</h2>
+            <h2 className="font-bold uppercase tracking-widest text-[10px]">Projects Overview</h2>
           </div>
           <Table>
             <TableHeader>
@@ -230,23 +231,23 @@ export default function ManagementPage() {
                 <TableRow
                   key={project.project_id}
                   onClick={() => handleProjectSelect(project.project_id)}
-                  className={`cursor-pointer transition-colors ${selectedProjectId === project.project_id ? "bg-blue-50/50 dark:bg-blue-900/10 border-l-4 border-l-blue-500" : ""}`}
+                  className={`cursor-pointer transition-colors ${selectedProjectId === project.project_id ? "bg-primary-theme/5 border-l-4 border-l-primary-theme" : ""}`}
                 >
-                  <TableCell className="font-semibold text-black dark:text-white">{project.name}</TableCell>
-                  <TableCell className="text-gray-500">{project.owner_name}</TableCell>
+                  <TableCell className="font-semibold text-text-theme-main">{project.name}</TableCell>
+                  <TableCell className="text-text-theme-muted">{project.owner_name}</TableCell>
                   <TableCell>
-                    <div className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium gap-1 ${project.open_issues_count > 0 ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400" : "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"}`}>
-                      <AlertCircle size={12} />
+                    <div className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase gap-1 ${project.open_issues_count > 0 ? "bg-danger-theme/10 text-danger-theme border border-danger-theme/20" : "bg-success-theme/10 text-success-theme border border-success-theme/20"}`}>
+                      <AlertCircle size={10} />
                       {project.open_issues_count} Open
                     </div>
                   </TableCell>
-                  <TableCell className="text-gray-500 text-xs">{formatDate(project.created_at)}</TableCell>
+                  <TableCell className="text-text-theme-subtle text-[10px] uppercase font-bold">{formatDate(project.created_at)}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex gap-1 justify-end">
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="h-8 w-8 p-0 text-blue-600"
+                        className="h-8 w-8 p-0 text-primary-theme"
                         onClick={(e) => { e.stopPropagation(); setSelectedProjectId(project.project_id); setEditData({ project_desc: project.description }); setIsProjectModalOpen(true); }}
                       >
                         <Settings2 size={16} />
@@ -254,7 +255,7 @@ export default function ManagementPage() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="h-8 w-8 p-0 text-red-500"
+                        className="h-8 w-8 p-0 text-danger-theme"
                         onClick={(e) => { e.stopPropagation(); handleDelete('project', project.project_id); }}
                       >
                         <Trash2 size={16} />
@@ -270,9 +271,9 @@ export default function ManagementPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <section className="space-y-4">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-gray-500">
+              <div className="flex items-center gap-2 text-text-theme-muted">
                 <Layers size={18} />
-                <h2 className="font-bold uppercase tracking-widest text-sm">Modules</h2>
+                <h2 className="font-bold uppercase tracking-widest text-[10px]">Modules</h2>
               </div>
               <div className="flex gap-2">
                 <Input
@@ -280,31 +281,31 @@ export default function ManagementPage() {
                   disabled={!selectedProjectId}
                   value={newName.module}
                   onChange={e => setNewName({ ...newName, module: e.target.value })}
-                  className="h-8 text-xs w-[120px] bg-white dark:bg-gray-950"
+                  className="h-8 text-xs w-[120px]"
                 />
                 <Button size="sm" className="h-8" disabled={!selectedProjectId} onClick={() => handleAdd('module')}><Plus size={14} /></Button>
               </div>
             </div>
 
-            <div className="min-h-[400px] rounded-lg border border-gray-200 dark:border-gray-800 bg-gray-50/30 dark:bg-gray-900/10 p-2 space-y-2">
+            <div className="min-h-[400px] rounded-lg border border-border-theme bg-surface-muted/50 p-2 space-y-2">
               {!selectedProjectId ? (
-                <div className="flex items-center justify-center h-full p-8 text-gray-400 text-xs uppercase tracking-widest italic">Select a project</div>
+                <div className="flex items-center justify-center h-full p-8 text-text-theme-subtle text-[10px] uppercase tracking-widest font-bold italic">Select a project</div>
               ) : (
                 modules.map(m => (
                   <div
                     key={m.module_id}
                     onClick={() => handleModuleSelect(m.module_id)}
                     className={`p-4 rounded-xl border transition-all ${selectedModuleId === m.module_id
-                        ? "bg-white dark:bg-gray-800 shadow-lg border-blue-500/50"
-                        : "bg-white/50 dark:bg-gray-800/30 hover:bg-white dark:hover:bg-gray-800 border-transparent"
+                        ? "bg-surface shadow-lg border-primary-theme/50"
+                        : "bg-surface/50 hover:bg-surface border-transparent"
                       }`}
                   >
                     <div className="flex justify-between items-start mb-3">
-                      <span className="font-bold text-sm text-black dark:text-white">{m.name}</span>
-                      <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-red-500" onClick={(e) => { e.stopPropagation(); handleDelete('module', m.module_id); }}><Trash2 size={12} /></Button>
+                      <span className="font-bold text-sm text-text-theme-main">{m.name}</span>
+                      <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-danger-theme" onClick={(e) => { e.stopPropagation(); handleDelete('module', m.module_id); }}><Trash2 size={12} /></Button>
                     </div>
                     <div className="space-y-2" onClick={e => e.stopPropagation()}>
-                      <Label className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Responsible Developer</Label>
+                      <Label className="text-[10px] text-text-theme-subtle font-bold uppercase tracking-widest">Responsible Developer</Label>
                       <Combobox
                         options={userOptions}
                         value={m.responsible_id}
@@ -321,9 +322,9 @@ export default function ManagementPage() {
 
           <section className="space-y-4">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-gray-500">
+              <div className="flex items-center gap-2 text-text-theme-muted">
                 <ListChecks size={18} />
-                <h2 className="font-bold uppercase tracking-widest text-sm">Scenarios</h2>
+                <h2 className="font-bold uppercase tracking-widest text-[10px]">Scenarios</h2>
               </div>
               <div className="flex gap-2">
                 <Input
@@ -331,20 +332,20 @@ export default function ManagementPage() {
                   disabled={!selectedModuleId}
                   value={newName.scenario}
                   onChange={e => setNewName({ ...newName, scenario: e.target.value })}
-                  className="h-8 text-xs w-[120px] bg-white dark:bg-gray-950"
+                  className="h-8 text-xs w-[120px]"
                 />
                 <Button size="sm" className="h-8" disabled={!selectedModuleId} onClick={() => handleAdd('scenario')}><Plus size={14} /></Button>
               </div>
             </div>
 
-            <div className="min-h-[400px] rounded-lg border border-gray-200 dark:border-gray-800 bg-gray-50/30 dark:bg-gray-900/10 p-2 space-y-2">
+            <div className="min-h-[400px] rounded-lg border border-border-theme bg-surface-muted/50 p-2 space-y-2">
               {!selectedModuleId ? (
-                <div className="flex items-center justify-center h-full p-8 text-gray-400 text-xs uppercase tracking-widest italic">Select a module</div>
+                <div className="flex items-center justify-center h-full p-8 text-text-theme-subtle text-[10px] uppercase tracking-widest font-bold italic">Select a module</div>
               ) : (
                 scenarios.map(s => (
-                  <div key={s.scenario_id} className="flex items-center justify-between p-3 rounded-md bg-white dark:bg-gray-800 border dark:border-gray-700 shadow-sm text-sm text-black dark:text-white">
+                  <div key={s.scenario_id} className="flex items-center justify-between p-3 rounded-md bg-surface border border-border-theme shadow-sm text-sm text-text-theme-main">
                     <span className="font-medium">{s.name}</span>
-                    <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-red-500" onClick={() => handleDelete('scenario', s.scenario_id)}><Trash2 size={14} /></Button>
+                    <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-danger-theme" onClick={() => handleDelete('scenario', s.scenario_id)}><Trash2 size={14} /></Button>
                   </div>
                 ))
               )}

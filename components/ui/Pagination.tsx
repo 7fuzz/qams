@@ -30,7 +30,7 @@ export const Pagination = ({
   const endItem = Math.min(safeCurrentPage * safePageSize, safeTotalItems);
 
   return (
-    <div className="flex items-center justify-between px-4 py-3 bg-white dark:bg-gray-900 border-t dark:border-gray-800">
+    <div className="flex items-center justify-between px-4 py-3 bg-surface border-t border-border-theme">
       <div className="flex-1 flex justify-between sm:hidden">
         <Button
           variant="outline"
@@ -49,14 +49,14 @@ export const Pagination = ({
       </div>
       <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
         <div className="flex items-center gap-6">
-          <p className="text-xs text-gray-700 dark:text-gray-400 font-medium">
-            Showing <span className="font-bold text-black dark:text-white">{startItem}</span> to <span className="font-bold text-black dark:text-white">{endItem}</span> of <span className="font-bold text-black dark:text-white">{totalItems}</span> results
+          <p className="text-xs text-text-theme-muted font-medium">
+            Showing <span className="font-bold text-text-theme-main">{startItem}</span> to <span className="font-bold text-text-theme-main">{endItem}</span> of <span className="font-bold text-text-theme-main">{totalItems}</span> results
           </p>
 
           <div className="flex items-center gap-2">
-            <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Rows per page</span>
+            <span className="text-[10px] font-bold text-text-theme-subtle uppercase tracking-widest">Rows per page</span>
             <select
-              className="h-8 text-xs rounded border border-gray-300 dark:border-gray-800 bg-transparent px-2"
+              className="h-8 text-xs rounded border border-border-theme bg-surface text-text-theme-main px-2"
               value={pageSize}
               onChange={(e) => onPageSizeChange(Number(e.target.value))}
             >
@@ -69,9 +69,9 @@ export const Pagination = ({
 
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-1 mr-4">
-            <span className="text-xs text-gray-500">Page</span>
-            <span className="text-xs font-bold text-black dark:text-white">{currentPage}</span>
-            <span className="text-xs text-gray-500">of {totalPages}</span>
+            <span className="text-xs text-text-theme-subtle">Page</span>
+            <span className="text-xs font-bold text-text-theme-main">{currentPage}</span>
+            <span className="text-xs text-text-theme-subtle">of {totalPages}</span>
           </div>
 
           <div className="flex gap-1">

@@ -15,6 +15,7 @@ interface ComboboxProps {
   placeholder?: string;
   className?: string;
   multiSelect?: boolean;
+  disabled?: boolean;
 }
 
 export const Combobox = ({ 
@@ -23,7 +24,8 @@ export const Combobox = ({
   onChange, 
   placeholder = "Select...", 
   className = "",
-  multiSelect = false 
+  multiSelect = false,
+  disabled = false
 }: ComboboxProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -41,6 +43,7 @@ export const Combobox = ({
   };
 
   const toggleOption = (val: string | number) => {
+    if (disabled) return;
     if (multiSelect) {
       const currentValues = Array.isArray(value) ? value : [];
       if (currentValues.includes(val)) {
@@ -57,6 +60,7 @@ export const Combobox = ({
 
   const removeValue = (e: React.MouseEvent, val: string | number) => {
     e.stopPropagation();
+    if (disabled) return;
     if (multiSelect && Array.isArray(value)) {
       onChange(value.filter(v => v !== val));
     }
@@ -72,7 +76,7 @@ export const Combobox = ({
                     return (
                         <span key={v} className="flex items-center gap-1 bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded text-[10px] font-medium">
                             {opt?.label || v}
-                            <X size={10} className="cursor-pointer hover:text-red-500" onClick={(e) => removeValue(e, v)} />
+                            {!disabled && <X size={10} className="cursor-pointer hover:text-red-500" onClick={(e) => removeValue(e, v)} />}
                         </span>
                     );
                 })}
@@ -97,8 +101,11 @@ export const Combobox = ({
     <div className={`relative w-full ${className}`} ref={containerRef}>
       <button
         type="button"
-        onClick={() => setIsOpen(!isOpen)}
-        className="flex min-h-[40px] w-full items-center justify-between rounded-md border border-gray-300 bg-white dark:bg-gray-950 px-3 py-2 text-sm focus:outline-hidden focus:ring-2 focus:ring-gray-400 dark:border-gray-800"
+        disabled={disabled}
+        onClick={() => !disabled && setIsOpen(!isOpen)}
+        className={`flex min-h-[40px] w-full items-center justify-between rounded-md border border-gray-300 bg-white dark:bg-gray-950 px-3 py-2 text-sm focus:outline-hidden focus:ring-2 focus:ring-gray-400 dark:border-gray-800 ${
+            disabled ? "opacity-50 cursor-not-allowed bg-gray-50 dark:bg-gray-900" : ""
+        }`}
       >
         <div className="flex-1 text-left overflow-hidden">
             {getLabel()}
@@ -106,7 +113,7 @@ export const Combobox = ({
         <ChevronDown size={16} className="text-gray-500 shrink-0 ml-2" />
       </button>
 
-      {isOpen && (
+      {isOpen && !disabled && (
         <div className="absolute z-[100] mt-1 max-h-60 w-full overflow-auto rounded-md border border-gray-200 bg-white dark:bg-gray-950 p-1 shadow-xl dark:border-gray-800">
           <div className="sticky top-0 z-10 flex items-center border-b bg-white dark:bg-gray-950 px-2 pb-1 dark:border-gray-800">
             <Search size={14} className="mr-2 text-gray-500" />

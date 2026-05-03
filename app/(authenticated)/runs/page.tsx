@@ -24,6 +24,8 @@ interface TestRun {
     status: string;
     total_cases: number;
     passed_count: number;
+    failed_count: number;
+    pending_count: number;
     tester_name: string;
     created_at: string;
 }
@@ -117,9 +119,9 @@ export default function TestRunsPage() {
       headerName: 'Status', 
       width: 130,
       cellClassRules: {
-        'text-blue-600 font-bold bg-blue-50 dark:bg-blue-900/10': 'x === "In Progress"',
-        'text-green-600 font-bold bg-green-50 dark:bg-green-900/10': 'x === "Completed"',
-        'text-gray-500 bg-gray-50 dark:bg-gray-900/10': 'x === "Draft"',
+        'text-blue-600 font-bold bg-blue-50 dark:bg-blue-900/10': params => params.value === "In Progress",
+        'text-green-600 font-bold bg-green-50 dark:bg-green-900/10': params => params.value === "Completed",
+        'text-gray-500 bg-gray-50 dark:bg-gray-900/10': params => params.value === "Draft",
       }
     },
     {

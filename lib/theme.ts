@@ -20,8 +20,7 @@ export const baseGridParams = {
   checkboxCheckedBackgroundColor: '#3b82f6',
   checkboxUncheckedBackgroundColor: 'transparent',
   
-  // Ensure popups (like select editors) are opaque
-  popupBackgroundColor: '#ffffff', // Will be overridden by dark mode logic if needed
+  // Ensure inputs are opaque
   inputBackgroundColor: '#ffffff',
   inputBorderColor: 'rgba(128, 128, 128, 0.3)',
 
@@ -31,10 +30,6 @@ export const baseGridParams = {
 };
 
 // Re-export the theme object with our params
-export const unifiedGridTheme = themeQuartz.withParams(baseGridParams).withParams({
-    // Forced dark overrides for when the system is in dark mode
-    // (AG Grid doesn't always inherit transparent correctly for popups)
-    popupBackgroundColor: 'var(--color-bg-popover, #ffffff)',
-});
+export const unifiedGridTheme = themeQuartz.withParams(baseGridParams);
 
 export const GRID_CONTAINER_CLASS = "w-full border dark:border-gray-800 rounded-lg overflow-hidden bg-white dark:bg-gray-950 shadow-sm";

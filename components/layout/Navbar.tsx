@@ -23,7 +23,7 @@ export const Navbar = () => {
 
   const handleLogout = async () => {
     await fetch("/api/logout", { method: "POST" });
-    setUser({ isLoggedIn: false, role: "", name: "" });
+    setUser({ isLoggedIn: false, role: "", name: "", user_id: "" });
     router.push("/login");
     router.refresh();
   };

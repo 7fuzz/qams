@@ -5,6 +5,14 @@ import { sessionOptions, SessionData } from "@/lib/session";
 import db from "@/lib/db";
 import { comparePassword } from "@/lib/auth-utils";
 
+interface LoginUser {
+    user_id: string;
+    name: string;
+    email: string;
+    password: string;
+    role_name: string;
+}
+
 export async function POST(request: Request) {
   const session = await getIronSession<SessionData>(await cookies(), sessionOptions);
   const { email, password } = await request.json();
@@ -15,7 +23,7 @@ export async function POST(request: Request) {
       FROM users u 
       JOIN roles r ON u.role_id = r.role_id 
       WHERE u.email = ?
-    `).get(email);
+    `).get(email) as LoginUser | undefined;
 
     if (!user) {
       return NextResponse.json({ error: "Invalid email or password" }, { status: 401 });

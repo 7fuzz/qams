@@ -187,7 +187,8 @@ export const TestManagementGrid = ({ moduleId }: TestManagementGridProps) => {
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
-  const columnDefs = useMemo<ColDef<TestCase>[]>(() => [
+  const columnDefs = useMemo<ColDef<TestCase>[]>(() => {
+    const cols: ColDef<TestCase>[] = [
     { 
         field: 'scenario_id', 
         headerName: 'Scenario & Action', 
@@ -233,10 +234,10 @@ export const TestManagementGrid = ({ moduleId }: TestManagementGridProps) => {
         cellEditor: 'agSelectCellEditor',
         cellEditorParams: { values: TEST_PRIORITY_OPTIONS.map(o => o.value) },
         cellClassRules: {
-            'text-red-500 font-bold': `x === "${TEST_PRIORITY.P0}"`,
-            'text-orange-500 font-bold': `x === "${TEST_PRIORITY.P1}"`,
-            'text-blue-500': `x === "${TEST_PRIORITY.P2}"`,
-            'text-gray-400': `x === "${TEST_PRIORITY.P3}"`,
+            'text-red-500 font-bold': params => params.value === TEST_PRIORITY.P0,
+            'text-orange-500 font-bold': params => params.value === TEST_PRIORITY.P1,
+            'text-blue-500': params => params.value === TEST_PRIORITY.P2,
+            'text-gray-400': params => params.value === TEST_PRIORITY.P3,
         }
     },
     { field: 'title', headerName: 'Case Title', width: 250, filter: true },
@@ -256,9 +257,9 @@ export const TestManagementGrid = ({ moduleId }: TestManagementGridProps) => {
         values: TEST_CASE_TYPE_OPTIONS.map(o => o.value),
       },
       cellClassRules: {
-        'text-blue-600 font-medium': `x === "${TEST_CASE_TYPE.POSITIVE}"`,
-        'text-red-600 font-medium': `x === "${TEST_CASE_TYPE.NEGATIVE}"`,
-        'text-orange-600 font-medium': `x === "${TEST_CASE_TYPE.EDGE_CASE}"`,
+        'text-blue-600 font-medium': params => params.value === TEST_CASE_TYPE.POSITIVE,
+        'text-red-600 font-medium': params => params.value === TEST_CASE_TYPE.NEGATIVE,
+        'text-orange-600 font-medium': params => params.value === TEST_CASE_TYPE.EDGE_CASE,
       }
     },
     { 
@@ -309,7 +310,9 @@ export const TestManagementGrid = ({ moduleId }: TestManagementGridProps) => {
     },
     { field: 'expected_result', headerName: 'Expected Result', width: 250 },
     { field: 'test_data', headerName: 'Test Data', width: 150 },
-  ], [scenarios]);
+  ];
+  return cols;
+  }, [scenarios]);
 
   const defaultColDef = useMemo<ColDef<TestCase>>(() => ({
     resizable: true,

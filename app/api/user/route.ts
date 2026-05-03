@@ -2,7 +2,7 @@ import { getIronSession } from "iron-session";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { sessionOptions, SessionData, defaultSession } from "@/lib/session";
-import db from "@/lib/db";
+import { UserModel } from "@/models/User";
 
 export async function GET() {
   const session = await getIronSession<SessionData>(await cookies(), sessionOptions);
@@ -13,8 +13,8 @@ export async function GET() {
 
   // Safety check: Verify user still exists in DB (e.g. after a rebuild/re-seed)
   try {
-    const userExists = db.prepare('SELECT 1 FROM users WHERE user_id = ?').get(session.user_id);
-    if (!userExists) {
+    const user = UserModel.findById(session.user_id);
+    if (!user) {
         session.destroy();
         return NextResponse.json(defaultSession);
     }

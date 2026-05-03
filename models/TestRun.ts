@@ -79,17 +79,26 @@ export const TestRunModel = {
     // Execution Logic
     findExecutions(runId: string) {
         return db.prepare(`
-            SELECT te.*, tc.title as test_case_title 
+            SELECT te.*, tc.title, tc.steps, tc.expected_result, tc.precondition, tc.test_data
             FROM test_executions te
             JOIN test_cases tc ON te.test_case_id = tc.test_case_id
             WHERE te.run_id = ?
         `).all(runId);
     },
 
+    findExecutionById(id: string) {
+        return db.prepare(`
+            SELECT te.*, tc.title 
+            FROM test_executions te
+            JOIN test_cases tc ON te.test_case_id = tc.test_case_id
+            WHERE te.execution_id = ?
+        `).get(id) as { execution_id: string, run_id: string, test_case_id: string, title: string } | undefined;
+    },
+
     updateExecution(id: string, data: { status: string, notes?: string, proof_url?: string }) {
         return db.prepare(`
             UPDATE test_executions 
-            SET status = ?, notes = ?, proof_url = ?, executed_at = CURRENT_TIMESTAMP 
+            SET status = ?, notes = COALESCE(?, notes), proof_url = COALESCE(?, proof_url), executed_at = CURRENT_TIMESTAMP 
             WHERE execution_id = ?
         `).run(data.status, data.notes || null, data.proof_url || null, id);
     }

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Button, IconButton, Modal, Input, Label, Checkbox } from "@/components/ui";
 import { Shield, Plus, Edit2, Trash2, Lock } from 'lucide-react';
 
@@ -23,27 +23,32 @@ export default function RoleManagementPage() {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedRole, setSelectedRole] = useState<Role | null>(null);
     const [formData, setFormData] = useState({ name: '', permissionIds: [] as string[] });
+    const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+    const fetchData = useCallback(async () => {
+        setLoading(true);
+        try {
+            const [rolesRes, permsRes] = await Promise.all([
+                fetch('/api/roles'),
+                fetch('/api/permissions')
+            ]);
+            const rolesData = await rolesRes.json();
+            const permsData = await permsRes.json();
+            setRoles(rolesData);
+            setAllPermissions(permsData);
+        } catch (err) {
+            console.error('Failed to fetch data', err);
+        } finally {
+            setLoading(false);
+        }
+    }, []);
 
     useEffect(() => {
-        const fetchData = async () => {
-            setLoading(true);
-            try {
-                const [rolesRes, permsRes] = await Promise.all([
-                    fetch('/api/roles'),
-                    fetch('/api/permissions')
-                ]);
-                const rolesData = await rolesRes.json();
-                const permsData = await permsRes.json();
-                setRoles(rolesData);
-                setAllPermissions(permsData);
-            } catch (err) {
-                console.error('Failed to fetch data', err);
-            } finally {
-                setLoading(false);
-            }
-        };
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         fetchData();
-    }, []);
+    }, [fetchData, refreshTrigger]);
+
+    const triggerRefresh = () => setRefreshTrigger(prev => prev + 1);
 
     const handleOpenCreate = () => {
         setSelectedRole(null);
@@ -83,7 +88,7 @@ export default function RoleManagementPage() {
 
         if (res.ok) {
             setIsModalOpen(false);
-            fetchData();
+            triggerRefresh();
         } else {
             alert('Operation failed');
         }
@@ -92,7 +97,7 @@ export default function RoleManagementPage() {
     const handleDelete = async (id: string) => {
         if (!confirm('Delete this role? Users with this role may lose access.')) return;
         const res = await fetch(`/api/roles?id=${id}`, { method: 'DELETE' });
-        if (res.ok) fetchData();
+        if (res.ok) triggerRefresh();
     };
 
     if (loading) return <div className="p-12 text-center text-text-theme-muted uppercase tracking-widest text-xs font-bold animate-pulse">Loading Permission Matrix...</div>;

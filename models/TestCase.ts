@@ -38,7 +38,8 @@ export const TestCaseModel = {
                 m.module_id,
                 u.name as owner_name,
                 (SELECT COUNT(*) FROM issues i WHERE i.test_case_id = tc.test_case_id AND i.status != 'Closed') as open_issues_count,
-                (SELECT COUNT(*) FROM issues i WHERE i.test_case_id = tc.test_case_id AND i.status = 'Closed') as closed_issues_count
+                (SELECT COUNT(*) FROM issues i WHERE i.test_case_id = tc.test_case_id AND i.status = 'Closed') as closed_issues_count,
+                (SELECT MAX(executed_at) FROM test_executions te WHERE te.test_case_id = tc.test_case_id) as last_executed_at
             FROM test_cases tc
             JOIN scenarios s ON tc.scenario_id = s.scenario_id
             JOIN modules m ON s.module_id = m.module_id

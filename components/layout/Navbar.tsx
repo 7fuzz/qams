@@ -24,7 +24,7 @@ export const Navbar = () => {
 
   const handleLogout = async () => {
     await fetch("/api/logout", { method: "POST" });
-    setUser({ isLoggedIn: false, role: "", name: "", user_id: "", email: "" });
+    setUser({ isLoggedIn: false, role: "", name: "", user_id: "", email: "", permissions: [] });
     router.push("/login");
     router.refresh();
   };

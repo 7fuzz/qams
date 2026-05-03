@@ -288,6 +288,26 @@ export const TestManagementGrid = ({ moduleId }: TestManagementGridProps) => {
     },
     { field: 'expected_result', headerName: 'Expected Result', width: 250 },
     { field: 'test_data', headerName: 'Test Data', width: 150 },
+    { 
+        field: 'updated_at', 
+        headerName: 'Updated At', 
+        width: 140, 
+        editable: false,
+        cellRenderer: (params: ICellRendererParams<TestCase>) => {
+            if (!params.value) return null;
+            return <span className="text-gray-400 text-xs font-medium uppercase">{new Date(params.value).toLocaleDateString()}</span>;
+        }
+    },
+    { 
+        field: 'last_executed_at', 
+        headerName: 'Completed At', 
+        width: 140, 
+        editable: false,
+        cellRenderer: (params: ICellRendererParams<TestCase>) => {
+            if (!params.value) return <span className="text-gray-400 text-[10px] italic">Never</span>;
+            return <span className="text-gray-400 text-xs font-medium uppercase">{new Date(params.value).toLocaleDateString()}</span>;
+        }
+    },
   ];
   return cols;
   }, [scenarios]);

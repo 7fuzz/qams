@@ -167,6 +167,7 @@ CREATE TABLE IF NOT EXISTS issues (
     description TEXT,
     severity TEXT,
     status TEXT DEFAULT 'Open',
+    estimated_date DATETIME,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (test_case_id) REFERENCES test_cases(test_case_id) ON DELETE CASCADE,

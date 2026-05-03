@@ -23,6 +23,7 @@ interface Issue {
   developer_id: string;
   developer_name: string;
   solver_name: string;
+  estimated_date: string | null;
   created_at: string;
 }
 
@@ -62,7 +63,7 @@ export const IssuesListDialog = ({ testCaseId, testCaseTitle, isOpen, onClose, o
   const [issueHistory, setIssueHistory] = useState<Record<string, IssueHistoryEntry[]>>({});
   
   const [showNewIssueForm, setShowNewIssueForm] = useState(false);
-  const [newIssue, setNewIssue] = useState({ title: '', description: '', severity: ISSUE_SEVERITY.MEDIUM as string, developer_id: '' });
+  const [newIssue, setNewIssue] = useState({ title: '', description: '', severity: ISSUE_SEVERITY.MEDIUM as string, developer_id: '', estimated_date: '' });
   const [newNoteContent, setNewNoteContent] = useState<Record<string, string>>({});
 
   const fetchIssues = useCallback(async () => {
@@ -107,7 +108,7 @@ export const IssuesListDialog = ({ testCaseId, testCaseTitle, isOpen, onClose, o
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ test_case_id: testCaseId, ...newIssue }),
     });
-    setNewIssue({ title: '', description: '', severity: ISSUE_SEVERITY.MEDIUM, developer_id: '' });
+    setNewIssue({ title: '', description: '', severity: ISSUE_SEVERITY.MEDIUM, developer_id: '', estimated_date: '' });
     setShowNewIssueForm(false);
     fetchIssues();
     onRefresh();
@@ -161,6 +162,10 @@ export const IssuesListDialog = ({ testCaseId, testCaseTitle, isOpen, onClose, o
             <div className="grid grid-cols-2 gap-3">
               <Combobox options={ISSUE_SEVERITY_OPTIONS} value={newIssue.severity} onChange={val => setNewIssue({...newIssue, severity: val as string})} />
               <Combobox options={userOptions} value={newIssue.developer_id} onChange={val => setNewIssue({...newIssue, developer_id: val as string})} placeholder="Assign Dev..." />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-[10px] font-bold text-gray-400">ESTIMATED RESOLUTION DATE</Label>
+              <Input type="date" value={newIssue.estimated_date} onChange={e => setNewIssue({...newIssue, estimated_date: e.target.value})} className="h-8 text-xs" />
             </div>
             <Button size="sm" onClick={handleCreateIssue} className="w-full">Report Issue</Button>
           </div>
@@ -235,6 +240,16 @@ export const IssuesListDialog = ({ testCaseId, testCaseTitle, isOpen, onClose, o
                                     placeholder="Assign..."
                                 />
                             </div>
+                        </div>
+
+                        <div className="space-y-1">
+                            <Label className="text-[10px] font-bold text-gray-400 uppercase">Estimated Resolution Date</Label>
+                            <Input 
+                                type="date" 
+                                value={issue.estimated_date ? issue.estimated_date.split('T')[0] : ''} 
+                                onChange={(e) => handleUpdateIssue(issue.issue_id, { estimated_date: e.target.value })} 
+                                className="h-8 text-xs bg-white dark:bg-gray-950"
+                            />
                         </div>
 
                         {/* Run History */}

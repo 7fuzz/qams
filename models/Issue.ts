@@ -10,7 +10,9 @@ export const IssueModel = {
         status?: string, 
         developerId?: string,
         runId?: string,
-        testCaseId?: string
+        testCaseId?: string,
+        sortBy?: string,
+        sortOrder?: 'ASC' | 'DESC'
     }, limit: number, offset: number) {
         
         if (filters.runId) {
@@ -35,8 +37,8 @@ export const IssueModel = {
                 LEFT JOIN users d ON i.developer_id = d.user_id
                 LEFT JOIN users s ON i.solved_by_id = s.user_id
                 JOIN test_cases tc ON i.test_case_id = tc.test_case_id
-                JOIN scenarios sc ON tc.scenario_id = sc.scenario_id
-                JOIN modules m ON sc.module_id = m.module_id
+                JOIN scenarios tc_sc ON tc.scenario_id = tc_sc.scenario_id
+                JOIN modules m ON tc_sc.module_id = m.module_id
                 JOIN projects p ON m.project_id = p.project_id
                 WHERE i.test_case_id IN (SELECT test_case_id FROM test_executions WHERE run_id = ?)
                 ORDER BY i.created_at DESC
@@ -75,14 +77,31 @@ export const IssueModel = {
             LEFT JOIN users d ON i.developer_id = d.user_id
             LEFT JOIN users s ON i.solved_by_id = s.user_id
             JOIN test_cases tc ON i.test_case_id = tc.test_case_id
-            JOIN scenarios sc ON tc.scenario_id = sc.scenario_id
-            JOIN modules m ON sc.module_id = m.module_id
+            JOIN scenarios tc_sc ON tc.scenario_id = tc_sc.scenario_id
+            JOIN modules m ON tc_sc.module_id = m.module_id
             JOIN projects p ON m.project_id = p.project_id
             ${whereClause}
         `;
 
         const total = (db.prepare(`SELECT COUNT(*) as total ${baseQuery}`).get(...params) as { total: number }).total;
         
+        // Define allowlist for sorting columns to prevent SQL injection
+        const allowedSortColumns: Record<string, string> = {
+            'title': 'i.title',
+            'severity': 'i.severity',
+            'status': 'i.status',
+            'project_name': 'p.name',
+            'module_name': 'm.name',
+            'updated_at': 'i.updated_at',
+            'created_at': 'i.created_at',
+            'estimated_date': 'i.estimated_date',
+            'reporter_name': 'u.name',
+            'developer_name': 'd.name'
+        };
+
+        const sortColumn = allowedSortColumns[filters.sortBy || ''] || 'i.updated_at';
+        const sortOrder = filters.sortOrder === 'ASC' ? 'ASC' : 'DESC';
+
         const data = db.prepare(`
             SELECT 
                 i.*, 
@@ -94,7 +113,7 @@ export const IssueModel = {
                 m.module_id,
                 p.project_id
             ${baseQuery}
-            ORDER BY i.updated_at DESC
+            ORDER BY ${sortColumn} ${sortOrder}
             LIMIT ? OFFSET ?
         `).all(...params, limit, offset) as Issue[];
 
@@ -107,6 +126,7 @@ export const IssueModel = {
         description: string, 
         severity: string, 
         reporter_id: string,
+        estimated_date?: string,
         execution_id?: string, 
         developer_id?: string 
     }) {
@@ -114,11 +134,11 @@ export const IssueModel = {
         
         const transaction = db.transaction(() => {
             db.prepare(`
-                INSERT INTO issues (issue_id, test_case_id, snapshot_execution_id, reporter_id, developer_id, title, description, severity, status)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO issues (issue_id, test_case_id, snapshot_execution_id, reporter_id, developer_id, title, description, severity, status, estimated_date)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             `).run(
                 issueId, data.test_case_id, data.execution_id || null, data.reporter_id, 
-                data.developer_id || null, data.title, data.description, data.severity, ISSUE_STATUS.OPEN
+                data.developer_id || null, data.title, data.description, data.severity, ISSUE_STATUS.OPEN, data.estimated_date || null
             );
 
             let runId = null;
@@ -144,6 +164,7 @@ export const IssueModel = {
         title: string, 
         description: string, 
         user_id: string,
+        estimated_date?: string,
         execution_id?: string, 
         developer_id?: string 
     }) {
@@ -156,9 +177,9 @@ export const IssueModel = {
 
             db.prepare(`
                 UPDATE issues 
-                SET status = ?, severity = ?, title = ?, description = ?, developer_id = ?, solved_by_id = COALESCE(?, solved_by_id), updated_at = CURRENT_TIMESTAMP
+                SET status = ?, severity = ?, title = ?, description = ?, developer_id = ?, solved_by_id = COALESCE(?, solved_by_id), estimated_date = ?, updated_at = CURRENT_TIMESTAMP
                 WHERE issue_id = ?
-            `).run(data.status, data.severity, data.title, data.description, data.developer_id || null, solved_by_id, id);
+            `).run(data.status, data.severity, data.title, data.description, data.developer_id || null, solved_by_id, data.estimated_date || null, id);
 
             let runId = null;
             if (data.execution_id) {

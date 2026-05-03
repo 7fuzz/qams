@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   Card, CardContent, Button, Combobox, Table, TableHeader, TableRow, TableHead, TableBody, TableCell, Pagination, Label
 } from "@/components/ui";
-import { AlertTriangle, UserCheck, ShieldCheck, ExternalLink, LayoutPanelTop, Layers } from 'lucide-react';
+import { AlertTriangle, UserCheck, ShieldCheck, ExternalLink, LayoutPanelTop, Layers, ChevronUp, ChevronDown, Calendar } from 'lucide-react';
 import { ISSUE_STATUS_OPTIONS, ISSUE_STATUS } from '@/lib/constants';
 import { IssuesListDialog } from '@/components/dialogs/IssuesListDialog';
 
@@ -36,6 +36,7 @@ interface Issue {
   solver_name: string;
   module_name: string;
   project_name: string;
+  estimated_date: string;
   updated_at: string;
 }
 
@@ -59,6 +60,10 @@ export default function IssueManagementPage() {
   const [selectedModuleId, setSelectedModuleId] = useState<string>('all');
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
   const [selectedDevId, setSelectedDevId] = useState<string>('all');
+
+  // Sorting
+  const [sortBy, setSortBy] = useState<string>('updated_at');
+  const [sortOrder, setSortOrder] = useState<'ASC' | 'DESC'>('DESC');
 
   // Pagination
   const [page, setPage] = useState(1);
@@ -100,6 +105,7 @@ export default function IssueManagementPage() {
     if (selectedModuleId !== 'all') url += `&moduleId=${selectedModuleId}`;
     if (selectedStatus !== 'all') url += `&status=${selectedStatus}`;
     if (selectedDevId !== 'all') url += `&developerId=${selectedDevId}`;
+    url += `&sortBy=${sortBy}&sortOrder=${sortOrder}`;
 
     fetch(url)
       .then(res => res.json())
@@ -113,7 +119,7 @@ export default function IssueManagementPage() {
         setIssues([]);
         setLoading(false);
       });
-  }, [page, limit, selectedProjectId, selectedModuleId, selectedStatus, selectedDevId]);
+  }, [page, limit, selectedProjectId, selectedModuleId, selectedStatus, selectedDevId, sortBy, sortOrder]);
 
   useEffect(() => {
     queueMicrotask(() => {
@@ -143,6 +149,21 @@ export default function IssueManagementPage() {
     if (status === ISSUE_STATUS.CLOSED) return 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400';
     if (status === ISSUE_STATUS.IN_PROGRESS) return 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400';
     return 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400';
+  };
+
+  const handleSort = (field: string) => {
+    if (sortBy === field) {
+      setSortOrder(sortOrder === 'ASC' ? 'DESC' : 'ASC');
+    } else {
+      setSortBy(field);
+      setSortOrder('ASC');
+    }
+    setPage(1);
+  };
+
+  const SortIcon = ({ field }: { field: string }) => {
+    if (sortBy !== field) return null;
+    return sortOrder === 'ASC' ? <ChevronUp size={14} className="ml-1 inline" /> : <ChevronDown size={14} className="ml-1 inline" />;
   };
 
   return (
@@ -215,11 +236,42 @@ export default function IssueManagementPage() {
         <Table>
           <TableHeader className="bg-gray-50/50 dark:bg-gray-900/50">
             <TableRow>
-              <TableHead className="w-[350px]">Issue Details</TableHead>
-              <TableHead>Location</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Assignment</TableHead>
-              <TableHead>Last Update</TableHead>
+              <TableHead 
+                className="w-[350px] cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                onClick={() => handleSort('title')}
+              >
+                Issue Details <SortIcon field="title" />
+              </TableHead>
+              <TableHead 
+                className="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                onClick={() => handleSort('project_name')}
+              >
+                Location <SortIcon field="project_name" />
+              </TableHead>
+              <TableHead 
+                className="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                onClick={() => handleSort('status')}
+              >
+                Status <SortIcon field="status" />
+              </TableHead>
+              <TableHead 
+                className="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                onClick={() => handleSort('estimated_date')}
+              >
+                ETA <SortIcon field="estimated_date" />
+              </TableHead>
+              <TableHead 
+                className="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                onClick={() => handleSort('developer_name')}
+              >
+                Assignment <SortIcon field="developer_name" />
+              </TableHead>
+              <TableHead 
+                className="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                onClick={() => handleSort('updated_at')}
+              >
+                Last Update <SortIcon field="updated_at" />
+              </TableHead>
               <TableHead className="text-right">Action</TableHead>
             </TableRow>
           </TableHeader>
@@ -252,6 +304,12 @@ export default function IssueManagementPage() {
                     <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${getStatusColor(issue.status)}`}>
                       {issue.status}
                     </span>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-1.5 text-[10px] font-medium uppercase text-gray-500">
+                      <Calendar size={12} className="text-gray-400" />
+                      {issue.estimated_date ? new Date(issue.estimated_date).toLocaleDateString() : 'No ETA'}
+                    </div>
                   </TableCell>
                   <TableCell>
                     {issue.status === ISSUE_STATUS.CLOSED ? (

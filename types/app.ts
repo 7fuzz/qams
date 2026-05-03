@@ -33,6 +33,8 @@ export interface TestCase {
     scenario_name?: string;
     open_issues_count?: number;
     closed_issues_count?: number;
+    updated_at?: string;
+    last_executed_at?: string;
 }
 
 export interface TestRun {

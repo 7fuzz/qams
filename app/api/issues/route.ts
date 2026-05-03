@@ -14,6 +14,8 @@ export async function GET(request: Request) {
     const moduleId = searchParams.get('moduleId');
     const developerId = searchParams.get('developerId');
     const status = searchParams.get('status');
+    const sortBy = searchParams.get('sortBy');
+    const sortOrder = searchParams.get('sortOrder') as 'ASC' | 'DESC' | null;
     
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '50');
@@ -26,7 +28,9 @@ export async function GET(request: Request) {
             projectId: projectId || undefined,
             moduleId: moduleId || undefined,
             developerId: developerId || undefined,
-            status: status || undefined
+            status: status || undefined,
+            sortBy: sortBy || undefined,
+            sortOrder: sortOrder || undefined
         }, limit, offset);
 
         return NextResponse.json({
@@ -47,7 +51,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const { test_case_id, title, description, severity, execution_id, developer_id } = await request.json();
+    const { test_case_id, title, description, severity, execution_id, developer_id, estimated_date } = await request.json();
     
     const id = await IssueModel.create({
         test_case_id,
@@ -56,7 +60,8 @@ export async function POST(request: Request) {
         severity,
         reporter_id: session.user_id,
         execution_id,
-        developer_id
+        developer_id,
+        estimated_date
     });
 
     logActivity(session.user_id, 'CREATE', 'TEST_CASE', test_case_id, { issue_id: id, title });
@@ -74,7 +79,7 @@ export async function PUT(request: Request) {
   }
 
   try {
-    const { issue_id, status, severity, title, description, execution_id, developer_id } = await request.json();
+    const { issue_id, status, severity, title, description, execution_id, developer_id, estimated_date } = await request.json();
     
     await IssueModel.update(issue_id, {
         status,
@@ -83,7 +88,8 @@ export async function PUT(request: Request) {
         description,
         user_id: session.user_id,
         execution_id,
-        developer_id
+        developer_id,
+        estimated_date
     });
 
     return NextResponse.json({ success: true });

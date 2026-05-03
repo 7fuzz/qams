@@ -150,7 +150,7 @@ export const TestCaseModel = {
         return true;
     },
 
-    importTestCases(moduleId: string, cases: unknown[], normalizers: { type: (value: unknown) => string, priority: (value: unknown) => string, automation: (value: unknown) => string }) {
+    importTestCases(moduleId: string, cases: any[], normalizers: { type: (value: any) => string | null, priority: (value: any) => string | null, automation: (value: any) => string }) {
         let importedCount = 0;
         let skippedCount = 0;
 
@@ -172,7 +172,7 @@ export const TestCaseModel = {
                 const type = normalizers.type(tc.type);
                 const priority = normalizers.priority(tc.priority);
 
-                if (!type || !priority) {
+                if (type === null || priority === null) {
                     skippedCount++;
                     continue;
                 }

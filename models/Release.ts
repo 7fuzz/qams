@@ -38,6 +38,19 @@ export const ReleaseModel = {
 
     // Release Changes logic
     findChanges(releaseId: string) {
+        interface DBChangeRow {
+            change_id: string;
+            release_id: string;
+            type: 'Feature' | 'Bugfix' | 'Enhancement';
+            title: string;
+            description: string | null;
+            module_names: string | null;
+            module_ids: string | null;
+            issue_titles: string | null;
+            issue_ids: string | null;
+            created_at: string;
+        }
+
         const changes = db.prepare(`
             SELECT 
                 rc.*,
@@ -48,9 +61,9 @@ export const ReleaseModel = {
             FROM release_changes rc
             WHERE rc.release_id = ?
             ORDER BY rc.created_at ASC
-        `).all(releaseId) as unknown[];
+        `).all(releaseId) as DBChangeRow[];
 
-        return changes.map((c: unknown) => ({
+        return changes.map((c: DBChangeRow) => ({
             ...c,
             module_names: c.module_names ? c.module_names.split('||') : [],
             module_ids: c.module_ids ? c.module_ids.split('||') : [],

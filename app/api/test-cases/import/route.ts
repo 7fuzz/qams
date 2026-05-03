@@ -6,7 +6,7 @@ import { TestCaseModel } from '@/models/TestCase';
 import { logActivity } from '@/lib/logger';
 import { TEST_CASE_TYPE, TEST_PRIORITY, AUTOMATION_STATUS } from '@/lib/constants';
 
-function normalizeType(val: string): string | null {
+function normalizeType(val: any): string | null {
     const s = String(val || '').toLowerCase().trim();
     if (s.includes('pos')) return TEST_CASE_TYPE.POSITIVE;
     if (s.includes('neg')) return TEST_CASE_TYPE.NEGATIVE;
@@ -14,7 +14,7 @@ function normalizeType(val: string): string | null {
     return null;
 }
 
-function normalizePriority(val: string): string | null {
+function normalizePriority(val: any): string | null {
     const s = String(val || '').toLowerCase().trim();
     if (s === 'p0' || s.includes('crit')) return TEST_PRIORITY.P0;
     if (s === 'p1' || s === 'h' || s.includes('high')) return TEST_PRIORITY.P1;
@@ -23,7 +23,7 @@ function normalizePriority(val: string): string | null {
     return null;
 }
 
-function normalizeAutomation(val: string): string {
+function normalizeAutomation(val: any): string {
     const s = String(val || '').toLowerCase().trim();
     if (s.includes('auto')) return AUTOMATION_STATUS.AUTOMATED;
     if (s.includes('cand') || s.includes('can')) return AUTOMATION_STATUS.CANDIDATE;

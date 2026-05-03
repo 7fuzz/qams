@@ -42,23 +42,43 @@ export const Navbar = () => {
             <span className="text-xl font-bold tracking-tighter text-text-theme-main">ComponentLab</span>
           </Link>
 
-          <div className="hidden md:flex items-center gap-5">
-            {!user?.isLoggedIn ? (
+          <div className="hidden lg:flex items-center gap-6">
+            {user?.isLoggedIn && (
+              <>
+                {/* Group: Core */}
+                <div className="flex items-center gap-4 border-r border-border-theme pr-6">
+                  <Link href="/dashboard" className="text-sm font-bold text-text-theme-muted hover:text-text-theme-main transition-colors uppercase tracking-widest text-[10px]">Dashboard</Link>
+                  <Link href="/management" className="text-sm font-bold text-text-theme-muted hover:text-text-theme-main transition-colors uppercase tracking-widest text-[10px]">Projects</Link>
+                </div>
+                
+                {/* Group: Testing */}
+                <div className="flex items-center gap-4">
+                  <Link href="/tests" className="text-sm font-bold text-text-theme-muted hover:text-text-theme-main transition-colors uppercase tracking-widest text-[10px]">Library</Link>
+                  <Link href="/runs" className="text-sm font-bold text-text-theme-muted hover:text-text-theme-main transition-colors uppercase tracking-widest text-[10px]">Executions</Link>
+                </div>
+              </>
+            )}
+            {!user?.isLoggedIn && (
                <Link href="/" className="text-sm font-bold text-text-theme-muted hover:text-text-theme-main transition-colors uppercase tracking-widest text-[10px]">Home</Link>
-            ) : (
-              <Link href="/dashboard" className="text-sm font-bold text-text-theme-muted hover:text-text-theme-main transition-colors uppercase tracking-widest text-[10px]">Dashboard</Link>
             )}
           </div>
         </div>
 
         {/* Right: Actions & Profile */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-4">
           {/* Utility Group */}
-          <div className="flex items-center border-r border-border-theme pr-4 mr-2">
-            <Button variant="ghost" size="sm" onClick={toggleTheme} className="h-9 w-9 p-0 text-text-theme-muted hover:text-text-theme-main">
-              {theme === "light" ? <Moon size={18} /> : <Sun size={18} />}
+          <div className="flex items-center gap-1 bg-surface-muted p-1 rounded-lg border border-border-theme">
+            <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={toggleTheme} 
+                className="h-7 w-7 p-0 text-text-theme-muted hover:text-text-theme-main rounded-md transition-all"
+            >
+              {theme === "light" ? <Moon size={14} /> : <Sun size={14} />}
             </Button>
           </div>
+
+          <div className="h-6 w-px bg-border-theme hidden sm:block" />
 
           {/* User Auth Group */}
           <div className="flex items-center gap-3">

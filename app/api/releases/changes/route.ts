@@ -10,6 +10,8 @@ export async function GET(request: Request) {
     const releaseId = searchParams.get('releaseId');
 
     try {
+        if (!releaseId) return NextResponse.json([]);
+
         const changes = db.prepare(`
             SELECT 
                 rc.*,

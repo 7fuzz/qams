@@ -93,7 +93,16 @@ export default function ReleasesPage() {
   }, []);
 
   const fetchChanges = useCallback((rid: string) => {
-      fetch(`/api/releases/changes?releaseId=${rid}`).then(res => res.json()).then(setChanges);
+      fetch(`/api/releases/changes?releaseId=${rid}`)
+        .then(res => res.json())
+        .then(data => {
+            if (Array.isArray(data)) {
+                setChanges(data);
+            } else {
+                setChanges([]);
+            }
+        })
+        .catch(() => setChanges([]));
   }, []);
 
   useEffect(() => { 
@@ -260,7 +269,7 @@ export default function ReleasesPage() {
                                     </div>
 
                                     <div className="space-y-3">
-                                        {changes.map(change => (
+                                        {Array.isArray(changes) && changes.map(change => (
                                             <div key={change.change_id} className="group p-4 bg-gray-50/50 dark:bg-gray-900/30 border dark:border-gray-800 rounded-xl transition-all hover:bg-white dark:hover:bg-gray-900">
                                                 <div className="flex justify-between items-start">
                                                     <div className="flex gap-4">

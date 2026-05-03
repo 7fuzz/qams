@@ -2,9 +2,7 @@ import { NextResponse } from 'next/server';
 import { getIronSession } from "iron-session";
 import { cookies } from "next/headers";
 import { sessionOptions, SessionData } from "@/lib/session";
-import db from '@/lib/db';
-import { generateId } from '@/lib/id-utils';
-import { hashPassword } from '@/lib/auth-utils';
+import { UserModel } from '@/models/User';
 
 export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
@@ -13,23 +11,12 @@ export async function GET(request: Request) {
     const offset = (page - 1) * limit;
 
     try {
-        const baseQuery = 'FROM users u JOIN roles r ON u.role_id = r.role_id';
-        
-        // 1. Total
-        const countRes = db.prepare(`SELECT COUNT(*) as total ${baseQuery}`).get() as { total: number };
-        
-        // 2. Data
-        const users = db.prepare(`
-            SELECT u.user_id, u.name, u.email, r.name as role_name, u.role_id 
-            ${baseQuery}
-            ORDER BY u.name ASC
-            LIMIT ? OFFSET ?
-        `).all(limit, offset);
+        const { data: users, total } = await UserModel.findAll(limit, offset);
 
         return NextResponse.json({
             data: users,
-            total: countRes.total,
-            totalPages: Math.ceil(countRes.total / limit)
+            total,
+            totalPages: Math.ceil(total / limit)
         });
     } catch {
         return NextResponse.json({ error: 'Failed to fetch users' }, { status: 500 });
@@ -42,14 +29,7 @@ export async function POST(request: Request) {
 
     try {
         const { name, email, password, role_id } = await request.json();
-        const userId = generateId();
-        
-        // If no password provided, generate a random safe string (intended for Google users)
-        const placeholderPassword = password || Math.random().toString(36).slice(-10) + Math.random().toString(36).slice(-10);
-        const hashed = await hashPassword(placeholderPassword);
-
-        db.prepare('INSERT INTO users (user_id, name, email, password, role_id) VALUES (?, ?, ?, ?, ?)')
-            .run(userId, name, email, hashed, role_id);
+        const userId = await UserModel.create({ name, email, password, role_id });
         
         return NextResponse.json({ user_id: userId, name, email });
     } catch (error: unknown) {
@@ -67,15 +47,7 @@ export async function PUT(request: Request) {
 
     try {
         const { user_id, name, email, password, role_id } = await request.json();
-        
-        if (password) {
-            const hashed = await hashPassword(password);
-            db.prepare('UPDATE users SET name = ?, email = ?, password = ?, role_id = ? WHERE user_id = ?')
-                .run(name, email, hashed, role_id, user_id);
-        } else {
-            db.prepare('UPDATE users SET name = ?, email = ?, role_id = ? WHERE user_id = ?')
-                .run(name, email, role_id, user_id);
-        }
+        await UserModel.update(user_id, { name, email, password, role_id });
         
         return NextResponse.json({ success: true });
     } catch {
@@ -91,8 +63,9 @@ export async function DELETE(request: Request) {
     const id = searchParams.get('id');
     
     try {
+        if (!id) return NextResponse.json({ error: 'Missing ID' }, { status: 400 });
         if (id === session.user_id) return NextResponse.json({ error: "Cannot delete yourself" }, { status: 400 });
-        db.prepare('DELETE FROM users WHERE user_id = ?').run(id);
+        UserModel.delete(id);
         return NextResponse.json({ success: true });
     } catch {
         return NextResponse.json({ error: 'Failed to delete user' }, { status: 500 });

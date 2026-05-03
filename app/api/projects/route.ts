@@ -2,24 +2,12 @@ import { NextResponse } from 'next/server';
 import { getIronSession } from "iron-session";
 import { cookies } from "next/headers";
 import { sessionOptions, SessionData } from "@/lib/session";
-import db from '@/lib/db';
+import { ProjectModel } from '@/models/Project';
 import { logActivity } from '@/lib/logger';
-import { generateId } from '@/lib/id-utils';
 
 export async function GET() {
     try {
-        const projects = db.prepare(`
-            SELECT 
-                p.*, 
-                u.name as owner_name,
-                (SELECT COUNT(*) FROM issues i 
-                 JOIN test_cases tc ON i.test_case_id = tc.test_case_id
-                 JOIN scenarios s ON tc.scenario_id = s.scenario_id
-                 JOIN modules m ON s.module_id = m.module_id
-                 WHERE m.project_id = p.project_id AND i.status != 'Closed') as open_issues_count
-            FROM projects p 
-            JOIN users u ON p.owner_id = u.user_id
-        `).all();
+        const projects = await ProjectModel.findAll();
         return NextResponse.json(projects);
     } catch {
         return NextResponse.json({ error: 'Failed to fetch projects' }, { status: 500 });
@@ -32,9 +20,12 @@ export async function POST(request: Request) {
 
     try {
         const { name, version, description } = await request.json();
-        const projectId = generateId();
-        db.prepare('INSERT INTO projects (project_id, name, version, description, owner_id) VALUES (?, ?, ?, ?, ?)')
-            .run(projectId, name, version || '1.0.0', description || null, session.user_id);
+        const projectId = await ProjectModel.create({
+            name,
+            version,
+            description,
+            owner_id: session.user_id
+        });
         
         logActivity(session.user_id, 'CREATE', 'PROJECT', projectId, { name, version });
         
@@ -51,8 +42,7 @@ export async function PUT(request: Request) {
 
     try {
         const { project_id, name, version, description } = await request.json();
-        db.prepare('UPDATE projects SET name = ?, version = ?, description = ?, updated_at = CURRENT_TIMESTAMP WHERE project_id = ?')
-            .run(name, version, description, project_id);
+        await ProjectModel.update(project_id, { name, version, description });
         
         logActivity(session.user_id, 'UPDATE', 'PROJECT', project_id, { name, version });
         
@@ -70,8 +60,9 @@ export async function DELETE(request: Request) {
     const id = searchParams.get('id');
     
     try {
-        db.prepare('DELETE FROM projects WHERE project_id = ?').run(id);
-        logActivity(session.user_id, 'DELETE', 'PROJECT', id!);
+        if (!id) return NextResponse.json({ error: 'Missing ID' }, { status: 400 });
+        await ProjectModel.delete(id);
+        logActivity(session.user_id, 'DELETE', 'PROJECT', id);
         return NextResponse.json({ success: true });
     } catch {
         return NextResponse.json({ error: 'Failed to delete project' }, { status: 500 });

@@ -365,16 +365,16 @@ export default function ManagementPage() {
       >
         <div className="space-y-8">
           <div className="space-y-4">
-            <div className="flex items-center gap-2 text-blue-600 font-bold text-xs uppercase tracking-widest">
+            <div className="flex items-center gap-2 text-primary-theme font-bold text-xs uppercase tracking-widest">
               <FileText size={18} /> Context & Description
             </div>
             <div className="space-y-2">
-              <Label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">PROJECT DESCRIPTION</Label>
+              <Label className="text-[10px] font-bold text-text-theme-subtle uppercase tracking-wider">PROJECT DESCRIPTION</Label>
               <Textarea
                 placeholder="Project objectives, environment details, or key information..."
                 value={editData.project_desc || ''}
                 onChange={e => setEditData({ ...editData, project_desc: e.target.value })}
-                className="min-h-[150px] text-sm bg-white dark:bg-gray-950"
+                className="min-h-[150px] text-sm bg-surface"
               />
               <Button onClick={handleSaveProjectDesc} className="w-full shadow-lg shadow-blue-500/20">
                 <Save size={16} className="mr-2" /> Save Project Context

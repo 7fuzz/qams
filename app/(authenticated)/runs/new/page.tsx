@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter, Label, Input, Button, Checkbox } from "@/components/ui";
+import { AlertTriangle } from 'lucide-react';
 
 interface Project {
   project_id: string;
@@ -18,6 +19,7 @@ interface Scenario {
   scenario_id: string;
   name: string;
   module_name: string;
+  open_issues_count?: number;
 }
 
 export default function NewRunPage() {
@@ -29,6 +31,7 @@ export default function NewRunPage() {
   const [selectedScenarioIds, setSelectedScenarioIds] = useState<string[]>([]);
   const [runName, setRunName] = useState('');
   const [loading, setLoading] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
 
   const fetchProjects = useCallback(() => {
       fetch('/api/projects').then(res => res.json()).then(setProjects);
@@ -94,8 +97,8 @@ export default function NewRunPage() {
     <div className="container mx-auto p-8 max-w-4xl">
       <div className="space-y-6">
         <div className="space-y-2">
-          <h1 className="text-3xl font-bold tracking-tight text-black dark:text-white">Start New Test Run</h1>
-          <p className="text-gray-500 text-sm">Define the scope and name for this execution session.</p>
+          <h1 className="text-3xl font-bold tracking-tight text-text-theme-main">Start New Test Run</h1>
+          <p className="text-text-theme-muted text-sm">Define the scope and name for this execution session.</p>
         </div>
 
         <Card>
@@ -107,7 +110,7 @@ export default function NewRunPage() {
               <Label htmlFor="project">Project</Label>
               <select 
                 id="project"
-                className="w-full rounded-md border border-gray-300 dark:border-gray-800 bg-transparent p-2 text-sm text-black dark:text-white"
+                className="w-full rounded-md border border-border-theme bg-transparent p-2 text-sm text-text-theme-main"
                 value={selectedProjectId || ''}
                 onChange={e => handleProjectChange(e.target.value)}
               >
@@ -122,7 +125,7 @@ export default function NewRunPage() {
                 placeholder="e.g., Regression Q1 2024" 
                 value={runName}
                 onChange={e => setRunName(e.target.value)}
-                className="text-black dark:text-white bg-white dark:bg-gray-950"
+                className="bg-surface text-text-theme-main"
               />
             </div>
           </CardContent>
@@ -131,13 +134,23 @@ export default function NewRunPage() {
         {scenarios.length > 0 && (
           <Card>
             <CardHeader>
-              <CardTitle className="text-black dark:text-white">Select Scenarios</CardTitle>
+              <CardTitle className="text-text-theme-main">Select Scenarios</CardTitle>
               <CardDescription>Pick the feature scenarios you want to include in this run.</CardDescription>
+              <div className="grid gap-2">
+                <Label htmlFor="search">Search Scenarios</Label>
+                <Input 
+                  id="search" 
+                  placeholder="Type to search scenarios..." 
+                  value={searchTerm}
+                  onChange={e => setSearchTerm(e.target.value)}
+                  className="bg-surface text-text-theme-main"
+                />
+              </div>
             </CardHeader>
             <CardContent>
               <div className="grid gap-4 sm:grid-cols-2">
-                {scenarios.map(s => (
-                  <div key={s.scenario_id} className="flex items-center space-x-2 border dark:border-gray-800 p-3 rounded-md hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors">
+                {scenarios.filter(s => s.name.toLowerCase().includes(searchTerm.toLowerCase())).map(s => (
+                  <div key={s.scenario_id} className="flex items-center space-x-2 border border-border-theme p-3 rounded-md hover:bg-surface-accent transition-colors">
                     <Checkbox 
                       id={`s-${s.scenario_id}`} 
                       checked={selectedScenarioIds.includes(s.scenario_id)}
@@ -146,17 +159,22 @@ export default function NewRunPage() {
                     <div className="grid gap-1.5 leading-none">
                       <label 
                         htmlFor={`s-${s.scenario_id}`}
-                        className="text-sm font-medium leading-none cursor-pointer text-black dark:text-white"
+                        className="text-sm font-medium leading-none cursor-pointer text-text-theme-main flex items-center gap-2"
                       >
                         {s.name}
+                        {s.open_issues_count && s.open_issues_count > 0 && (
+                          <span title={`${s.open_issues_count} open issue${s.open_issues_count > 1 ? 's' : ''}`}>
+                            <AlertTriangle className="w-4 h-4 text-red-500" />
+                          </span>
+                        )}
                       </label>
-                      <p className="text-[10px] text-gray-500 uppercase tracking-widest">{s.module_name}</p>
+                      <p className="text-[10px] text-text-theme-muted uppercase tracking-widest">{s.module_name}</p>
                     </div>
                   </div>
                 ))}
               </div>
             </CardContent>
-            <CardFooter className="border-t dark:border-gray-800 pt-6">
+            <CardFooter className="border-t border-border-theme pt-6">
               <Button 
                 className="w-full" 
                 onClick={startRun}

@@ -118,7 +118,13 @@ export const TestCaseModel = {
 
     // Scenario Logic
     findScenarios(moduleId?: string) {
-        let query = 'SELECT * FROM scenarios';
+        let query = `
+            SELECT s.*, 
+                (SELECT COUNT(*) FROM issues i 
+                 JOIN test_cases tc ON i.test_case_id = tc.test_case_id 
+                 WHERE tc.scenario_id = s.scenario_id AND i.status != 'Closed') as open_issues_count
+            FROM scenarios s
+        `;
         const params: string[] = [];
         if (moduleId) {
             query += ' WHERE module_id = ?';

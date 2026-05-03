@@ -96,7 +96,7 @@ export default function RoleManagementPage() {
         if (res.ok) fetchData();
     };
 
-    if (loading) return <div className="p-12 text-center text-gray-500 uppercase tracking-widest text-xs font-bold animate-pulse">Loading Permission Matrix...</div>;
+    if (loading) return <div className="p-12 text-center text-text-theme-muted uppercase tracking-widest text-xs font-bold animate-pulse">Loading Permission Matrix...</div>;
 
     return (
         <div className="container mx-auto p-8 max-w-5xl space-y-8 text-text-theme-main">

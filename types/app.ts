@@ -15,6 +15,7 @@ export interface Scenario {
     scenario_id: string;
     module_id: string;
     name: string;
+    open_issues_count?: number;
 }
 
 export interface TestCase {

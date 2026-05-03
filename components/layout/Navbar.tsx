@@ -10,6 +10,7 @@ import { Sun, Moon } from "lucide-react";
 
 export const Navbar = () => {
   const [user, setUser] = useState<User | null>(null);
+  const [visible, setVisible] = useState(true);
   const router = useRouter();
   const { theme, toggleTheme } = useTheme();
 
@@ -25,6 +26,27 @@ export const Navbar = () => {
     });
   }, []);
 
+  useEffect(() => {
+    let lastScrollY = window.scrollY;
+
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+
+      if (currentScrollY <= 0) {
+        setVisible(true);
+      } else if (currentScrollY > lastScrollY) {
+        setVisible(false);
+      } else if (currentScrollY < lastScrollY) {
+        setVisible(true);
+      }
+
+      lastScrollY = currentScrollY;
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
   const handleLogout = async () => {
     await fetch("/api/logout", { method: "POST" });
     setUser({ isLoggedIn: false, role: "", name: "", user_id: "", email: "", permissions: [] });
@@ -33,7 +55,10 @@ export const Navbar = () => {
   };
 
   return (
-    <nav className="sticky top-0 z-50 w-full border-b border-border-theme bg-surface/80 backdrop-blur-md">
+    <nav
+      style={{ left: "var(--app-sidebar-width, 16rem)" }}
+      className={`fixed right-0 top-0 z-50 border-b border-border-theme bg-surface/80 backdrop-blur-md transition-transform duration-300 ${visible ? 'translate-y-0' : '-translate-y-full'}`}
+    >
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
         {/* Left: Brand & Navigation */}
         <div className="flex items-center gap-8">

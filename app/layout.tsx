@@ -34,7 +34,7 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col">
         <ThemeProvider>
           <Navbar />
-          <main className="flex-1">{children}</main>
+          <main className="pt-16 min-h-[calc(100vh-4rem)]">{children}</main>
         </ThemeProvider>
       </body>
     </html>

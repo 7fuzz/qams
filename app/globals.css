@@ -53,6 +53,7 @@
   --color-warning-theme: var(--warning);
   --color-danger-theme: var(--danger);
   --color-admin-theme: var(--admin);
+  --app-sidebar-width: 16rem;
   
   --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;

@@ -275,10 +275,10 @@ export default function ReleasesPage() {
                 </Card>
               </>
             ) : (
-              <Card className="h-[400px] flex items-center justify-center border-dashed border-2 text-gray-400 bg-white dark:bg-gray-950">
+              <Card className="h-[400px] flex items-center justify-center border-dashed border-2 text-text-theme-subtle bg-surface">
                 <div className="text-center">
                   <Info size={32} className="mx-auto mb-2 opacity-20" />
-                  <p className="text-sm">Select a version to see its details and changelog.</p>
+                  <p className="text-sm text-text-theme-muted">Select a version to see its details and changelog.</p>
                 </div>
               </Card>
             )}
@@ -290,21 +290,21 @@ export default function ReleasesPage() {
       <Modal isOpen={isReleaseModalOpen} onClose={() => setIsReleaseModalOpen(false)} title={releaseForm.release_id ? "Edit Release" : "New Release"}>
         <div className="space-y-4">
           <div className="space-y-2">
-            <Label className="text-black dark:text-white">Version Name</Label>
+            <Label className="text-text-theme-main">Version Name</Label>
             <Input placeholder="e.g. v1.0.0" value={releaseForm.version_name || ''} onChange={e => setReleaseForm({ ...releaseForm, version_name: e.target.value })} className="bg-surface text-text-theme-main" />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label className="text-black dark:text-white">Status</Label>
+              <Label className="text-text-theme-main">Status</Label>
               <Combobox options={RELEASE_STATUS_OPTIONS} value={releaseForm.status} onChange={val => setReleaseForm({ ...releaseForm, status: val as string })} />
             </div>
             <div className="space-y-2">
-              <Label className="text-black dark:text-white">Target Date</Label>
+              <Label className="text-text-theme-main">Target Date</Label>
               <Input type="date" value={releaseForm.target_date?.split(' ')[0] || ''} onChange={e => setReleaseForm({ ...releaseForm, target_date: e.target.value })} className="bg-surface text-text-theme-main" />
             </div>
           </div>
           <div className="space-y-2">
-            <Label className="text-black dark:text-white">Description</Label>
+            <Label className="text-text-theme-main">Description</Label>
             <Textarea value={releaseForm.description || ''} onChange={e => setReleaseForm({ ...releaseForm, description: e.target.value })} placeholder="Focus areas for this release..." className="bg-surface text-text-theme-main" />
           </div>
           <Button onClick={handleSaveRelease} className="w-full mt-4 shadow-lg shadow-indigo-500/20 py-6 font-bold">{releaseForm.release_id ? 'Update Release' : 'Create Release'}</Button>
@@ -315,11 +315,11 @@ export default function ReleasesPage() {
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label className="text-black dark:text-white">Change Type</Label>
+              <Label className="text-text-theme-main">Change Type</Label>
               <Combobox options={CHANGE_TYPE_OPTIONS} value={changeForm.type} onChange={val => setChangeForm({ ...changeForm, type: val as 'Feature' | 'Bugfix' | 'Enhancement' })} />
             </div>
             <div className="space-y-2">
-              <Label className="text-black dark:text-white flex items-center gap-1.5"><Layers size={12} /> Link Modules</Label>
+              <Label className="text-text-theme-main flex items-center gap-1.5"><Layers size={12} /> Link Modules</Label>
               <Combobox
                 multiSelect
                 options={projectModules.map(m => ({ value: m.module_id, label: m.name }))}
@@ -330,7 +330,7 @@ export default function ReleasesPage() {
             </div>
           </div>
           <div className="space-y-2">
-            <Label className="text-black dark:text-white flex items-center gap-1.5"><LinkIcon size={12} /> Link Issues</Label>
+            <Label className="text-text-theme-main flex items-center gap-1.5"><LinkIcon size={12} /> Link Issues</Label>
             <Combobox
               multiSelect
               options={projectIssues.map(i => ({ value: i.issue_id, label: i.title }))}
@@ -340,11 +340,11 @@ export default function ReleasesPage() {
             />
           </div>
           <div className="space-y-2">
-            <Label className="text-black dark:text-white">Title</Label>
+            <Label className="text-text-theme-main">Title</Label>
             <Input placeholder="What was changed?" value={changeForm.title || ''} onChange={e => setChangeForm({ ...changeForm, title: e.target.value })} className="bg-surface text-text-theme-main" />
           </div>
           <div className="space-y-2">
-            <Label className="text-black dark:text-white">Detailed Description</Label>
+            <Label className="text-text-theme-main">Detailed Description</Label>
             <Textarea value={changeForm.description || ''} onChange={e => setChangeForm({ ...changeForm, description: e.target.value })} placeholder="Context or technical details..." className="bg-surface text-text-theme-main" />
           </div>
           <Button onClick={handleSaveChange} className="w-full mt-4 shadow-lg shadow-indigo-500/20 py-6 font-bold text-white">{changeForm.change_id ? 'Update Item' : 'Add to Changelog'}</Button>

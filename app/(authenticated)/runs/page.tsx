@@ -82,7 +82,7 @@ export default function TestRunsPage() {
         filter: true,
         pinned: 'left',
         cellRenderer: (params: ICellRendererParams<TestRun>) => (
-            <div className="font-bold text-blue-600 dark:text-blue-400">{params.value}</div>
+            <div className="font-bold text-primary-theme">{params.value}</div>
         )
     },
     { 
@@ -90,7 +90,7 @@ export default function TestRunsPage() {
         headerName: 'Project', 
         width: 180,
         cellRenderer: (params: ICellRendererParams<TestRun>) => (
-            <div className="flex items-center gap-2"><LayoutPanelTop size={14} className="text-gray-400" /> {params.value}</div>
+            <div className="flex items-center gap-2"><LayoutPanelTop size={14} className="text-text-theme-subtle" /> {params.value}</div>
         )
     },
     { 
@@ -98,7 +98,7 @@ export default function TestRunsPage() {
         headerName: 'Owner', 
         width: 140,
         cellRenderer: (params: ICellRendererParams<TestRun>) => (
-            <div className="flex items-center gap-2"><User size={14} className="text-gray-400" /> {params.value}</div>
+            <div className="flex items-center gap-2"><User size={14} className="text-text-theme-subtle" /> {params.value}</div>
         )
     },
     { 
@@ -106,9 +106,9 @@ export default function TestRunsPage() {
       headerName: 'Status', 
       width: 130,
       cellClassRules: {
-        'text-blue-600 font-bold bg-blue-50 dark:bg-blue-900/10': params => params.value === "In Progress",
-        'text-green-600 font-bold bg-green-50 dark:bg-green-900/10': params => params.value === "Completed",
-        'text-gray-500 bg-gray-50 dark:bg-gray-900/10': params => params.value === "Draft",
+        'text-primary-theme font-bold bg-primary-theme/10': params => params.value === "In Progress",
+        'text-success-theme font-bold bg-success-theme/10': params => params.value === "Completed",
+        'text-text-theme-muted bg-surface-accent': params => params.value === "Draft",
       }
     },
     {
@@ -133,7 +133,7 @@ export default function TestRunsPage() {
             icon={Info} 
             size="sm" 
             variant="ghost" 
-            className="text-gray-500 hover:bg-gray-100" 
+            className="text-text-theme-muted hover:bg-surface-accent" 
             title="View Summary"
             aria-label="View summary"
             onClick={() => {
@@ -144,22 +144,22 @@ export default function TestRunsPage() {
             }}
           />
           <Link href={params.data ? `/runs/${params.data.run_id}` : '#'}>
-            <IconButton icon={Play} size="sm" variant="ghost" className="text-blue-600 hover:bg-blue-50" title="Execute" aria-label="Execute run" />
+            <IconButton icon={Play} size="sm" variant="ghost" className="text-primary-theme hover:bg-primary-theme/10" title="Execute" aria-label="Execute run" />
           </Link>
-          <IconButton icon={Trash2} size="sm" variant="ghost" className="text-red-600 hover:bg-red-50" aria-label="Delete run" title="Delete" onClick={() => params.data && deleteRun(params.data.run_id)} />
+          <IconButton icon={Trash2} size="sm" variant="ghost" className="text-danger-theme hover:bg-danger-theme/10" aria-label="Delete run" title="Delete" onClick={() => params.data && deleteRun(params.data.run_id)} />
         </div>
       )
     },
   ], [deleteRun]);
 
-  if (loading && total === 0) return <div className="p-12 text-center text-gray-500 uppercase tracking-widest text-xs font-bold animate-pulse">Loading Test Matrix...</div>;
+  if (loading && total === 0) return <div className="p-12 text-center text-text-theme-muted uppercase tracking-widest text-xs font-bold animate-pulse">Loading Test Matrix...</div>;
 
   return (
     <div className="container mx-auto p-4 md:p-8 flex flex-col gap-8 max-w-full">
       <div className="flex justify-between items-center">
         <div className="space-y-1">
-          <h1 className="text-3xl font-bold tracking-tight text-black dark:text-white">Test Executions</h1>
-          <p className="text-gray-500 dark:text-gray-400 font-medium">Track and analyze testing progress across your organization.</p>
+          <h1 className="text-3xl font-bold tracking-tight text-text-theme-main">Test Executions</h1>
+          <p className="text-text-theme-muted font-medium">Track and analyze testing progress across your organization.</p>
         </div>
         <Link href="/runs/new">
           <Button className="shadow-lg">
@@ -168,7 +168,7 @@ export default function TestRunsPage() {
         </Link>
       </div>
 
-      <div className="w-full border dark:border-gray-800 rounded-lg overflow-hidden bg-white dark:bg-gray-950 shadow-sm">
+      <div className="w-full border border-border-theme rounded-lg overflow-hidden bg-surface shadow-sm">
           <AgGridReact
             ref={gridRef}
             theme={unifiedGridTheme}

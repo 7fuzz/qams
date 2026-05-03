@@ -152,10 +152,10 @@ export default function UserManagementPage() {
         flex: 1,
         cellRenderer: (p: ICellRendererParams<User>) => (
             <div className="flex items-center gap-2 h-full">
-                <div className="w-6 h-6 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-600 flex items-center justify-center text-[10px] font-bold uppercase">
+                <div className="w-6 h-6 rounded-full bg-primary-theme/10 dark:bg-primary-theme/20 text-primary-theme flex items-center justify-center text-[10px] font-bold uppercase">
                     {p.value?.charAt(0)}
                 </div>
-                <span className="font-medium text-black dark:text-white">{p.value}</span>
+                <span className="font-medium text-text-theme-main">{p.value}</span>
             </div>
         )
     },
@@ -163,7 +163,7 @@ export default function UserManagementPage() {
         field: 'email', 
         headerName: 'Email Address', 
         flex: 1,
-        cellRenderer: (p: ICellRendererParams<User>) => <span className="text-text-theme-muted dark:text-gray-400">{p.value}</span>
+        cellRenderer: (p: ICellRendererParams<User>) => <span className="text-text-theme-muted">{p.value}</span>
     },
     { 
         field: 'role_name', 
@@ -185,8 +185,8 @@ export default function UserManagementPage() {
       pinned: 'right',
       cellRenderer: (params: ICellRendererParams<User>) => (
         <div className="flex gap-1 h-full items-center justify-center">
-          <IconButton icon={Edit2} size="sm" variant="ghost" className="text-blue-600" aria-label="Edit user" onClick={() => params.data && handleOpenEdit(params.data)} title="Edit" />
-          <IconButton icon={Trash2} size="sm" variant="ghost" className="text-red-600" aria-label="Delete user" onClick={() => params.data && handleDelete(params.data.user_id)} title="Delete" />
+          <IconButton icon={Edit2} size="sm" variant="ghost" className="text-primary-theme" aria-label="Edit user" onClick={() => params.data && handleOpenEdit(params.data)} title="Edit" />
+          <IconButton icon={Trash2} size="sm" variant="ghost" className="text-danger-theme" aria-label="Delete user" onClick={() => params.data && handleDelete(params.data.user_id)} title="Delete" />
         </div>
       )
     },

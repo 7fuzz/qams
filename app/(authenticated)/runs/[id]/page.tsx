@@ -48,21 +48,21 @@ export default function RunExecutionPage({ params }: { params: Promise<{ id: str
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="space-y-1">
           <div className="flex items-center gap-2 mb-2">
-            <Link href="/runs" className="text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors">
+            <Link href="/runs" className="text-text-theme-muted hover:text-text-theme-main transition-colors">
                 <ArrowLeft size={18} />
             </Link>
-            <span className="text-[10px] font-bold uppercase tracking-widest text-blue-500 bg-blue-500/10 px-2 py-0.5 rounded-full">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-primary-theme bg-primary-theme/10 px-2 py-0.5 rounded-full">
                 Run Details
             </span>
           </div>
-          <h1 className="text-3xl font-bold tracking-tight text-black dark:text-white">
+          <h1 className="text-3xl font-bold tracking-tight text-text-theme-main">
             {run?.name || 'Loading Run...'}
           </h1>
-          <p className="text-gray-500">Review and update the status of each test case in this run.</p>
+          <p className="text-text-theme-muted">Review and update the status of each test case in this run.</p>
         </div>
 
         {run?.status !== 'Completed' && (
-            <Button onClick={completeRun} className="bg-green-600 hover:bg-green-700 shadow-lg shadow-green-600/20">
+            <Button onClick={completeRun} className="bg-success-theme hover:bg-success-theme/80 shadow-lg shadow-success-theme/20">
                 <CheckCircle size={18} className="mr-2" /> Complete Test Run
             </Button>
         )}

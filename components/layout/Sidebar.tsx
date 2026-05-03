@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useLayoutEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { 
@@ -38,6 +38,11 @@ interface SidebarProps {
 export const Sidebar = ({ userRole, userPermissions = [] }: SidebarProps) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const pathname = usePathname();
+
+  useLayoutEffect(() => {
+    const width = isCollapsed ? "4rem" : "16rem";
+    document.documentElement.style.setProperty("--app-sidebar-width", width);
+  }, [isCollapsed]);
 
   const groups: MenuGroup[] = [
     {
@@ -84,9 +89,10 @@ export const Sidebar = ({ userRole, userPermissions = [] }: SidebarProps) => {
 
   return (
     <aside 
-      className={`relative flex flex-col border-r border-border-theme bg-surface transition-all duration-300 ${
+      style={{ width: isCollapsed ? '4rem' : '16rem', minWidth: isCollapsed ? '4rem' : '16rem' }}
+      className={`fixed top-0 left-0 h-screen flex flex-col border-r border-border-theme bg-surface transition-all duration-300 ${
         isCollapsed ? "w-16" : "w-64"
-      }`}
+      } z-40`}
     >
       <div className="flex h-16 items-center justify-between px-4 border-b border-border-theme shrink-0">
         {!isCollapsed && <span className="text-lg font-bold tracking-tight text-text-theme-main">Menu</span>}

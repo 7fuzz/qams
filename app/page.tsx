@@ -38,7 +38,7 @@ const invoices = [
 
 export default function Home() {
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-gray-50 p-8 dark:bg-gray-950">
+    <div className="flex min-h-screen flex-col items-center justify-center bg-surface-muted p-8">
       <main className="flex w-full max-w-5xl flex-col gap-12">
         <div className="space-y-2 text-center">
           <h1 className="text-4xl font-bold tracking-tight">Component Showcase</h1>

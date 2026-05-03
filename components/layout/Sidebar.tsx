@@ -47,15 +47,15 @@ export const Sidebar = ({ userRole, userPermissions = [] }: SidebarProps) => {
 
   return (
     <aside 
-      className={`relative flex flex-col border-r bg-white dark:bg-gray-950 transition-all duration-300 ${
+      className={`relative flex flex-col border-r border-border-theme bg-surface transition-all duration-300 ${
         isCollapsed ? "w-16" : "w-64"
       }`}
     >
-      <div className="flex h-16 items-center justify-between px-4 border-b">
-        {!isCollapsed && <span className="text-lg font-bold tracking-tight">Menu</span>}
+      <div className="flex h-16 items-center justify-between px-4 border-b border-border-theme">
+        {!isCollapsed && <span className="text-lg font-bold tracking-tight text-text-theme-main">Menu</span>}
         <button 
           onClick={() => setIsCollapsed(!isCollapsed)}
-          className="rounded-md p-1 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+          className="rounded-md p-1 hover:bg-surface-accent transition-colors text-text-theme-muted"
         >
           {isCollapsed ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}
         </button>
@@ -70,8 +70,8 @@ export const Sidebar = ({ userRole, userPermissions = [] }: SidebarProps) => {
               href={item.href}
               className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
                 isActive 
-                  ? "bg-gray-100 text-gray-900 dark:bg-gray-800 dark:text-gray-100" 
-                  : "text-gray-500 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-900 dark:hover:text-gray-100"
+                  ? "bg-surface-accent text-text-theme-main" 
+                  : "text-text-theme-muted hover:bg-surface-muted hover:text-text-theme-main"
               }`}
             >
               <item.icon size={20} />

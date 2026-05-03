@@ -4,10 +4,10 @@ import React from 'react';
 
 export const Table = React.forwardRef<HTMLTableElement, React.HTMLAttributes<HTMLTableElement>>(
   ({ className = '', ...props }, ref) => (
-    <div className="relative w-full overflow-auto border border-gray-200 dark:border-gray-800 rounded-lg shadow-sm">
+    <div className="relative w-full overflow-auto border border-border-theme rounded-lg shadow-sm">
       <table
         ref={ref}
-        className={`w-full caption-bottom text-sm bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100 ${className}`}
+        className={`w-full caption-bottom text-sm bg-surface text-text-theme-main ${className}`}
         {...props}
       />
     </div>
@@ -17,7 +17,7 @@ Table.displayName = 'Table';
 
 export const TableHeader = React.forwardRef<HTMLTableSectionElement, React.HTMLAttributes<HTMLTableSectionElement>>(
   ({ className = '', ...props }, ref) => (
-    <thead ref={ref} className={`bg-gray-50 dark:bg-gray-900/50 [&_tr]:border-b dark:[&_tr]:border-gray-800 ${className}`} {...props} />
+    <thead ref={ref} className={`bg-surface-muted [&_tr]:border-b [&_tr]:border-border-theme ${className}`} {...props} />
   )
 );
 TableHeader.displayName = 'TableHeader';
@@ -44,7 +44,7 @@ export const TableRow = React.forwardRef<HTMLTableRowElement, React.HTMLAttribut
   ({ className = '', ...props }, ref) => (
     <tr
       ref={ref}
-      className={`border-b border-gray-200 dark:border-gray-800 transition-colors hover:bg-gray-50 dark:hover:bg-gray-900/50 data-[state=selected]:bg-gray-100 dark:data-[state=selected]:bg-gray-800 ${className}`}
+      className={`border-b border-border-theme transition-colors hover:bg-surface-accent data-[state=selected]:bg-surface-accent ${className}`}
       {...props}
     />
   )
@@ -55,7 +55,7 @@ export const TableHead = React.forwardRef<HTMLTableCellElement, React.ThHTMLAttr
   ({ className = '', ...props }, ref) => (
     <th
       ref={ref}
-      className={`h-12 px-4 text-left align-middle font-medium text-gray-500 dark:text-gray-400 [&:has([role=checkbox])]:pr-0 ${className}`}
+      className={`h-12 px-4 text-left align-middle font-medium text-text-theme-muted [&:has([role=checkbox])]:pr-0 ${className}`}
       {...props}
     />
   )

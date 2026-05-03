@@ -4,7 +4,7 @@ import React from 'react';
 
 export const Card = ({ className = '', ...props }: React.HTMLAttributes<HTMLDivElement>) => (
   <div
-    className={`rounded-xl border border-gray-200 bg-white text-gray-950 shadow-sm dark:border-gray-800 dark:bg-gray-950 dark:text-gray-50 ${className}`}
+    className={`rounded-xl border border-border-theme bg-surface text-text-theme-main shadow-sm ${className}`}
     {...props}
   />
 );
@@ -18,7 +18,7 @@ export const CardTitle = ({ className = '', ...props }: React.HTMLAttributes<HTM
 );
 
 export const CardDescription = ({ className = '', ...props }: React.HTMLAttributes<HTMLParagraphElement>) => (
-  <p className={`text-sm text-gray-500 dark:text-gray-400 ${className}`} {...props} />
+  <p className={`text-sm text-text-theme-muted ${className}`} {...props} />
 );
 
 export const CardContent = ({ className = '', ...props }: React.HTMLAttributes<HTMLDivElement>) => (

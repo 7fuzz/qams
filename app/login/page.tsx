@@ -38,7 +38,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50 dark:bg-gray-950 p-4">
+    <div className="flex min-h-screen items-center justify-center bg-surface-muted p-4">
       <Card className="w-full max-w-md shadow-xl">
         <CardHeader className="space-y-1">
           <CardTitle className="text-2xl text-center font-bold">Sign in</CardTitle>
@@ -49,7 +49,7 @@ export default function LoginPage() {
         <form onSubmit={handleLogin}>
           <CardContent className="space-y-4">
             {error && (
-              <div className="p-3 text-sm text-red-600 bg-red-50 rounded-md border border-red-200">
+              <div className="p-3 text-sm text-danger-theme bg-danger-theme/10 rounded-md border border-danger-theme/20">
                 {error}
               </div>
             )}
@@ -82,10 +82,10 @@ export default function LoginPage() {
             
             <div className="relative w-full">
               <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t border-gray-300 dark:border-gray-800"></span>
+                <span className="w-full border-t border-border-theme"></span>
               </div>
               <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-white dark:bg-gray-950 px-2 text-gray-500">Or continue with</span>
+                <span className="bg-surface px-2 text-text-theme-muted">Or continue with</span>
               </div>
             </div>
 

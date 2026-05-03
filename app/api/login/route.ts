@@ -13,7 +13,7 @@ export async function POST(request: Request) {
   try {
     const user = UserModel.findByEmail(email);
 
-    if (!user) {
+    if (!user || !user.password) {
       return NextResponse.json({ error: "Invalid email or password" }, { status: 401 });
     }
 

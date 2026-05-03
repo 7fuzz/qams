@@ -5,24 +5,24 @@ import { themeQuartz } from 'ag-grid-community';
  * Optimized for both light and dark modes with high visibility.
  */
 export const baseGridParams = {
-  accentColor: '#3b82f6', // blue-500
-  backgroundColor: 'transparent',
-  foregroundColor: 'inherit',
-  headerBackgroundColor: 'rgba(0, 0, 0, 0.05)',
-  headerTextColor: 'inherit',
-  rowBorderColor: 'rgba(128, 128, 128, 0.15)',
+  accentColor: 'var(--primary)',
+  backgroundColor: 'var(--surface)',
+  foregroundColor: 'var(--text-main)',
+  headerBackgroundColor: 'var(--surface-muted)',
+  headerTextColor: 'var(--text-theme-muted)',
+  rowBorderColor: 'var(--border-muted)',
   fontSize: '14px',
   wrapperBorderRadius: '8px',
-  oddRowBackgroundColor: 'rgba(128, 128, 128, 0.04)',
+  oddRowBackgroundColor: 'var(--surface-muted)',
   
   // High visibility checkboxes
-  checkboxBorderColor: '#6366f1', // Indigo-500 for better contrast
-  checkboxCheckedBackgroundColor: '#3b82f6',
+  checkboxBorderColor: 'var(--primary)',
+  checkboxCheckedBackgroundColor: 'var(--primary)',
   checkboxUncheckedBackgroundColor: 'transparent',
   
   // Ensure inputs are opaque
-  inputBackgroundColor: '#ffffff',
-  inputBorderColor: 'rgba(128, 128, 128, 0.3)',
+  inputBackgroundColor: 'var(--surface)',
+  inputBorderColor: 'var(--border)',
 
   // Pagination Styles
   rowHeight: '42px',
@@ -32,4 +32,4 @@ export const baseGridParams = {
 // Re-export the theme object with our params
 export const unifiedGridTheme = themeQuartz.withParams(baseGridParams);
 
-export const GRID_CONTAINER_CLASS = "w-full border dark:border-gray-800 rounded-lg overflow-hidden bg-white dark:bg-gray-950 shadow-sm";
+export const GRID_CONTAINER_CLASS = "w-full border border-border-theme rounded-lg overflow-hidden bg-surface shadow-sm";

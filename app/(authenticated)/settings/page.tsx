@@ -62,8 +62,6 @@ export default function SettingsPage() {
                 <CardTitle className="text-lg flex items-center gap-2">
                     <Key size={20} className="text-primary-theme" /> Password Management
                 </CardTitle>
-            </CardHeader>
-
                 <CardDescription>Update your login credentials.</CardDescription>
             </CardHeader>
             <CardContent className="pt-6">

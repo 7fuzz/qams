@@ -150,11 +150,11 @@ export const TestCaseModel = {
         return true;
     },
 
-    importTestCases(moduleId: string, cases: any[], normalizers: { type: (value: any) => string | null, priority: (value: any) => string | null, automation: (value: any) => string }) {
+    importTestCases(moduleId: string, testCases: any[], normalizers: { type: (value: any) => string, priority: (value: any) => string, automation: (value: any) => string }) {
         let importedCount = 0;
         let skippedCount = 0;
 
-        const importTransaction = db.transaction((testCases) => {
+        const importTransaction = db.transaction((cases) => {
             const scenarioCache: Record<string, string> = {};
 
             const insertCase = db.prepare(`
@@ -168,14 +168,15 @@ export const TestCaseModel = {
             const findScenario = db.prepare('SELECT scenario_id FROM scenarios WHERE name = ? AND module_id = ?');
             const createScenario = db.prepare('INSERT INTO scenarios (scenario_id, module_id, name) VALUES (?, ?, ?)');
 
-            for (const tc of testCases) {
-                const type = normalizers.type(tc.type);
-                const priority = normalizers.priority(tc.priority);
-
-                if (type === null || priority === null) {
+            for (const tc of cases) {
+                const title = tc.title || tc.case;
+                if (!title) {
                     skippedCount++;
                     continue;
                 }
+
+                const type = normalizers.type(tc.type);
+                const priority = normalizers.priority(tc.priority);
 
                 const scenarioName = tc.scenario || 'Default Scenario';
                 
@@ -209,7 +210,7 @@ export const TestCaseModel = {
             }
         });
 
-        importTransaction(cases);
+        importTransaction(testCases);
         return { importedCount, skippedCount };
     }
 };

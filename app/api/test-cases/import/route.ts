@@ -6,21 +6,21 @@ import { TestCaseModel } from '@/models/TestCase';
 import { logActivity } from '@/lib/logger';
 import { TEST_CASE_TYPE, TEST_PRIORITY, AUTOMATION_STATUS } from '@/lib/constants';
 
-function normalizeType(val: any): string | null {
+function normalizeType(val: any): string {
     const s = String(val || '').toLowerCase().trim();
     if (s.includes('pos')) return TEST_CASE_TYPE.POSITIVE;
     if (s.includes('neg')) return TEST_CASE_TYPE.NEGATIVE;
     if (s.includes('edge')) return TEST_CASE_TYPE.EDGE_CASE;
-    return null;
+    return TEST_CASE_TYPE.POSITIVE;
 }
 
-function normalizePriority(val: any): string | null {
+function normalizePriority(val: any): string {
     const s = String(val || '').toLowerCase().trim();
     if (s === 'p0' || s.includes('crit')) return TEST_PRIORITY.P0;
     if (s === 'p1' || s === 'h' || s.includes('high')) return TEST_PRIORITY.P1;
     if (s === 'p2' || s === 'm' || s.includes('med')) return TEST_PRIORITY.P2;
     if (s === 'p3' || s === 'l' || s.includes('low')) return TEST_PRIORITY.P3;
-    return null;
+    return TEST_PRIORITY.P2;
 }
 
 function normalizeAutomation(val: any): string {

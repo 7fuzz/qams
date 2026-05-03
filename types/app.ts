@@ -90,3 +90,17 @@ export interface Issue {
     developer_name?: string;
     created_at: string;
 }
+
+export interface Attachment {
+    attachment_id: string;
+    entity_id: string;
+    entity_type: string;
+    url: string;
+    name: string;
+    created_at?: string;
+}
+
+export interface Role {
+    role_id: string;
+    name: string;
+}

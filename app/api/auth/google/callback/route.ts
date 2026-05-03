@@ -3,16 +3,8 @@ import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { OAuth2Client } from "google-auth-library";
 import { sessionOptions, SessionData } from "@/lib/session";
-import db from "@/lib/db";
-import { generateId } from "@/lib/id-utils";
-
-interface DbUser {
-    user_id: string;
-    name: string;
-    email: string;
-    role_name: string;
-    role_id: string;
-}
+import { UserModel } from "@/models/User";
+import { RoleModel } from "@/models/Role";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -45,30 +37,25 @@ export async function GET(request: Request) {
     const { email, name, sub: googleId } = payload;
 
     // 1. Check if user exists by email
-    let user = db.prepare(`
-      SELECT u.*, r.name as role_name 
-      FROM users u 
-      JOIN roles r ON u.role_id = r.role_id 
-      WHERE u.email = ?
-    `).get(email) as DbUser | undefined;
+    let user = UserModel.findByEmail(email);
 
     if (!user) {
       // 2. Create user if doesn't exist
       // Assign default 'QA' role
-      const qaRole = db.prepare('SELECT role_id FROM roles WHERE name = ?').get('QA') as { role_id: string };
-      const userId = generateId();
-      db.prepare(`
-        INSERT INTO users (user_id, name, email, password, role_id) 
-        VALUES (?, ?, ?, ?, ?)
-      `).run(userId, name || email, email, `google_${googleId}`, qaRole.role_id);
+      const qaRole = RoleModel.findByName('QA');
+      if (!qaRole) throw new Error("Default QA role not found");
+
+      const userId = UserModel.createGoogleUser({
+        name: name || email,
+        email: email,
+        googleId: googleId!,
+        roleId: qaRole.role_id
+      });
       
-      user = db.prepare(`
-        SELECT u.*, r.name as role_name 
-        FROM users u 
-        JOIN roles r ON u.role_id = r.role_id 
-        WHERE u.user_id = ?
-      `).get(userId) as DbUser;
+      user = UserModel.findById(userId) as any; // Cast to LoginUser compatible
     }
+
+    if (!user) throw new Error("Failed to retrieve user after creation");
 
     // 3. Set Session
     const session = await getIronSession<SessionData>(await cookies(), sessionOptions);

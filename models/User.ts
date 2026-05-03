@@ -47,6 +47,15 @@ export const UserModel = {
         return userId;
     },
 
+    createGoogleUser(data: { name: string, email: string, googleId: string, roleId: string }) {
+        const userId = generateId();
+        db.prepare(`
+            INSERT INTO users (user_id, name, email, password, role_id) 
+            VALUES (?, ?, ?, ?, ?)
+        `).run(userId, data.name, data.email, `google_${data.googleId}`, data.roleId);
+        return userId;
+    },
+
     async update(id: string, data: { name: string, email: string, password?: string, role_id: string }) {
         if (data.password) {
             const hashed = await hashPassword(data.password);

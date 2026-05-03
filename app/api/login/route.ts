@@ -2,21 +2,15 @@ import { getIronSession } from "iron-session";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { sessionOptions, SessionData } from "@/lib/session";
-import db from "@/lib/db";
 import { comparePassword } from "@/lib/auth-utils";
-import { LoginUser } from "@/types/auth";
+import { UserModel } from "@/models/User";
 
 export async function POST(request: Request) {
   const session = await getIronSession<SessionData>(await cookies(), sessionOptions);
   const { email, password } = await request.json();
 
   try {
-    const user = db.prepare(`
-      SELECT u.*, r.name as role_name 
-      FROM users u 
-      JOIN roles r ON u.role_id = r.role_id 
-      WHERE u.email = ?
-    `).get(email) as LoginUser | undefined;
+    const user = UserModel.findByEmail(email);
 
     if (!user) {
       return NextResponse.json({ error: "Invalid email or password" }, { status: 401 });

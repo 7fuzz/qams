@@ -272,12 +272,14 @@ export default function UserManagementPage() {
                         />
                     </div>
                     <div className="space-y-2">
-                        <Label className="flex items-center gap-2 text-gray-500 text-[10px] font-bold uppercase tracking-widest"><Key size={12} /> Password {selectedUser && '(Leave blank to keep current)'}</Label>
+                        <Label className="flex items-center gap-2 text-gray-500 text-[10px] font-bold uppercase tracking-widest">
+                            <Key size={12} /> Password {selectedUser ? '(Leave blank to keep current)' : '(Optional for Google users)'}
+                        </Label>
                         <Input 
                             type="password"
                             value={formData.password} 
                             onChange={e => setFormData({...formData, password: e.target.value})} 
-                            placeholder={selectedUser ? "••••••••" : "Initial password"}
+                            placeholder={selectedUser ? "••••••••" : "Initial password or leave empty for Google Login"}
                             className="bg-white dark:bg-gray-950 text-black dark:text-white"
                         />
                     </div>

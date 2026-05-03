@@ -43,7 +43,10 @@ export async function POST(request: Request) {
     try {
         const { name, email, password, role_id } = await request.json();
         const userId = generateId();
-        const hashed = await hashPassword(password || '123456');
+        
+        // If no password provided, generate a random safe string (intended for Google users)
+        const placeholderPassword = password || Math.random().toString(36).slice(-10) + Math.random().toString(36).slice(-10);
+        const hashed = await hashPassword(placeholderPassword);
 
         db.prepare('INSERT INTO users (user_id, name, email, password, role_id) VALUES (?, ?, ?, ?, ?)')
             .run(userId, name, email, hashed, role_id);

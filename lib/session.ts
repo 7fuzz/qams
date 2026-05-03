@@ -1,12 +1,7 @@
 import { SessionOptions } from "iron-session";
+import { SessionData } from "@/types/auth";
 
-export interface SessionData {
-  user_id: string;
-  name: string;
-  email: string;
-  role: string;
-  isLoggedIn: boolean;
-}
+export type { SessionData };
 
 export const defaultSession: SessionData = {
   user_id: "",

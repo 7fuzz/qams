@@ -3,26 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Modal, Button, Label, Input, Combobox, Textarea, AttachmentManager } from '../ui';
 import { TEST_CASE_TYPE_OPTIONS, TEST_PRIORITY_OPTIONS, AUTOMATION_STATUS_OPTIONS } from '@/lib/constants';
-
-interface Scenario {
-    scenario_id: string;
-    name: string;
-}
-
-interface TestCase {
-  test_case_id: string;
-  scenario_id: string;
-  title: string;
-  type: string;
-  priority: string;
-  automation_status: string;
-  requirement_link: string;
-  estimated_duration: number;
-  precondition: string;
-  steps: string;
-  test_data: string;
-  expected_result: string;
-}
+import { TestCase, Scenario } from '@/types/app';
 
 interface EditTestCaseDialogProps {
   testCase: TestCase | null;

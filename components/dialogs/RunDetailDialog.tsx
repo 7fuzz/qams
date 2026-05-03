@@ -4,20 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Modal, Button, Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '../ui';
 import { AlertCircle, User, LayoutPanelTop, Calendar } from 'lucide-react';
 import { ISSUE_STATUS } from '@/lib/constants';
-
-interface Run {
-  run_id: string;
-  name: string;
-  project_name: string;
-  project_owner: string;
-  tester_name: string;
-  status: string;
-  created_at: string;
-  total_cases: number;
-  passed_count: number;
-  failed_count: number;
-  pending_count: number;
-}
+import { TestRun as Run } from '@/types/app';
 
 interface RunIssue {
   issue_id: string;

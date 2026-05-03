@@ -4,14 +4,7 @@ import { NextResponse } from "next/server";
 import { sessionOptions, SessionData } from "@/lib/session";
 import db from "@/lib/db";
 import { comparePassword } from "@/lib/auth-utils";
-
-interface LoginUser {
-    user_id: string;
-    name: string;
-    email: string;
-    password: string;
-    role_name: string;
-}
+import { LoginUser } from "@/types/auth";
 
 export async function POST(request: Request) {
   const session = await getIronSession<SessionData>(await cookies(), sessionOptions);

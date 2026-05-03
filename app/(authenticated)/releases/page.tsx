@@ -5,42 +5,7 @@ import {
   Card, CardHeader, CardTitle, CardContent, Button, Modal, Input, Label, Textarea, Combobox
 } from "@/components/ui";
 import { Tag, Plus, Calendar, Clock, GitCommit, AlertCircle, Trash2, Edit2, Info, ArrowRight, Link as LinkIcon, Layers } from 'lucide-react';
-
-interface Project {
-  project_id: string;
-  name: string;
-}
-
-interface Module {
-  module_id: string;
-  name: string;
-}
-
-interface Release {
-  release_id: string;
-  project_id: string;
-  version_name: string;
-  status: string;
-  target_date: string;
-  description: string;
-}
-
-interface Issue {
-    issue_id: string;
-    title: string;
-}
-
-interface ReleaseChange {
-  change_id: string;
-  release_id: string;
-  module_ids: string[];
-  module_names: string[];
-  type: 'Feature' | 'Bugfix' | 'Enhancement';
-  title: string;
-  description: string;
-  issue_ids: string[];
-  issue_titles: string[];
-}
+import { Project, Module, Release, Issue, ReleaseChange } from '@/types/app';
 
 const RELEASE_STATUS_OPTIONS = [
     { value: 'Planning', label: 'Planning' },

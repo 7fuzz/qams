@@ -4,9 +4,10 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "../ui/Button";
+import { User } from "@/types/auth";
 
 export const Navbar = () => {
-  const [user, setUser] = useState<{ isLoggedIn: boolean; role: string; name: string; user_id: string } | null>(null);
+  const [user, setUser] = useState<User | null>(null);
   const router = useRouter();
 
   const fetchUser = async () => {
@@ -23,7 +24,7 @@ export const Navbar = () => {
 
   const handleLogout = async () => {
     await fetch("/api/logout", { method: "POST" });
-    setUser({ isLoggedIn: false, role: "", name: "", user_id: "" });
+    setUser({ isLoggedIn: false, role: "", name: "", user_id: "", email: "" });
     router.push("/login");
     router.refresh();
   };

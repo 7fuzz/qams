@@ -15,32 +15,10 @@ import { TEST_CASE_TYPE, TEST_CASE_TYPE_OPTIONS, TEST_PRIORITY, TEST_PRIORITY_OP
 import { unifiedGridTheme } from '@/lib/theme';
 import { EditTestCaseDialog } from '../dialogs/EditTestCaseDialog';
 import { IssuesListDialog } from '../dialogs/IssuesListDialog';
+import { TestCase, Scenario } from '@/types/app';
 import * as XLSX from 'xlsx';
 
 ModuleRegistry.registerModules([AllCommunityModule]);
-
-interface TestCase {
-  test_case_id: string;
-  scenario_id: string;
-  title: string;
-  type: string;
-  priority: string;
-  automation_status: string;
-  requirement_link: string;
-  estimated_duration: number;
-  precondition: string;
-  steps: string;
-  test_data: string;
-  expected_result: string;
-  scenario_name?: string;
-  open_issues_count?: number;
-  closed_issues_count?: number;
-}
-
-interface Scenario {
-    scenario_id: string;
-    name: string;
-}
 
 interface TestManagementGridProps {
   moduleId: string;

@@ -13,22 +13,9 @@ import {
 import { Play, Trash2, Plus, Info, LayoutPanelTop, User } from 'lucide-react';
 import { unifiedGridTheme } from '@/lib/theme';
 import { RunDetailDialog } from '@/components/dialogs/RunDetailDialog';
+import { TestRun } from '@/types/app';
 
 ModuleRegistry.registerModules([AllCommunityModule]);
-
-interface TestRun {
-    run_id: string;
-    name: string;
-    project_name: string;
-    project_owner: string;
-    status: string;
-    total_cases: number;
-    passed_count: number;
-    failed_count: number;
-    pending_count: number;
-    tester_name: string;
-    created_at: string;
-}
 
 export default function TestRunsPage() {
   const gridRef = useRef<AgGridReact>(null);

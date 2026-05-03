@@ -168,17 +168,17 @@ export const TestManagementGrid = ({ moduleId }: TestManagementGridProps) => {
   const columnDefs = useMemo<ColDef<TestCase>[]>(() => {
     const cols: ColDef<TestCase>[] = [
     { 
-        field: 'scenario_id', 
-        headerName: 'Scenario & Action', 
-        width: 200,
+        field: 'custom_id', 
+        headerName: 'ID', 
+        width: 120,
+        filter: true,
         pinned: 'left',
         checkboxSelection: true, 
         headerCheckboxSelection: true,
         cellRenderer: (params: ICellRendererParams<TestCase>) => {
-            const scenarioName = scenarios.find(s => s.scenario_id === params.value)?.name || params.value;
             return (
                 <div className="flex items-center justify-between w-full h-full gap-2">
-                    <span className="truncate font-bold">{scenarioName}</span>
+                    <span className="truncate font-bold">{params.value || <span className="text-gray-400 italic text-[10px]">No ID</span>}</span>
                     <IconButton 
                         icon={Edit2} 
                         size="sm" 
@@ -195,6 +195,16 @@ export const TestManagementGrid = ({ moduleId }: TestManagementGridProps) => {
                     />
                 </div>
             );
+        },
+    },
+    { 
+        field: 'scenario_id', 
+        headerName: 'Scenario', 
+        width: 180,
+        pinned: 'left',
+        cellRenderer: (params: ICellRendererParams<TestCase>) => {
+            const scenarioName = scenarios.find(s => s.scenario_id === params.value)?.name || params.value;
+            return <span className="truncate font-medium">{scenarioName}</span>;
         },
         cellEditor: 'agSelectCellEditor',
         cellEditorParams: {

@@ -70,6 +70,7 @@ CREATE TABLE IF NOT EXISTS scenarios (
 -- Test Cases Table
 CREATE TABLE IF NOT EXISTS test_cases (
     test_case_id TEXT PRIMARY KEY,
+    custom_id TEXT, -- Optional manual ID (e.g. TC-001)
     scenario_id TEXT NOT NULL,
     title TEXT NOT NULL,
     type TEXT NOT NULL,

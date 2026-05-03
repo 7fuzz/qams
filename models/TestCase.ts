@@ -59,7 +59,7 @@ export const TestCaseModel = {
         return db.prepare('SELECT * FROM test_cases WHERE test_case_id = ?').get(id) as TestCase | undefined;
     },
 
-    create(data: Partial<TestCase>) {
+    create(data: any) {
         const id = generateId();
         db.prepare(`
             INSERT INTO test_cases (test_case_id, custom_id, scenario_id, title, type, priority, automation_status, requirement_link, estimated_duration, precondition, steps, test_data, expected_result)
@@ -73,7 +73,7 @@ export const TestCaseModel = {
         return id;
     },
 
-    update(id: string, data: Partial<TestCase>) {
+    update(id: string, data: any) {
         db.prepare(`
             UPDATE test_cases 
             SET custom_id = ?, title = ?, type = ?, priority = ?, automation_status = ?, requirement_link = ?, estimated_duration = ?, precondition = ?, steps = ?, test_data = ?, expected_result = ?, scenario_id = ?, updated_at = CURRENT_TIMESTAMP

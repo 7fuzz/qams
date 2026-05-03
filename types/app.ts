@@ -20,6 +20,7 @@ export interface Scenario {
 
 export interface TestCase {
     test_case_id: string;
+    custom_id?: string;
     scenario_id: string;
     title: string;
     type: string;

@@ -46,7 +46,11 @@ export const EditTestCaseDialog = ({ testCase, scenarios, isOpen, onClose, onSav
     <Modal isOpen={isOpen} onClose={onClose} title={`Edit: ${testCase.title}`}>
       <div className="space-y-6 text-black dark:text-white">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2 col-span-2">
+            <div className="space-y-2">
+                <Label className="text-black dark:text-white">Case ID (Optional)</Label>
+                <Input value={formData.custom_id || ''} onChange={e => setFormData(prev => ({...prev, custom_id: e.target.value}))} placeholder="e.g. TC-001" className="bg-white dark:bg-gray-950 text-black dark:text-white" />
+            </div>
+            <div className="space-y-2">
                 <Label className="text-black dark:text-white">Scenario</Label>
                 <Combobox 
                     options={scenarios.map(s => ({ value: s.scenario_id, label: s.name }))}

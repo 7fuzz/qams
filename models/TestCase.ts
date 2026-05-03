@@ -62,10 +62,10 @@ export const TestCaseModel = {
     create(data: Partial<TestCase>) {
         const id = generateId();
         db.prepare(`
-            INSERT INTO test_cases (test_case_id, scenario_id, title, type, priority, automation_status, requirement_link, estimated_duration, precondition, steps, test_data, expected_result)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO test_cases (test_case_id, custom_id, scenario_id, title, type, priority, automation_status, requirement_link, estimated_duration, precondition, steps, test_data, expected_result)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `).run(
-            id, data.scenario_id, data.title, data.type, 
+            id, data.custom_id || null, data.scenario_id, data.title, data.type, 
             data.priority || null, data.automation_status || null, 
             data.requirement_link || null, data.estimated_duration || null, 
             data.precondition, data.steps, data.test_data, data.expected_result
@@ -76,10 +76,10 @@ export const TestCaseModel = {
     update(id: string, data: Partial<TestCase>) {
         db.prepare(`
             UPDATE test_cases 
-            SET title = ?, type = ?, priority = ?, automation_status = ?, requirement_link = ?, estimated_duration = ?, precondition = ?, steps = ?, test_data = ?, expected_result = ?, scenario_id = ?, updated_at = CURRENT_TIMESTAMP
+            SET custom_id = ?, title = ?, type = ?, priority = ?, automation_status = ?, requirement_link = ?, estimated_duration = ?, precondition = ?, steps = ?, test_data = ?, expected_result = ?, scenario_id = ?, updated_at = CURRENT_TIMESTAMP
             WHERE test_case_id = ?
         `).run(
-            data.title, data.type, data.priority || null, 
+            data.custom_id || null, data.title, data.type, data.priority || null, 
             data.automation_status || null, data.requirement_link || null, 
             data.estimated_duration || null, data.precondition, data.steps, 
             data.test_data, data.expected_result, data.scenario_id, id
@@ -97,10 +97,11 @@ export const TestCaseModel = {
 
         const newId = generateId();
         db.prepare(`
-            INSERT INTO test_cases (test_case_id, scenario_id, title, type, priority, automation_status, requirement_link, estimated_duration, precondition, steps, test_data, expected_result)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO test_cases (test_case_id, custom_id, scenario_id, title, type, priority, automation_status, requirement_link, estimated_duration, precondition, steps, test_data, expected_result)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `).run(
             newId,
+            source.custom_id ? source.custom_id + ' (Copy)' : null,
             source.scenario_id, 
             source.title + ' (Copy)', 
             source.type, 
@@ -159,10 +160,26 @@ export const TestCaseModel = {
 
             const insertCase = db.prepare(`
                 INSERT INTO test_cases (
-                    test_case_id, scenario_id, title, type, priority, 
+                    test_case_id, custom_id, scenario_id, title, type, priority, 
                     automation_status, requirement_link, estimated_duration, 
                     precondition, steps, test_data, expected_result
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            `);
+
+            const updateCase = db.prepare(`
+                UPDATE test_cases 
+                SET scenario_id = ?, title = ?, type = ?, priority = ?, 
+                    automation_status = ?, requirement_link = ?, estimated_duration = ?, 
+                    precondition = ?, steps = ?, test_data = ?, expected_result = ?, 
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE test_case_id = ?
+            `);
+
+            const findExistingCase = db.prepare(`
+                SELECT tc.test_case_id 
+                FROM test_cases tc
+                JOIN scenarios s ON tc.scenario_id = s.scenario_id
+                WHERE tc.custom_id = ? AND s.module_id = ?
             `);
 
             const findScenario = db.prepare('SELECT scenario_id FROM scenarios WHERE name = ? AND module_id = ?');
@@ -192,20 +209,48 @@ export const TestCaseModel = {
                     scenarioCache[scenarioName] = scenarioId;
                 }
 
-                insertCase.run(
-                    generateId(),
-                    scenarioId,
-                    tc.title || tc.case || 'Untitled Case',
-                    type,
-                    priority,
-                    normalizers.automation(tc.automation_status),
-                    tc.requirement_link || null,
-                    parseInt(tc.estimated_duration) || 0,
-                    tc.precondition || '',
-                    tc.steps || '',
-                    tc.test_data || '',
-                    tc.expected_result || ''
-                );
+                const customId = tc.id || tc.custom_id || null;
+                let existingId = null;
+
+                if (customId) {
+                    const existing = findExistingCase.get(customId, moduleId) as { test_case_id: string };
+                    if (existing) {
+                        existingId = existing.test_case_id;
+                    }
+                }
+
+                if (existingId) {
+                    updateCase.run(
+                        scenarioId,
+                        title,
+                        type,
+                        priority,
+                        normalizers.automation(tc.automation_status),
+                        tc.requirement_link || null,
+                        parseInt(tc.estimated_duration) || 0,
+                        tc.precondition || '',
+                        tc.steps || '',
+                        tc.test_data || '',
+                        tc.expected_result || '',
+                        existingId
+                    );
+                } else {
+                    insertCase.run(
+                        generateId(),
+                        customId,
+                        scenarioId,
+                        title,
+                        type,
+                        priority,
+                        normalizers.automation(tc.automation_status),
+                        tc.requirement_link || null,
+                        parseInt(tc.estimated_duration) || 0,
+                        tc.precondition || '',
+                        tc.steps || '',
+                        tc.test_data || '',
+                        tc.expected_result || ''
+                    );
+                }
                 importedCount++;
             }
         });

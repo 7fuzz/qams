@@ -73,36 +73,12 @@
   --text-muted: #9ca3af;
   --text-subtle: #6b7280;
 
-  /* Semantic Dark Adjustments (slightly more vibrant for dark mode contrast if needed) */
+  /* Semantic Dark Adjustments */
   --primary: #3b82f6;
   --success: #22c55e;
   --warning: #fb923c;
   --danger: #ef4444;
   --admin: #8b5cf6;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root:not(.light) {
-    --background: #0a0a0a;
-    --foreground: #f9fafb;
-    
-    --surface: #0a0a0a;
-    --surface-muted: #111827;
-    --surface-accent: #1f2937;
-    
-    --border: #1f2937;
-    --border-muted: #111827;
-    
-    --text-main: #f9fafb;
-    --text-muted: #9ca3af;
-    --text-subtle: #6b7280;
-
-    --primary: #3b82f6;
-    --success: #22c55e;
-    --warning: #fb923c;
-    --danger: #ef4444;
-    --admin: #8b5cf6;
-  }
 }
 
 body {

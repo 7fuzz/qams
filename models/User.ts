@@ -1,5 +1,5 @@
 import db from '@/lib/db';
-import { User, LoginUser } from '@/types/auth';
+import { LoginUser } from '@/types/auth';
 import { generateId } from '@/lib/id-utils';
 import { hashPassword } from '@/lib/auth-utils';
 
@@ -13,7 +13,7 @@ export const UserModel = {
             ${baseQuery}
             ORDER BY u.name ASC
             LIMIT ? OFFSET ?
-        `).all(limit, offset) as User[];
+        `).all(limit, offset) as LoginUser[];
 
         return { data, total };
     },
@@ -42,7 +42,7 @@ export const UserModel = {
             FROM users u 
             JOIN roles r ON u.role_id = r.role_id 
             WHERE u.user_id = ?
-        `).get(id) as User | undefined;
+        `).get(id) as LoginUser | undefined;
     },
 
     async create(data: { name: string, email: string, password?: string, role_id: string }) {

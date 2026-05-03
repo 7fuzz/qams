@@ -11,7 +11,7 @@ export interface LoginUser {
     user_id: string;
     name: string;
     email: string;
-    password: string;
+    password?: string;
     role_name: string;
     role_id: string;
 }

@@ -36,23 +36,29 @@ export async function GET(request: Request) {
 
     const { email, name, sub: googleId } = payload;
 
-    // 1. Check if user exists by email
-    let user = UserModel.findByEmail(email);
+    // 1. Check if user exists by googleId
+    let user = UserModel.findByGoogleId(googleId!);
 
     if (!user) {
-      // 2. Create user if doesn't exist
-      // Assign default 'QA' role
-      const qaRole = RoleModel.findByName('QA');
-      if (!qaRole) throw new Error("Default QA role not found");
+      // 2. Try to find by email (to link existing manual account)
+      user = UserModel.findByEmail(email);
+      if (user) {
+        // Link the googleId to the existing account
+        UserModel.linkGoogleAccount(user.user_id, googleId!);
+      } else {
+        // 3. Create new user if doesn't exist at all
+        const qaRole = RoleModel.findByName('QA');
+        if (!qaRole) throw new Error("Default QA role not found");
 
-      const userId = UserModel.createGoogleUser({
-        name: name || email,
-        email: email,
-        googleId: googleId!,
-        roleId: qaRole.role_id
-      });
-      
-      user = UserModel.findById(userId) as any; // Cast to LoginUser compatible
+        const userId = UserModel.createGoogleUser({
+          name: name || email,
+          email: email,
+          googleId: googleId!,
+          roleId: qaRole.role_id
+        });
+        
+        user = UserModel.findById(userId) as any;
+      }
     }
 
     if (!user) throw new Error("Failed to retrieve user after creation");

@@ -27,6 +27,15 @@ export const UserModel = {
         `).get(email) as LoginUser | undefined;
     },
 
+    findByGoogleId(googleId: string) {
+        return db.prepare(`
+            SELECT u.*, r.name as role_name 
+            FROM users u 
+            JOIN roles r ON u.role_id = r.role_id 
+            WHERE u.google_id = ?
+        `).get(googleId) as LoginUser | undefined;
+    },
+
     findById(id: string) {
         return db.prepare(`
             SELECT u.*, r.name as role_name 
@@ -38,23 +47,35 @@ export const UserModel = {
 
     async create(data: { name: string, email: string, password?: string, role_id: string }) {
         const userId = generateId();
-        const placeholderPassword = data.password || Math.random().toString(36).slice(-10) + Math.random().toString(36).slice(-10);
-        const hashed = await hashPassword(placeholderPassword);
+        let hashed = null;
+        if (data.password) {
+            hashed = await hashPassword(data.password);
+        }
 
         db.prepare('INSERT INTO users (user_id, name, email, password, role_id) VALUES (?, ?, ?, ?, ?)')
             .run(userId, data.name, data.email, hashed, data.role_id);
-        
+
         return userId;
     },
 
     createGoogleUser(data: { name: string, email: string, googleId: string, roleId: string }) {
         const userId = generateId();
         db.prepare(`
-            INSERT INTO users (user_id, name, email, password, role_id) 
+            INSERT INTO users (user_id, name, email, google_id, role_id) 
             VALUES (?, ?, ?, ?, ?)
-        `).run(userId, data.name, data.email, `google_${data.googleId}`, data.roleId);
+        `).run(userId, data.name, data.email, data.googleId, data.roleId);
         return userId;
     },
+
+    linkGoogleAccount(userId: string, googleId: string) {
+        return db.prepare('UPDATE users SET google_id = ? WHERE user_id = ?').run(googleId, userId);
+    },
+
+    async updatePassword(userId: string, newPassword: string) {
+        const hashed = await hashPassword(newPassword);
+        return db.prepare('UPDATE users SET password = ? WHERE user_id = ?').run(hashed, userId);
+    },
+
 
     async update(id: string, data: { name: string, email: string, password?: string, role_id: string }) {
         if (data.password) {

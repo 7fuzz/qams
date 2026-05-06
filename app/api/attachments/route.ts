@@ -14,7 +14,7 @@ export async function GET(request: Request) {
     }
 
     try {
-        const attachments = AttachmentModel.findAll(entityId, entityType);
+        const attachments = await AttachmentModel.findAll(entityId, entityType);
         return NextResponse.json(attachments);
     } catch {
         return NextResponse.json({ error: 'Failed to fetch attachments' }, { status: 500 });
@@ -27,7 +27,7 @@ export async function POST(request: Request) {
 
     try {
         const body = await request.json();
-        const result = AttachmentModel.create(body);
+        const result = await AttachmentModel.create(body);
         return NextResponse.json(result);
     } catch {
         return NextResponse.json({ error: 'Failed to add attachment' }, { status: 500 });
@@ -43,7 +43,7 @@ export async function DELETE(request: Request) {
     
     try {
         if (!id) return NextResponse.json({ error: 'Missing ID' }, { status: 400 });
-        AttachmentModel.delete(id);
+        await AttachmentModel.delete(id);
         return NextResponse.json({ success: true });
     } catch {
         return NextResponse.json({ error: 'Failed to delete attachment' }, { status: 500 });

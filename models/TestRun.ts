@@ -1,6 +1,7 @@
 import db from '@/lib/db';
 import { TestRun } from '@/types/app';
 import { generateId } from '@/lib/id-utils';
+import { RowDataPacket, ResultSetHeader } from 'mysql2';
 
 export const TestRunModel = {
     async findAll(projectId: string | null, limit: number, offset: number) {
@@ -10,15 +11,16 @@ export const TestRunModel = {
             JOIN projects p ON tr.project_id = p.project_id
             JOIN users po ON p.owner_id = po.user_id
         `;
-        const params: unknown[] = [];
+        const params: any[] = [];
         if (projectId) {
             baseQuery += ' WHERE tr.project_id = ?';
             params.push(projectId);
         }
 
-        const total = (db.prepare(`SELECT COUNT(*) as total ${baseQuery}`).get(...params) as { total: number }).total;
+        const [countRows] = await db.execute<(RowDataPacket & { total: number })[]>(`SELECT COUNT(*) as total ${baseQuery}`, params);
+        const total = countRows[0].total;
         
-        const data = db.prepare(`
+        const [data] = await db.execute<TestRun[] & RowDataPacket[]>(`
             SELECT 
                 tr.*, 
                 u.name as tester_name, 
@@ -31,36 +33,50 @@ export const TestRunModel = {
             ${baseQuery}
             ORDER BY tr.created_at DESC
             LIMIT ? OFFSET ?
-        `).all(...params, limit, offset) as TestRun[];
+        `, [...params, limit, offset]);
 
         return { data, total };
     },
 
-    create(data: { project_id: string, name: string, tester_id: string, scenario_ids: string[] }) {
+    async create(data: { project_id: string, name: string, tester_id: string, scenario_ids: string[] }) {
         const runId = generateId();
-        
-        const createRun = db.transaction(() => {
-            db.prepare('INSERT INTO test_runs (run_id, project_id, tester_id, name, status) VALUES (?, ?, ?, ?, ?)')
-                .run(runId, data.project_id, data.tester_id, data.name, 'In Progress');
+        const connection = await db.getConnection();
+        await connection.beginTransaction();
 
-            const placeholders = data.scenario_ids.map(() => '?').join(',');
-            const testCases = db.prepare(`SELECT test_case_id FROM test_cases WHERE scenario_id IN (${placeholders})`)
-                .all(...data.scenario_ids) as { test_case_id: string }[];
+        try {
+            await connection.execute(
+                'INSERT INTO test_runs (run_id, project_id, tester_id, name, status) VALUES (?, ?, ?, ?, ?)',
+                [runId, data.project_id, data.tester_id, data.name, 'In Progress']
+            );
 
-            const insertExecution = db.prepare('INSERT INTO test_executions (execution_id, run_id, test_case_id, status) VALUES (?, ?, ?, ?)');
-            for (const tc of testCases) {
-                insertExecution.run(generateId(), runId, tc.test_case_id, 'Pending');
+            if (data.scenario_ids.length > 0) {
+                const placeholders = data.scenario_ids.map(() => '?').join(',');
+                const [testCases] = await connection.execute<RowDataPacket[]>(
+                    `SELECT test_case_id FROM test_cases WHERE scenario_id IN (${placeholders})`,
+                    data.scenario_ids
+                );
+
+                for (const tc of testCases as { test_case_id: string }[]) {
+                    await connection.execute(
+                        'INSERT INTO test_executions (execution_id, run_id, test_case_id, status) VALUES (?, ?, ?, ?)',
+                        [generateId(), runId, tc.test_case_id, 'Pending']
+                    );
+                }
             }
 
+            await connection.commit();
             return runId;
-        });
-
-        return createRun();
+        } catch (error) {
+            await connection.rollback();
+            throw error;
+        } finally {
+            connection.release();
+        }
     },
 
-    updateStatus(id: string, status: string) {
+    async updateStatus(id: string, status: string) {
         let updateQuery = 'UPDATE test_runs SET status = ?';
-        const params: unknown[] = [status];
+        const params: any[] = [status];
 
         if (status === 'Completed') {
             updateQuery += ', completed_at = CURRENT_TIMESTAMP';
@@ -69,37 +85,42 @@ export const TestRunModel = {
         updateQuery += ' WHERE run_id = ?';
         params.push(id);
 
-        return db.prepare(updateQuery).run(...params);
+        const [result] = await db.execute<ResultSetHeader>(updateQuery, params);
+        return result;
     },
 
-    delete(id: string) {
-        return db.prepare('DELETE FROM test_runs WHERE run_id = ?').run(id);
+    async delete(id: string) {
+        const [result] = await db.execute<ResultSetHeader>('DELETE FROM test_runs WHERE run_id = ?', [id]);
+        return result;
     },
 
     // Execution Logic
-    findExecutions(runId: string) {
-        return db.prepare(`
+    async findExecutions(runId: string) {
+        const [rows] = await db.execute<RowDataPacket[]>(`
             SELECT te.*, tc.title, tc.steps, tc.expected_result, tc.precondition, tc.test_data
             FROM test_executions te
             JOIN test_cases tc ON te.test_case_id = tc.test_case_id
             WHERE te.run_id = ?
-        `).all(runId);
+        `, [runId]);
+        return rows;
     },
 
-    findExecutionById(id: string) {
-        return db.prepare(`
+    async findExecutionById(id: string) {
+        const [rows] = await db.execute<RowDataPacket[]>(`
             SELECT te.*, tc.title 
             FROM test_executions te
             JOIN test_cases tc ON te.test_case_id = tc.test_case_id
             WHERE te.execution_id = ?
-        `).get(id) as { execution_id: string, run_id: string, test_case_id: string, title: string } | undefined;
+        `, [id]);
+        return rows[0] as { execution_id: string, run_id: string, test_case_id: string, title: string } | undefined;
     },
 
-    updateExecution(id: string, data: { status: string, notes?: string, proof_url?: string }) {
-        return db.prepare(`
+    async updateExecution(id: string, data: { status: string, notes?: string, proof_url?: string }) {
+        const [result] = await db.execute<ResultSetHeader>(`
             UPDATE test_executions 
             SET status = ?, notes = COALESCE(?, notes), proof_url = COALESCE(?, proof_url), executed_at = CURRENT_TIMESTAMP 
             WHERE execution_id = ?
-        `).run(data.status, data.notes || null, data.proof_url || null, id);
+        `, [data.status, data.notes || null, data.proof_url || null, id]);
+        return result;
     }
 };

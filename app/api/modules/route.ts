@@ -54,7 +54,7 @@ export async function PUT(request: Request) {
             responsible_id
         });
         
-        logActivity(session.user_id, 'UPDATE', 'MODULE', module_id, { name });
+        await logActivity(session.user_id, 'UPDATE', 'MODULE', module_id, { name });
         return NextResponse.json({ success: true });
     } catch {
         return NextResponse.json({ error: 'Failed to update module' }, { status: 500 });
@@ -73,7 +73,7 @@ export async function DELETE(request: Request) {
     try {
         if (!id) return NextResponse.json({ error: 'Missing ID' }, { status: 400 });
         await ProjectModel.deleteModule(id);
-        logActivity(session.user_id, 'DELETE', 'MODULE', id);
+        await logActivity(session.user_id, 'DELETE', 'MODULE', id);
         return NextResponse.json({ success: true });
     } catch {
         return NextResponse.json({ error: 'Failed to delete module' }, { status: 500 });

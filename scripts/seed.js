@@ -1,29 +1,35 @@
 /* eslint-disable @typescript-eslint/no-require-imports */
-const Database = require('better-sqlite3');
-const path = require('path');
+require('dotenv').config();
+const mysql = require('mysql2/promise');
 const { randomUUID } = require('crypto');
 const bcrypt = require('bcryptjs');
 
-const DB_PATH = path.join(process.cwd(), 'test_management.db');
-
 async function seed() {
-    const db = new Database(DB_PATH);
+    const dbName = process.env.MYSQL_DATABASE || 'test_management';
+    const config = {
+        host: process.env.MYSQL_HOST || 'localhost',
+        user: process.env.MYSQL_USER || 'root',
+        password: process.env.MYSQL_PASSWORD || '',
+        database: dbName
+    };
+
+    console.log('Connecting to MySQL at:', config.host);
+    const connection = await mysql.createConnection(config);
     
     console.log('Cleaning existing data...');
-    db.exec('DELETE FROM activity_log');
-    db.exec('DELETE FROM issue_history');
-    db.exec('DELETE FROM issue_notes');
-    db.exec('DELETE FROM release_changes');
-    db.exec('DELETE FROM releases');
-    db.exec('DELETE FROM issues');
-    db.exec('DELETE FROM test_executions');
-    db.exec('DELETE FROM test_runs');
-    db.exec('DELETE FROM test_cases');
-    db.exec('DELETE FROM scenarios');
-    db.exec('DELETE FROM modules');
-    db.exec('DELETE FROM projects');
-    db.exec('DELETE FROM users');
-    db.exec('DELETE FROM roles');
+    const tables = [
+        'activity_log', 'issue_history', 'issue_notes', 'release_change_issues', 
+        'release_change_modules', 'release_changes', 'releases', 'issues', 
+        'test_executions', 'test_runs', 'test_cases', 'scenarios', 
+        'modules', 'projects', 'users', 'roles', 'permissions'
+    ];
+    
+    // Disable foreign key checks to allow clearing tables
+    await connection.query('SET FOREIGN_KEY_CHECKS = 0');
+    for (const table of tables) {
+        await connection.query(`DELETE FROM \`${table}\``);
+    }
+    await connection.query('SET FOREIGN_KEY_CHECKS = 1');
 
     const salt = await bcrypt.genSalt(10);
     const hashed = await bcrypt.hash('123', salt);
@@ -34,9 +40,9 @@ async function seed() {
     const devRoleId = randomUUID();
     const qaRoleId = randomUUID();
     
-    db.prepare('INSERT INTO roles (role_id, name) VALUES (?, ?)').run(adminRoleId, 'Admin');
-    db.prepare('INSERT INTO roles (role_id, name) VALUES (?, ?)').run(devRoleId, 'Developer');
-    db.prepare('INSERT INTO roles (role_id, name) VALUES (?, ?)').run(qaRoleId, 'QA');
+    await connection.execute('INSERT INTO roles (role_id, name) VALUES (?, ?)', [adminRoleId, 'Admin']);
+    await connection.execute('INSERT INTO roles (role_id, name) VALUES (?, ?)', [devRoleId, 'Developer']);
+    await connection.execute('INSERT INTO roles (role_id, name) VALUES (?, ?)', [qaRoleId, 'QA']);
 
     const perms = [
         { id: randomUUID(), name: 'users:manage', desc: 'Create, update, delete users' },
@@ -49,21 +55,26 @@ async function seed() {
         { id: randomUUID(), name: 'logs:read', desc: 'View system activity logs' }
     ];
 
-    const insertPerm = db.prepare('INSERT INTO permissions (permission_id, name, description) VALUES (?, ?, ?)');
-    perms.forEach(p => insertPerm.run(p.id, p.name, p.desc));
+    for (const p of perms) {
+        await connection.execute('INSERT INTO permissions (permission_id, name, description) VALUES (?, ?, ?)', [p.id, p.name, p.desc]);
+    }
 
-    const insertRolePerm = db.prepare('INSERT INTO role_permissions (role_id, permission_id) VALUES (?, ?)');
-    
     // Admin gets everything
-    perms.forEach(p => insertRolePerm.run(adminRoleId, p.id));
+    for (const p of perms) {
+        await connection.execute('INSERT INTO role_permissions (role_id, permission_id) VALUES (?, ?)', [adminRoleId, p.id]);
+    }
     
     // Dev gets projects:write, projects:read, tests:write, issues:manage
-    perms.filter(p => ['projects:write', 'projects:read', 'tests:write', 'issues:manage'].includes(p.name))
-         .forEach(p => insertRolePerm.run(devRoleId, p.id));
+    const devPermNames = ['projects:write', 'projects:read', 'tests:write', 'issues:manage'];
+    for (const p of perms.filter(p => devPermNames.includes(p.name))) {
+        await connection.execute('INSERT INTO role_permissions (role_id, permission_id) VALUES (?, ?)', [devRoleId, p.id]);
+    }
          
     // QA gets projects:read, tests:run, tests:write
-    perms.filter(p => ['projects:read', 'tests:run', 'tests:write'].includes(p.name))
-         .forEach(p => insertRolePerm.run(qaRoleId, p.id));
+    const qaPermNames = ['projects:read', 'tests:run', 'tests:write'];
+    for (const p of perms.filter(p => qaPermNames.includes(p.name))) {
+        await connection.execute('INSERT INTO role_permissions (role_id, permission_id) VALUES (?, ?)', [qaRoleId, p.id]);
+    }
 
     // 2. Seed Users
     console.log('Seeding users...');
@@ -75,12 +86,17 @@ async function seed() {
         qa2: { id: randomUUID(), name: 'Casey QA', email: 'casey@example.com' }
     };
 
-    const insertUser = db.prepare('INSERT INTO users (user_id, name, email, password, role_id) VALUES (?, ?, ?, ?, ?)');
-    insertUser.run(users.admin.id, users.admin.name, users.admin.email, hashed, adminRoleId);
-    insertUser.run(users.dev1.id, users.dev1.name, users.dev1.email, hashed, devRoleId);
-    insertUser.run(users.dev2.id, users.dev2.name, users.dev2.email, hashed, devRoleId);
-    insertUser.run(users.qa1.id, users.qa1.name, users.qa1.email, hashed, qaRoleId);
-    insertUser.run(users.qa2.id, users.qa2.name, users.qa2.email, hashed, qaRoleId);
+    const userEntries = [
+        [users.admin.id, users.admin.name, users.admin.email, hashed, adminRoleId],
+        [users.dev1.id, users.dev1.name, users.dev1.email, hashed, devRoleId],
+        [users.dev2.id, users.dev2.name, users.dev2.email, hashed, devRoleId],
+        [users.qa1.id, users.qa1.name, users.qa1.email, hashed, qaRoleId],
+        [users.qa2.id, users.qa2.name, users.qa2.email, hashed, qaRoleId]
+    ];
+
+    for (const u of userEntries) {
+        await connection.execute('INSERT INTO users (user_id, name, email, password, role_id) VALUES (?, ?, ?, ?, ?)', u);
+    }
 
     // 3. Seed Projects
     console.log('Seeding projects...');
@@ -89,10 +105,10 @@ async function seed() {
         fin: { id: randomUUID(), name: 'Financial Core', version: '1.2.0' },
         inv: { id: randomUUID(), name: 'Inventory Sync', version: '0.9.1' }
     };
-    const insertProject = db.prepare('INSERT INTO projects (project_id, name, version, owner_id) VALUES (?, ?, ?, ?)');
-    insertProject.run(projects.hr.id, projects.hr.name, projects.hr.version, users.admin.id);
-    insertProject.run(projects.fin.id, projects.fin.name, projects.fin.version, users.admin.id);
-    insertProject.run(projects.inv.id, projects.inv.name, projects.inv.version, users.dev1.id);
+    
+    await connection.execute('INSERT INTO projects (project_id, name, version, owner_id) VALUES (?, ?, ?, ?)', [projects.hr.id, projects.hr.name, projects.hr.version, users.admin.id]);
+    await connection.execute('INSERT INTO projects (project_id, name, version, owner_id) VALUES (?, ?, ?, ?)', [projects.fin.id, projects.fin.name, projects.fin.version, users.admin.id]);
+    await connection.execute('INSERT INTO projects (project_id, name, version, owner_id) VALUES (?, ?, ?, ?)', [projects.inv.id, projects.inv.name, projects.inv.version, users.dev1.id]);
 
     // 4. Seed Modules
     console.log('Seeding modules...');
@@ -102,8 +118,10 @@ async function seed() {
         ledger: { id: randomUUID(), name: 'General Ledger', pid: projects.fin.id },
         sync: { id: randomUUID(), name: 'Real-time Sync', pid: projects.inv.id }
     };
-    const insertModule = db.prepare('INSERT INTO modules (module_id, project_id, name) VALUES (?, ?, ?)');
-    Object.values(modules).forEach(m => insertModule.run(m.id, m.pid, m.name));
+    
+    for (const m of Object.values(modules)) {
+        await connection.execute('INSERT INTO modules (module_id, project_id, name) VALUES (?, ?, ?)', [m.id, m.pid, m.name]);
+    }
 
     // 5. Seed Scenarios
     console.log('Seeding scenarios...');
@@ -113,8 +131,10 @@ async function seed() {
         calc: { id: randomUUID(), mid: modules.payroll.id, name: 'Salary Calculation' },
         post: { id: randomUUID(), mid: modules.ledger.id, name: 'Journal Posting' }
     };
-    const insertScenario = db.prepare('INSERT INTO scenarios (scenario_id, module_id, name) VALUES (?, ?, ?)');
-    Object.values(scenarios).forEach(s => insertScenario.run(s.id, s.mid, s.name));
+    
+    for (const s of Object.values(scenarios)) {
+        await connection.execute('INSERT INTO scenarios (scenario_id, module_id, name) VALUES (?, ?, ?)', [s.id, s.mid, s.name]);
+    }
 
     // 6. Seed Test Cases
     console.log('Seeding test cases...');
@@ -126,11 +146,13 @@ async function seed() {
         { id: randomUUID(), sid: scenarios.calc.id, title: 'Tax bracket shift', type: 'Edge Case', steps: '1. Set salary $9999\n2. Set $10001\n3. Calc', expected: 'Tax % changes correctly' },
         { id: randomUUID(), sid: scenarios.post.id, title: 'Unbalanced entry', type: 'Negative', steps: '1. Cr $100, Dr $90\n2. Post', expected: 'Reject with balance error' }
     ];
-    const insertTC = db.prepare(`
-        INSERT INTO test_cases (test_case_id, scenario_id, title, type, steps, expected_result)
-        VALUES (?, ?, ?, ?, ?, ?)
-    `);
-    tcs.forEach(tc => insertTC.run(tc.id, tc.sid, tc.title, tc.type, tc.steps, tc.expected));
+    
+    for (const tc of tcs) {
+        await connection.execute(`
+            INSERT INTO test_cases (test_case_id, scenario_id, title, type, steps, expected_result)
+            VALUES (?, ?, ?, ?, ?, ?)
+        `, [tc.id, tc.sid, tc.title, tc.type, tc.steps, tc.expected]);
+    }
 
     // 7. Seed Test Runs
     console.log('Seeding test runs...');
@@ -138,51 +160,51 @@ async function seed() {
         old: { id: randomUUID(), name: 'Sprint 12 Regression', status: 'Completed' },
         new: { id: randomUUID(), name: 'Sprint 13 Current', status: 'In Progress' }
     };
-    const insertRun = db.prepare('INSERT INTO test_runs (run_id, project_id, tester_id, name, status, created_at) VALUES (?, ?, ?, ?, ?, ?)');
-    insertRun.run(runs.old.id, projects.hr.id, users.qa1.id, runs.old.name, runs.old.status, '2024-04-15 10:00:00');
-    insertRun.run(runs.new.id, projects.hr.id, users.qa2.id, runs.new.name, runs.new.status, '2024-05-01 09:00:00');
+    
+    await connection.execute('INSERT INTO test_runs (run_id, project_id, tester_id, name, status, created_at) VALUES (?, ?, ?, ?, ?, ?)', 
+        [runs.old.id, projects.hr.id, users.qa1.id, runs.old.name, runs.old.status, '2024-04-15 10:00:00']);
+    await connection.execute('INSERT INTO test_runs (run_id, project_id, tester_id, name, status, created_at) VALUES (?, ?, ?, ?, ?, ?)', 
+        [runs.new.id, projects.hr.id, users.qa2.id, runs.new.name, runs.new.status, '2024-05-01 09:00:00']);
 
     // 8. Seed Executions
     console.log('Seeding executions...');
-    const insertExec = db.prepare('INSERT INTO test_executions (execution_id, run_id, test_case_id, status, notes) VALUES (?, ?, ?, ?, ?)');
-    tcs.forEach(tc => {
+    for (const tc of tcs) {
         const eid = randomUUID();
         const status = tc.title.includes('Tax') ? 'Failed' : 'Passed';
-        insertExec.run(eid, runs.new.id, tc.id, status, status === 'Failed' ? 'Tax calculation off by $0.02' : null);
-    });
+        await connection.execute('INSERT INTO test_executions (execution_id, run_id, test_case_id, status, notes) VALUES (?, ?, ?, ?, ?)', 
+            [eid, runs.new.id, tc.id, status, status === 'Failed' ? 'Tax calculation off by $0.02' : null]);
+    }
 
     // 9. Seed Issues
     console.log('Seeding issues...');
     const taxTC = tcs.find(t => t.title.includes('Tax'));
     const issueId = randomUUID();
-    db.prepare(`
+    await connection.execute(`
         INSERT INTO issues (issue_id, test_case_id, reporter_id, title, description, severity, status)
         VALUES (?, ?, ?, ?, ?, ?, ?)
-    `).run(issueId, taxTC.id, users.qa2.id, 'Rounding error in tax', 'Discrepancy on boundaries.', 'Medium (P2)', 'Open');
+    `, [issueId, taxTC.id, users.qa2.id, 'Rounding error in tax', 'Discrepancy on boundaries.', 'Medium (P2)', 'Open']);
 
     // 10. Seed Releases & Changes
     console.log('Seeding releases...');
     const releaseId = randomUUID();
-    db.prepare(`
+    await connection.execute(`
         INSERT INTO releases (release_id, project_id, version_name, status, target_date, description)
         VALUES (?, ?, ?, ?, ?, ?)
-    `).run(releaseId, projects.hr.id, 'v2.5.0', 'Released', '2024-05-15', 'Major Q2 update with new auth features.');
+    `, [releaseId, projects.hr.id, 'v2.5.0', 'Released', '2024-05-15', 'Major Q2 update with new auth features.']);
 
-    const insertChange = db.prepare('INSERT INTO release_changes (change_id, release_id, type, title, description) VALUES (?, ?, ?, ?, ?)');
-    const insertChangeModule = db.prepare('INSERT INTO release_change_modules (change_id, module_id) VALUES (?, ?)');
-    const insertChangeIssue = db.prepare('INSERT INTO release_change_issues (change_id, issue_id) VALUES (?, ?)');
-    
     const change1Id = randomUUID();
-    insertChange.run(change1Id, releaseId, 'Feature', 'Support for MFA', 'Added Google Authenticator integration.');
-    insertChangeModule.run(change1Id, modules.auth.id);
+    await connection.execute('INSERT INTO release_changes (change_id, release_id, type, title, description) VALUES (?, ?, ?, ?, ?)', 
+        [change1Id, releaseId, 'Feature', 'Support for MFA', 'Added Google Authenticator integration.']);
+    await connection.execute('INSERT INTO release_change_modules (change_id, module_id) VALUES (?, ?)', [change1Id, modules.auth.id]);
 
     const change2Id = randomUUID();
-    insertChange.run(change2Id, releaseId, 'Bugfix', 'Fix Tax Rounding', 'Corrected decimal precision in payroll engine.');
-    insertChangeModule.run(change2Id, modules.payroll.id);
-    insertChangeIssue.run(change2Id, issueId);
+    await connection.execute('INSERT INTO release_changes (change_id, release_id, type, title, description) VALUES (?, ?, ?, ?, ?)', 
+        [change2Id, releaseId, 'Bugfix', 'Fix Tax Rounding', 'Corrected decimal precision in payroll engine.']);
+    await connection.execute('INSERT INTO release_change_modules (change_id, module_id) VALUES (?, ?)', [change2Id, modules.payroll.id]);
+    await connection.execute('INSERT INTO release_change_issues (change_id, issue_id) VALUES (?, ?)', [change2Id, issueId]);
 
     console.log('--- SEEDING COMPLETED SUCCESSFULLY ---');
-    db.close();
+    await connection.end();
 }
 
 seed().catch(err => {

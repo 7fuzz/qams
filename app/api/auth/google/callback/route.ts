@@ -38,27 +38,27 @@ export async function GET(request: Request) {
     const { email, name, sub: googleId } = payload;
 
     // 1. Check if user exists by googleId
-    let user = UserModel.findByGoogleId(googleId!);
+    let user = await UserModel.findByGoogleId(googleId!);
 
     if (!user) {
       // 2. Try to find by email (to link existing manual account)
-      user = UserModel.findByEmail(email);
+      user = await UserModel.findByEmail(email);
       if (user) {
         // Link the googleId to the existing account
-        UserModel.linkGoogleAccount(user.user_id, googleId!);
+        await UserModel.linkGoogleAccount(user.user_id, googleId!);
       } else {
         // 3. Create new user if doesn't exist at all
-        const qaRole = RoleModel.findByName('QA');
+        const qaRole = await RoleModel.findByName('QA');
         if (!qaRole) throw new Error("Default QA role not found");
 
-        const userId = UserModel.createGoogleUser({
+        const userId = await UserModel.createGoogleUser({
           name: name || email,
           email: email,
           googleId: googleId!,
           roleId: qaRole.role_id
         });
         
-        user = UserModel.findById(userId);
+        user = await UserModel.findById(userId);
       }
     }
 
@@ -66,7 +66,7 @@ export async function GET(request: Request) {
 
     // 3. Set Session
     const session = await getIronSession<SessionData>(await cookies(), sessionOptions);
-    const permissions = RoleModel.getPermissions(user.role_id);
+    const permissions = await RoleModel.getPermissions(user.role_id);
 
     session.user_id = user.user_id;
     session.name = user.name;

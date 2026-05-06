@@ -11,15 +11,16 @@ export async function GET() {
     }
 
     try {
-        const logs = db.prepare(`
+        const [logs] = await db.execute(`
             SELECT l.*, u.name as user_name 
             FROM activity_log l 
             JOIN users u ON l.user_id = u.user_id 
             ORDER BY timestamp DESC 
             LIMIT 50
-        `).all();
+        `);
         return NextResponse.json(logs);
-    } catch {
+    } catch (error) {
+        console.error('Failed to fetch logs:', error);
         return NextResponse.json({ error: 'Failed to fetch logs' }, { status: 500 });
     }
 }

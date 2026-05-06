@@ -1,5 +1,6 @@
 import db from '@/lib/db';
 import { randomUUID } from 'crypto';
+import { RowDataPacket } from 'mysql2';
 
 export interface Role {
     role_id: string;
@@ -13,52 +14,77 @@ export interface Permission {
 }
 
 export const RoleModel = {
-    findAll() {
-        return db.prepare('SELECT * FROM roles ORDER BY name ASC').all() as Role[];
+    async findAll(): Promise<Role[]> {
+        const [rows] = await db.execute<Role[] & RowDataPacket[]>('SELECT * FROM roles ORDER BY name ASC');
+        return rows;
     },
 
-    findByName(name: string) {
-        return db.prepare('SELECT * FROM roles WHERE name = ?').get(name) as Role | undefined;
+    async findByName(name: string): Promise<Role | undefined> {
+        const [rows] = await db.execute<Role[] & RowDataPacket[]>('SELECT * FROM roles WHERE name = ?', [name]);
+        return rows[0];
     },
 
-    findById(id: string) {
-        return db.prepare('SELECT * FROM roles WHERE role_id = ?').get(id) as Role | undefined;
+    async findById(id: string): Promise<Role | undefined> {
+        const [rows] = await db.execute<Role[] & RowDataPacket[]>('SELECT * FROM roles WHERE role_id = ?', [id]);
+        return rows[0];
     },
 
-    create(name: string, permissionIds: string[]) {
+    async create(name: string, permissionIds: string[]): Promise<string> {
         const roleId = randomUUID();
-        const transaction = db.transaction(() => {
-            db.prepare('INSERT INTO roles (role_id, name) VALUES (?, ?)').run(roleId, name);
-            const insertRolePerm = db.prepare('INSERT INTO role_permissions (role_id, permission_id) VALUES (?, ?)');
-            permissionIds.forEach(pid => insertRolePerm.run(roleId, pid));
-        });
-        transaction();
-        return roleId;
+        const connection = await db.getConnection();
+        await connection.beginTransaction();
+        try {
+            await connection.execute('INSERT INTO roles (role_id, name) VALUES (?, ?)', [roleId, name]);
+            if (permissionIds.length > 0) {
+                for (const pid of permissionIds) {
+                    await connection.execute('INSERT INTO role_permissions (role_id, permission_id) VALUES (?, ?)', [roleId, pid]);
+                }
+            }
+            await connection.commit();
+            return roleId;
+        } catch (error) {
+            await connection.rollback();
+            throw error;
+        } finally {
+            connection.release();
+        }
     },
 
-    update(roleId: string, name: string, permissionIds: string[]) {
-        const transaction = db.transaction(() => {
-            db.prepare('UPDATE roles SET name = ? WHERE role_id = ?').run(name, roleId);
-            db.prepare('DELETE FROM role_permissions WHERE role_id = ?').run(roleId);
-            const insertRolePerm = db.prepare('INSERT INTO role_permissions (role_id, permission_id) VALUES (?, ?)');
-            permissionIds.forEach(pid => insertRolePerm.run(roleId, pid));
-        });
-        transaction();
+    async update(roleId: string, name: string, permissionIds: string[]): Promise<void> {
+        const connection = await db.getConnection();
+        await connection.beginTransaction();
+        try {
+            await connection.execute('UPDATE roles SET name = ? WHERE role_id = ?', [name, roleId]);
+            await connection.execute('DELETE FROM role_permissions WHERE role_id = ?', [roleId]);
+            if (permissionIds.length > 0) {
+                for (const pid of permissionIds) {
+                    await connection.execute('INSERT INTO role_permissions (role_id, permission_id) VALUES (?, ?)', [roleId, pid]);
+                }
+            }
+            await connection.commit();
+        } catch (error) {
+            await connection.rollback();
+            throw error;
+        } finally {
+            connection.release();
+        }
     },
 
-    delete(roleId: string) {
-        return db.prepare('DELETE FROM roles WHERE role_id = ?').run(roleId);
+    async delete(roleId: string): Promise<void> {
+        await db.execute('DELETE FROM roles WHERE role_id = ?', [roleId]);
     },
 
-    getPermissions(roleId: string) {
-        return db.prepare(`
+    async getPermissions(roleId: string): Promise<Permission[]> {
+        const [rows] = await db.execute<Permission[] & RowDataPacket[]>(`
             SELECT p.* FROM permissions p
             JOIN role_permissions rp ON p.permission_id = rp.permission_id
             WHERE rp.role_id = ?
-        `).all(roleId) as Permission[];
+        `, [roleId]);
+        return rows;
     },
 
-    findAllPermissions() {
-        return db.prepare('SELECT * FROM permissions ORDER BY name ASC').all() as Permission[];
+    async findAllPermissions(): Promise<Permission[]> {
+        const [rows] = await db.execute<Permission[] & RowDataPacket[]>('SELECT * FROM permissions ORDER BY name ASC');
+        return rows;
     }
 };

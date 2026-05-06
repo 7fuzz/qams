@@ -10,7 +10,7 @@ export async function GET(request: Request) {
     const moduleId = searchParams.get('moduleId');
 
     try {
-        const scenarios = TestCaseModel.findScenarios(moduleId || undefined);
+        const scenarios = await TestCaseModel.findScenarios(moduleId || undefined);
         return NextResponse.json(scenarios);
     } catch {
         return NextResponse.json({ error: 'Failed to fetch scenarios' }, { status: 500 });
@@ -25,9 +25,9 @@ export async function POST(request: Request) {
 
     try {
         const { module_id, name } = await request.json();
-        const scenarioId = TestCaseModel.createScenario(module_id, name);
+        const scenarioId = await TestCaseModel.createScenario(module_id, name);
         
-        logActivity(session.user_id, 'CREATE', 'SCENARIO', scenarioId, { name, module_id });
+        await logActivity(session.user_id, 'CREATE', 'SCENARIO', scenarioId, { name, module_id });
         
         return NextResponse.json({ scenario_id: scenarioId, module_id, name });
     } catch {
@@ -43,8 +43,8 @@ export async function PUT(request: Request) {
 
     try {
         const { scenario_id, name } = await request.json();
-        TestCaseModel.updateScenario(scenario_id, name);
-        logActivity(session.user_id, 'UPDATE', 'SCENARIO', scenario_id, { name });
+        await TestCaseModel.updateScenario(scenario_id, name);
+        await logActivity(session.user_id, 'UPDATE', 'SCENARIO', scenario_id, { name });
         return NextResponse.json({ success: true });
     } catch {
         return NextResponse.json({ error: 'Failed to update scenario' }, { status: 500 });
@@ -62,8 +62,8 @@ export async function DELETE(request: Request) {
     
     try {
         if (!id) return NextResponse.json({ error: 'Missing ID' }, { status: 400 });
-        TestCaseModel.deleteScenario(id);
-        logActivity(session.user_id, 'DELETE', 'SCENARIO', id);
+        await TestCaseModel.deleteScenario(id);
+        await logActivity(session.user_id, 'DELETE', 'SCENARIO', id);
         return NextResponse.json({ success: true });
     } catch {
         return NextResponse.json({ error: 'Failed to delete scenario' }, { status: 500 });

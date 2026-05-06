@@ -1,10 +1,11 @@
 import db from '@/lib/db';
 import { Project, Module } from '@/types/app';
 import { generateId } from '@/lib/id-utils';
+import { RowDataPacket } from 'mysql2';
 
 export const ProjectModel = {
-    findAll() {
-        return db.prepare(`
+    async findAll(): Promise<(Project & { owner_name: string, open_issues_count: number })[]> {
+        const [rows] = await db.execute<(Project & { owner_name: string, open_issues_count: number })[] & RowDataPacket[]>(`
             SELECT 
                 p.*, 
                 u.name as owner_name,
@@ -15,55 +16,55 @@ export const ProjectModel = {
                  WHERE m.project_id = p.project_id AND i.status != 'Closed') as open_issues_count
             FROM projects p 
             JOIN users u ON p.owner_id = u.user_id
-        `).all() as (Project & { owner_name: string, open_issues_count: number })[];
+        `);
+        return rows;
     },
 
-    create(data: { name: string, version?: string, description?: string, owner_id: string }) {
+    async create(data: { name: string, version?: string, description?: string, owner_id: string }): Promise<string> {
         const projectId = generateId();
-        db.prepare('INSERT INTO projects (project_id, name, version, description, owner_id) VALUES (?, ?, ?, ?, ?)')
-            .run(projectId, data.name, data.version || '1.0.0', data.description || null, data.owner_id);
+        await db.execute('INSERT INTO projects (project_id, name, version, description, owner_id) VALUES (?, ?, ?, ?, ?)', 
+            [projectId, data.name, data.version || '1.0.0', data.description || null, data.owner_id]);
         return projectId;
     },
 
-    update(id: string, data: { name: string, version: string, description?: string }) {
-        db.prepare('UPDATE projects SET name = ?, version = ?, description = ?, updated_at = CURRENT_TIMESTAMP WHERE project_id = ?')
-            .run(data.name, data.version, data.description || null, id);
-        return true;
+    async update(id: string, data: { name: string, version: string, description?: string }): Promise<void> {
+        await db.execute('UPDATE projects SET name = ?, version = ?, description = ? WHERE project_id = ?', 
+            [data.name, data.version, data.description || null, id]);
     },
 
-    delete(id: string) {
-        return db.prepare('DELETE FROM projects WHERE project_id = ?').run(id);
+    async delete(id: string): Promise<void> {
+        await db.execute('DELETE FROM projects WHERE project_id = ?', [id]);
     },
 
     // Module Logic
-    findModules(projectId?: string) {
+    async findModules(projectId?: string): Promise<(Module & { responsible_name?: string })[]> {
         let query = `
             SELECT m.*, u.name as responsible_name 
             FROM modules m 
             LEFT JOIN users u ON m.responsible_id = u.user_id
         `;
-        const params: string[] = [];
+        const params: any[] = [];
         if (projectId) {
             query += ' WHERE m.project_id = ?';
             params.push(projectId);
         }
-        return db.prepare(query).all(...params) as (Module & { responsible_name?: string })[];
+        const [rows] = await db.execute<(Module & { responsible_name?: string })[] & RowDataPacket[]>(query, params);
+        return rows;
     },
 
-    createModule(data: { project_id: string, name: string, description?: string, responsible_id?: string }) {
+    async createModule(data: { project_id: string, name: string, description?: string, responsible_id?: string }): Promise<string> {
         const moduleId = generateId();
-        db.prepare('INSERT INTO modules (module_id, project_id, name, description, responsible_id) VALUES (?, ?, ?, ?, ?)')
-            .run(moduleId, data.project_id, data.name, data.description || null, data.responsible_id || null);
+        await db.execute('INSERT INTO modules (module_id, project_id, name, description, responsible_id) VALUES (?, ?, ?, ?, ?)', 
+            [moduleId, data.project_id, data.name, data.description || null, data.responsible_id || null]);
         return moduleId;
     },
 
-    updateModule(id: string, data: { name: string, description?: string, responsible_id?: string }) {
-        db.prepare('UPDATE modules SET name = ?, description = ?, responsible_id = ? WHERE module_id = ?')
-            .run(data.name, data.description || null, data.responsible_id || null, id);
-        return true;
+    async updateModule(id: string, data: { name: string, description?: string, responsible_id?: string }): Promise<void> {
+        await db.execute('UPDATE modules SET name = ?, description = ?, responsible_id = ? WHERE module_id = ?', 
+            [data.name, data.description || null, data.responsible_id || null, id]);
     },
 
-    deleteModule(id: string) {
-        return db.prepare('DELETE FROM modules WHERE module_id = ?').run(id);
+    async deleteModule(id: string): Promise<void> {
+        await db.execute('DELETE FROM modules WHERE module_id = ?', [id]);
     }
 };

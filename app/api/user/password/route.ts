@@ -13,7 +13,7 @@ export async function PUT(request: Request) {
         const { currentPassword, newPassword } = await request.json();
         
         // Re-fetch with full data including password
-        const fullUser = UserModel.findByEmail(session.email);
+        const fullUser = await UserModel.findByEmail(session.email);
         if (!fullUser) return NextResponse.json({ error: "User not found" }, { status: 404 });
 
         // If user has a password set, verify it first

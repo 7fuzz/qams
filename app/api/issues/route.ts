@@ -64,7 +64,7 @@ export async function POST(request: Request) {
         estimated_date
     });
 
-    logActivity(session.user_id, 'CREATE', 'TEST_CASE', test_case_id, { issue_id: id, title });
+    await logActivity(session.user_id, 'CREATE', 'TEST_CASE', test_case_id, { issue_id: id, title });
     
     return NextResponse.json({ issue_id: id, title, status: ISSUE_STATUS.OPEN });
   } catch {

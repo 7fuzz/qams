@@ -11,7 +11,7 @@ export async function POST(request: Request) {
   const { email, password } = await request.json();
 
   try {
-    const user = UserModel.findByEmail(email);
+    const user = await UserModel.findByEmail(email);
 
     if (!user || !user.password) {
       return NextResponse.json({ error: "Invalid email or password" }, { status: 401 });
@@ -22,7 +22,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Invalid email or password" }, { status: 401 });
     }
 
-    const permissions = RoleModel.getPermissions(user.role_id);
+    const permissions = await RoleModel.getPermissions(user.role_id);
 
     session.user_id = user.user_id;
     session.name = user.name;

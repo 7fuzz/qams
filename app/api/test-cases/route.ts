@@ -45,7 +45,7 @@ export async function POST(request: Request) {
         const body = await request.json();
         const testCaseId = await TestCaseModel.create(body);
         
-        logActivity(session.user_id, 'CREATE', 'TEST_CASE', testCaseId, { title: body.title, scenario_id: body.scenario_id });
+        await logActivity(session.user_id, 'CREATE', 'TEST_CASE', testCaseId, { title: body.title, scenario_id: body.scenario_id });
         
         return NextResponse.json({ test_case_id: testCaseId, ...body });
     } catch {
@@ -64,7 +64,7 @@ export async function PUT(request: Request) {
         const { test_case_id } = body;
         await TestCaseModel.update(test_case_id, body);
         
-        logActivity(session.user_id, 'UPDATE', 'TEST_CASE', test_case_id, { title: body.title });
+        await logActivity(session.user_id, 'UPDATE', 'TEST_CASE', test_case_id, { title: body.title });
         
         return NextResponse.json({ success: true, ...body });
     } catch {
@@ -84,7 +84,7 @@ export async function DELETE(request: Request) {
     try {
         if (!id) return NextResponse.json({ error: 'Missing ID' }, { status: 400 });
         await TestCaseModel.delete(id);
-        logActivity(session.user_id, 'DELETE', 'TEST_CASE', id);
+        await logActivity(session.user_id, 'DELETE', 'TEST_CASE', id);
         return NextResponse.json({ success: true });
     } catch {
         return NextResponse.json({ error: 'Failed to delete test case' }, { status: 500 });
@@ -103,7 +103,7 @@ export async function PATCH(request: Request) {
         
         if (!result) return NextResponse.json({ error: "Source not found" }, { status: 404 });
 
-        logActivity(session.user_id, 'CREATE', 'TEST_CASE', result.id, { title: result.title, original_id: test_case_id });
+        await logActivity(session.user_id, 'CREATE', 'TEST_CASE', result.id, { title: result.title, original_id: test_case_id });
         
         return NextResponse.json({ success: true });
     } catch {

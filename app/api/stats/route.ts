@@ -11,10 +11,14 @@ export async function GET() {
     }
 
     try {
+        const [[{ count: total_projects }]] = await db.execute('SELECT COUNT(*) as count FROM projects') as any;
+        const [[{ count: total_users }]] = await db.execute('SELECT COUNT(*) as count FROM users') as any;
+        const [[{ count: recent_activity_count }]] = await db.execute("SELECT COUNT(*) as count FROM activity_log WHERE timestamp >= NOW() - INTERVAL 24 HOUR") as any;
+
         const stats = {
-            total_projects: (db.prepare('SELECT COUNT(*) as count FROM projects').get() as { count: number }).count,
-            total_users: (db.prepare('SELECT COUNT(*) as count FROM users').get() as { count: number }).count,
-            recent_activity_count: (db.prepare("SELECT COUNT(*) as count FROM activity_log WHERE timestamp >= datetime('now', '-24 hours')").get() as { count: number }).count,
+            total_projects,
+            total_users,
+            recent_activity_count,
         };
         return NextResponse.json(stats);
     } catch (error) {

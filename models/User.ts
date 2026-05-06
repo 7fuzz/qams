@@ -2,94 +2,97 @@ import db from '@/lib/db';
 import { LoginUser } from '@/types/auth';
 import { generateId } from '@/lib/id-utils';
 import { hashPassword } from '@/lib/auth-utils';
+import { RowDataPacket, ResultSetHeader } from 'mysql2';
 
 export const UserModel = {
-    async findAll(limit: number, offset: number) {
+    async findAll(limit: number, offset: number): Promise<{ data: LoginUser[], total: number }> {
         const baseQuery = 'FROM users u JOIN roles r ON u.role_id = r.role_id';
-        const total = (db.prepare(`SELECT COUNT(*) as total ${baseQuery}`).get() as { total: number }).total;
+        const [countRows] = await db.execute<(RowDataPacket & { total: number })[]>(`SELECT COUNT(*) as total ${baseQuery}`);
+        const total = countRows[0].total;
         
-        const data = db.prepare(`
+        const [data] = await db.execute<LoginUser[] & RowDataPacket[]>(`
             SELECT u.user_id, u.name, u.email, r.name as role_name, u.role_id 
             ${baseQuery}
             ORDER BY u.name ASC
             LIMIT ? OFFSET ?
-        `).all(limit, offset) as LoginUser[];
+        `, [limit, offset]);
 
         return { data, total };
     },
 
-    findByEmail(email: string) {
-        return db.prepare(`
+    async findByEmail(email: string): Promise<LoginUser | undefined> {
+        const [rows] = await db.execute<LoginUser[] & RowDataPacket[]>(`
             SELECT u.*, r.name as role_name 
             FROM users u 
             JOIN roles r ON u.role_id = r.role_id 
             WHERE u.email = ?
-        `).get(email) as LoginUser | undefined;
+        `, [email]);
+        return rows[0];
     },
 
-    findByGoogleId(googleId: string) {
-        return db.prepare(`
+    async findByGoogleId(googleId: string): Promise<LoginUser | undefined> {
+        const [rows] = await db.execute<LoginUser[] & RowDataPacket[]>(`
             SELECT u.*, r.name as role_name 
             FROM users u 
             JOIN roles r ON u.role_id = r.role_id 
             WHERE u.google_id = ?
-        `).get(googleId) as LoginUser | undefined;
+        `, [googleId]);
+        return rows[0];
     },
 
-    findById(id: string) {
-        return db.prepare(`
+    async findById(id: string): Promise<LoginUser | undefined> {
+        const [rows] = await db.execute<LoginUser[] & RowDataPacket[]>(`
             SELECT u.*, r.name as role_name 
             FROM users u 
             JOIN roles r ON u.role_id = r.role_id 
             WHERE u.user_id = ?
-        `).get(id) as LoginUser | undefined;
+        `, [id]);
+        return rows[0];
     },
 
-    async create(data: { name: string, email: string, password?: string, role_id: string }) {
+    async create(data: { name: string, email: string, password?: string, role_id: string }): Promise<string> {
         const userId = generateId();
         let hashed = null;
         if (data.password) {
             hashed = await hashPassword(data.password);
         }
 
-        db.prepare('INSERT INTO users (user_id, name, email, password, role_id) VALUES (?, ?, ?, ?, ?)')
-            .run(userId, data.name, data.email, hashed, data.role_id);
+        await db.execute('INSERT INTO users (user_id, name, email, password, role_id) VALUES (?, ?, ?, ?, ?)', 
+            [userId, data.name, data.email, hashed, data.role_id]);
 
         return userId;
     },
 
-    createGoogleUser(data: { name: string, email: string, googleId: string, roleId: string }) {
+    async createGoogleUser(data: { name: string, email: string, googleId: string, roleId: string }): Promise<string> {
         const userId = generateId();
-        db.prepare(`
+        await db.execute(`
             INSERT INTO users (user_id, name, email, google_id, role_id) 
             VALUES (?, ?, ?, ?, ?)
-        `).run(userId, data.name, data.email, data.googleId, data.roleId);
+        `, [userId, data.name, data.email, data.googleId, data.roleId]);
         return userId;
     },
 
-    linkGoogleAccount(userId: string, googleId: string) {
-        return db.prepare('UPDATE users SET google_id = ? WHERE user_id = ?').run(googleId, userId);
+    async linkGoogleAccount(userId: string, googleId: string): Promise<void> {
+        await db.execute('UPDATE users SET google_id = ? WHERE user_id = ?', [googleId, userId]);
     },
 
-    async updatePassword(userId: string, newPassword: string) {
+    async updatePassword(userId: string, newPassword: string): Promise<void> {
         const hashed = await hashPassword(newPassword);
-        return db.prepare('UPDATE users SET password = ? WHERE user_id = ?').run(hashed, userId);
+        await db.execute('UPDATE users SET password = ? WHERE user_id = ?', [hashed, userId]);
     },
 
-
-    async update(id: string, data: { name: string, email: string, password?: string, role_id: string }) {
+    async update(id: string, data: { name: string, email: string, password?: string, role_id: string }): Promise<void> {
         if (data.password) {
             const hashed = await hashPassword(data.password);
-            db.prepare('UPDATE users SET name = ?, email = ?, password = ?, role_id = ? WHERE user_id = ?')
-                .run(data.name, data.email, hashed, data.role_id, id);
+            await db.execute('UPDATE users SET name = ?, email = ?, password = ?, role_id = ? WHERE user_id = ?', 
+                [data.name, data.email, hashed, data.role_id, id]);
         } else {
-            db.prepare('UPDATE users SET name = ?, email = ?, role_id = ? WHERE user_id = ?')
-                .run(data.name, data.email, data.role_id, id);
+            await db.execute('UPDATE users SET name = ?, email = ?, role_id = ? WHERE user_id = ?', 
+                [data.name, data.email, data.role_id, id]);
         }
-        return true;
     },
 
-    delete(id: string) {
-        return db.prepare('DELETE FROM users WHERE user_id = ?').run(id);
+    async delete(id: string): Promise<void> {
+        await db.execute('DELETE FROM users WHERE user_id = ?', [id]);
     }
 };

@@ -11,7 +11,7 @@ export async function GET() {
     }
 
     try {
-        const permissions = RoleModel.findAllPermissions();
+        const permissions = await RoleModel.findAllPermissions();
         return NextResponse.json(permissions);
     } catch {
         return NextResponse.json({ error: 'Failed to fetch permissions' }, { status: 500 });

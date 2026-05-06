@@ -10,7 +10,7 @@ export async function GET(request: Request) {
 
     try {
         if (!releaseId) return NextResponse.json([]);
-        const changes = ReleaseModel.findChanges(releaseId);
+        const changes = await ReleaseModel.findChanges(releaseId);
         return NextResponse.json(changes);
     } catch (error) {
         console.error('Fetch Changes Error:', error);
@@ -24,7 +24,7 @@ export async function POST(request: Request) {
 
     try {
         const body = await request.json();
-        const changeId = ReleaseModel.createChange(body);
+        const changeId = await ReleaseModel.createChange(body);
         return NextResponse.json({ change_id: changeId, title: body.title });
     } catch (error) {
         console.error('POST Change Error:', error);
@@ -38,7 +38,7 @@ export async function PUT(request: Request) {
 
     try {
         const body = await request.json();
-        ReleaseModel.updateChange(body.change_id, body);
+        await ReleaseModel.updateChange(body.change_id, body);
         return NextResponse.json({ success: true });
     } catch (error) {
         console.error('PUT Change Error:', error);
@@ -55,7 +55,7 @@ export async function DELETE(request: Request) {
     
     try {
         if (!id) return NextResponse.json({ error: "Missing ID" }, { status: 400 });
-        ReleaseModel.deleteChange(id);
+        await ReleaseModel.deleteChange(id);
         return NextResponse.json({ success: true });
     } catch {
         return NextResponse.json({ error: 'Failed to delete change' }, { status: 500 });

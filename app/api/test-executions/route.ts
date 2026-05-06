@@ -12,7 +12,7 @@ export async function GET(request: Request) {
     if (!runId) return NextResponse.json({ error: 'Missing runId' }, { status: 400 });
 
     try {
-        const executions = TestRunModel.findExecutions(runId);
+        const executions = await TestRunModel.findExecutions(runId);
         return NextResponse.json(executions);
     } catch {
         return NextResponse.json({ error: 'Failed to fetch executions' }, { status: 500 });
@@ -29,12 +29,12 @@ export async function PUT(request: Request) {
         const body = await request.json();
         const { execution_id, status } = body;
         
-        TestRunModel.updateExecution(execution_id, body);
+        await TestRunModel.updateExecution(execution_id, body);
 
         // Fetch execution details for logging
-        const execution = TestRunModel.findExecutionById(execution_id);
+        const execution = await TestRunModel.findExecutionById(execution_id);
         if (execution) {
-            logActivity(session.user_id, 'UPDATE', 'TEST_CASE', execution.test_case_id, { 
+            await logActivity(session.user_id, 'UPDATE', 'TEST_CASE', execution.test_case_id, { 
                 action: 'EXECUTE',
                 run_id: execution.run_id,
                 status,

@@ -6,14 +6,14 @@ export async function GET(request: Request) {
     const issueId = searchParams.get('issueId');
 
     try {
-        const history = db.prepare(`
+        const [history] = await db.execute(`
             SELECT h.*, u.name as user_name, r.name as run_name
             FROM issue_history h
             JOIN users u ON h.user_id = u.user_id
             LEFT JOIN test_runs r ON h.run_id = r.run_id
             WHERE h.issue_id = ?
             ORDER BY h.timestamp DESC
-        `).all(issueId);
+        `, [issueId]);
         return NextResponse.json(history);
     } catch {
         return NextResponse.json({ error: 'Failed to fetch history' }, { status: 500 });

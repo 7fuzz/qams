@@ -42,13 +42,13 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Invalid data format' }, { status: 400 });
         }
 
-        const { importedCount, skippedCount } = TestCaseModel.importTestCases(moduleId, testCases, {
+        const { importedCount, skippedCount } = await TestCaseModel.importTestCases(moduleId, testCases, {
             type: normalizeType,
             priority: normalizePriority,
             automation: normalizeAutomation
         });
         
-        logActivity(session.user_id, 'CREATE', 'TEST_CASE', moduleId, { action: 'IMPORT_BATCH', count: importedCount, skipped: skippedCount });
+        await logActivity(session.user_id, 'CREATE', 'TEST_CASE', moduleId, { action: 'IMPORT_BATCH', count: importedCount, skipped: skippedCount });
         
         return NextResponse.json({ success: true, count: importedCount, skipped: skippedCount });
     } catch (error) {

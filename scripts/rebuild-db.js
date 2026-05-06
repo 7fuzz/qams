@@ -1,28 +1,37 @@
 /* eslint-disable @typescript-eslint/no-require-imports */
-const Database = require('better-sqlite3');
+require('dotenv').config();
+const mysql = require('mysql2/promise');
 const fs = require('fs');
 const path = require('path');
 
-const DB_PATH = path.join(process.cwd(), 'test_management.db');
 const SCHEMA_PATH = path.join(process.cwd(), 'lib/db/schema.sql');
 
 async function rebuild() {
     console.log('REBUILDING DATABASE...');
     
-    // Close and delete the existing database
-    if (fs.existsSync(DB_PATH)) {
-        console.log('Deleting existing database file...');
-        fs.unlinkSync(DB_PATH);
-    }
+    const dbName = process.env.MYSQL_DATABASE || 'test_management';
+    const config = {
+        host: process.env.MYSQL_HOST || 'localhost',
+        user: process.env.MYSQL_USER || 'root',
+        password: process.env.MYSQL_PASSWORD || '',
+        multipleStatements: true
+    };
 
-    const db = new Database(DB_PATH);
+    console.log('Connecting to MySQL at:', config.host);
+    const connection = await mysql.createConnection(config);
+
+    console.log(`Dropping and recreating database: ${dbName}`);
+    await connection.query(`DROP DATABASE IF EXISTS \`${dbName}\``);
+    await connection.query(`CREATE DATABASE \`${dbName}\``);
+    await connection.query(`USE \`${dbName}\``);
+
     const schema = fs.readFileSync(SCHEMA_PATH, 'utf8');
     
     console.log('Applying schema from:', SCHEMA_PATH);
-    db.exec(schema);
+    await connection.query(schema);
     
     console.log('Database rebuilt successfully.');
-    db.close();
+    await connection.end();
 }
 
 rebuild().catch(err => {

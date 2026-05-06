@@ -11,11 +11,11 @@ export async function GET() {
     }
 
     try {
-        const roles = RoleModel.findAll();
-        const rolesWithPermissions = roles.map(role => ({
+        const roles = await RoleModel.findAll();
+        const rolesWithPermissions = await Promise.all(roles.map(async (role: any) => ({
             ...role,
-            permissions: RoleModel.getPermissions(role.role_id)
-        }));
+            permissions: await RoleModel.getPermissions(role.role_id)
+        })));
         return NextResponse.json(rolesWithPermissions);
     } catch {
         return NextResponse.json({ error: 'Failed to fetch roles' }, { status: 500 });
@@ -30,7 +30,7 @@ export async function POST(request: Request) {
 
     try {
         const { name, permissionIds } = await request.json();
-        const roleId = RoleModel.create(name, permissionIds);
+        const roleId = await RoleModel.create(name, permissionIds);
         return NextResponse.json({ role_id: roleId, name });
     } catch {
         return NextResponse.json({ error: 'Failed to create role' }, { status: 500 });
@@ -45,7 +45,7 @@ export async function PUT(request: Request) {
 
     try {
         const { role_id, name, permissionIds } = await request.json();
-        RoleModel.update(role_id, name, permissionIds);
+        await RoleModel.update(role_id, name, permissionIds);
         return NextResponse.json({ success: true });
     } catch {
         return NextResponse.json({ error: 'Failed to update role' }, { status: 500 });
@@ -63,7 +63,7 @@ export async function DELETE(request: Request) {
     
     try {
         if (!id) return NextResponse.json({ error: 'Missing ID' }, { status: 400 });
-        RoleModel.delete(id);
+        await RoleModel.delete(id);
         return NextResponse.json({ success: true });
     } catch {
         return NextResponse.json({ error: 'Failed to delete role' }, { status: 500 });

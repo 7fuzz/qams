@@ -2,6 +2,7 @@ import db from '@/lib/db';
 import { Issue } from '@/types/app';
 import { generateId } from '@/lib/id-utils';
 import { ISSUE_STATUS } from '@/lib/constants';
+import { RowDataPacket, ResultSetHeader } from 'mysql2';
 
 export const IssueModel = {
     async findAll(filters: { 
@@ -13,11 +14,11 @@ export const IssueModel = {
         testCaseId?: string,
         sortBy?: string,
         sortOrder?: 'ASC' | 'DESC'
-    }, limit: number, offset: number) {
+    }, limit: number, offset: number): Promise<{ data: Issue[], total: number }> {
         
         if (filters.runId) {
             // Special case for Run Detail view
-            const data = db.prepare(`
+            const [data] = await db.execute<Issue[] & RowDataPacket[]>(`
                 SELECT 
                     i.*,
                     u.name as reporter_name,
@@ -42,13 +43,13 @@ export const IssueModel = {
                 JOIN projects p ON m.project_id = p.project_id
                 WHERE i.test_case_id IN (SELECT test_case_id FROM test_executions WHERE run_id = ?)
                 ORDER BY i.created_at DESC
-            `).all(filters.runId, filters.runId) as Issue[];
+            `, [filters.runId, filters.runId]);
             
             return { data, total: data.length };
         }
 
         let whereClause = 'WHERE 1=1';
-        const params: unknown[] = [];
+        const params: any[] = [];
 
         if (filters.testCaseId) {
             whereClause += ' AND i.test_case_id = ?';
@@ -83,9 +84,9 @@ export const IssueModel = {
             ${whereClause}
         `;
 
-        const total = (db.prepare(`SELECT COUNT(*) as total ${baseQuery}`).get(...params) as { total: number }).total;
+        const [countRows] = await db.execute<(RowDataPacket & { total: number })[]>(`SELECT COUNT(*) as total ${baseQuery}`, params);
+        const total = countRows[0].total;
         
-        // Define allowlist for sorting columns to prevent SQL injection
         const allowedSortColumns: Record<string, string> = {
             'title': 'i.title',
             'severity': 'i.severity',
@@ -102,7 +103,7 @@ export const IssueModel = {
         const sortColumn = allowedSortColumns[filters.sortBy || ''] || 'i.updated_at';
         const sortOrder = filters.sortOrder === 'ASC' ? 'ASC' : 'DESC';
 
-        const data = db.prepare(`
+        const [data] = await db.execute<Issue[] & RowDataPacket[]>(`
             SELECT 
                 i.*, 
                 u.name as reporter_name, 
@@ -115,12 +116,12 @@ export const IssueModel = {
             ${baseQuery}
             ORDER BY ${sortColumn} ${sortOrder}
             LIMIT ? OFFSET ?
-        `).all(...params, limit, offset) as Issue[];
+        `, [...params, limit, offset]);
 
         return { data, total };
     },
 
-    create(data: { 
+    async create(data: { 
         test_case_id: string, 
         title: string, 
         description: string, 
@@ -129,36 +130,42 @@ export const IssueModel = {
         estimated_date?: string,
         execution_id?: string, 
         developer_id?: string 
-    }) {
+    }): Promise<string> {
         const issueId = generateId();
-        
-        const transaction = db.transaction(() => {
-            db.prepare(`
+        const connection = await db.getConnection();
+        await connection.beginTransaction();
+
+        try {
+            await connection.execute(`
                 INSERT INTO issues (issue_id, test_case_id, snapshot_execution_id, reporter_id, developer_id, title, description, severity, status, estimated_date)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            `).run(
+            `, [
                 issueId, data.test_case_id, data.execution_id || null, data.reporter_id, 
                 data.developer_id || null, data.title, data.description, data.severity, ISSUE_STATUS.OPEN, data.estimated_date || null
-            );
+            ]);
 
             let runId = null;
             if (data.execution_id) {
-                const exec = db.prepare('SELECT run_id FROM test_executions WHERE execution_id = ?').get(data.execution_id) as { run_id: string } | undefined;
-                if (exec) runId = exec.run_id;
+                const [execs] = await connection.execute<RowDataPacket[]>('SELECT run_id FROM test_executions WHERE execution_id = ?', [data.execution_id]);
+                if (execs.length > 0) runId = execs[0].run_id;
             }
 
-            db.prepare(`
+            await connection.execute(`
                 INSERT INTO issue_history (history_id, issue_id, run_id, execution_id, status, user_id)
                 VALUES (?, ?, ?, ?, ?, ?)
-            `).run(generateId(), issueId, runId, data.execution_id || null, ISSUE_STATUS.OPEN, data.reporter_id);
+            `, [generateId(), issueId, runId, data.execution_id || null, ISSUE_STATUS.OPEN, data.reporter_id]);
 
+            await connection.commit();
             return issueId;
-        });
-
-        return transaction();
+        } catch (error) {
+            await connection.rollback();
+            throw error;
+        } finally {
+            connection.release();
+        }
     },
 
-    update(id: string, data: { 
+    async update(id: string, data: { 
         status: string, 
         severity: string, 
         title: string, 
@@ -167,37 +174,45 @@ export const IssueModel = {
         estimated_date?: string,
         execution_id?: string, 
         developer_id?: string 
-    }) {
-        const transaction = db.transaction(() => {
+    }): Promise<void> {
+        const connection = await db.getConnection();
+        await connection.beginTransaction();
+
+        try {
             let solved_by_id = null;
             if (data.status === ISSUE_STATUS.CLOSED) {
-                const currentIssue = db.prepare('SELECT solved_by_id FROM issues WHERE issue_id = ?').get(id) as { solved_by_id: string | null } | undefined;
-                solved_by_id = currentIssue?.solved_by_id || data.user_id;
+                const [issues] = await connection.execute<RowDataPacket[]>('SELECT solved_by_id FROM issues WHERE issue_id = ?', [id]);
+                solved_by_id = issues.length > 0 ? issues[0].solved_by_id : null;
+                if (!solved_by_id) solved_by_id = data.user_id;
             }
 
-            db.prepare(`
+            await connection.execute(`
                 UPDATE issues 
-                SET status = ?, severity = ?, title = ?, description = ?, developer_id = ?, solved_by_id = COALESCE(?, solved_by_id), estimated_date = ?, updated_at = CURRENT_TIMESTAMP
+                SET status = ?, severity = ?, title = ?, description = ?, developer_id = ?, solved_by_id = COALESCE(?, solved_by_id), estimated_date = ?
                 WHERE issue_id = ?
-            `).run(data.status, data.severity, data.title, data.description, data.developer_id || null, solved_by_id, data.estimated_date || null, id);
+            `, [data.status, data.severity, data.title, data.description, data.developer_id || null, solved_by_id, data.estimated_date || null, id]);
 
             let runId = null;
             if (data.execution_id) {
-                const exec = db.prepare('SELECT run_id FROM test_executions WHERE execution_id = ?').get(data.execution_id) as { run_id: string } | undefined;
-                if (exec) runId = exec.run_id;
+                const [execs] = await connection.execute<RowDataPacket[]>('SELECT run_id FROM test_executions WHERE execution_id = ?', [data.execution_id]);
+                if (execs.length > 0) runId = execs[0].run_id;
             }
 
-            db.prepare(`
+            await connection.execute(`
                 INSERT INTO issue_history (history_id, issue_id, run_id, execution_id, status, user_id)
                 VALUES (?, ?, ?, ?, ?, ?)
-            `).run(generateId(), id, runId, data.execution_id || null, data.status, data.user_id);
-        });
+            `, [generateId(), id, runId, data.execution_id || null, data.status, data.user_id]);
 
-        transaction();
-        return true;
+            await connection.commit();
+        } catch (error) {
+            await connection.rollback();
+            throw error;
+        } finally {
+            connection.release();
+        }
     },
 
-    delete(id: string) {
-        return db.prepare('DELETE FROM issues WHERE issue_id = ?').run(id);
+    async delete(id: string): Promise<void> {
+        await db.execute('DELETE FROM issues WHERE issue_id = ?', [id]);
     }
 };

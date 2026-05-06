@@ -13,7 +13,7 @@ export async function GET() {
 
   // Safety check: Verify user still exists in DB (e.g. after a rebuild/re-seed)
   try {
-    const user = UserModel.findById(session.user_id);
+    const user = await UserModel.findById(session.user_id);
     if (!user) {
         session.destroy();
         return NextResponse.json(defaultSession);

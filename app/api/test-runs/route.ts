@@ -41,7 +41,7 @@ export async function POST(request: Request) {
             scenario_ids
         });
 
-        logActivity(session.user_id, 'CREATE', 'TEST_RUN', runId, { name, project_id });
+        await logActivity(session.user_id, 'CREATE', 'TEST_RUN', runId, { name, project_id });
         
         return NextResponse.json({ run_id: runId, name });
     } catch {
@@ -60,7 +60,7 @@ export async function PUT(request: Request) {
         
         await TestRunModel.updateStatus(run_id, status);
         
-        logActivity(session.user_id, 'UPDATE', 'PROJECT', run_id, { action: 'SET_RUN_STATUS', status });
+        await logActivity(session.user_id, 'UPDATE', 'PROJECT', run_id, { action: 'SET_RUN_STATUS', status });
         
         return NextResponse.json({ success: true });
     } catch {
@@ -80,7 +80,7 @@ export async function DELETE(request: Request) {
     try {
         if (!id) return NextResponse.json({ error: 'Missing ID' }, { status: 400 });
         await TestRunModel.delete(id);
-        logActivity(session.user_id, 'DELETE', 'TEST_RUN', id);
+        await logActivity(session.user_id, 'DELETE', 'TEST_RUN', id);
         return NextResponse.json({ success: true });
     } catch {
         return NextResponse.json({ error: 'Failed to delete test run' }, { status: 500 });

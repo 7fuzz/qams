@@ -48,7 +48,7 @@ export async function PUT(request: Request) {
         const { project_id, name, version, description } = await request.json();
         await ProjectModel.update(project_id, { name, version, description });
         
-        logActivity(session.user_id, 'UPDATE', 'PROJECT', project_id, { name, version });
+        await logActivity(session.user_id, 'UPDATE', 'PROJECT', project_id, { name, version });
         
         return NextResponse.json({ success: true });
     } catch {
@@ -68,7 +68,7 @@ export async function DELETE(request: Request) {
     try {
         if (!id) return NextResponse.json({ error: 'Missing ID' }, { status: 400 });
         await ProjectModel.delete(id);
-        logActivity(session.user_id, 'DELETE', 'PROJECT', id);
+        await logActivity(session.user_id, 'DELETE', 'PROJECT', id);
         return NextResponse.json({ success: true });
     } catch {
         return NextResponse.json({ error: 'Failed to delete project' }, { status: 500 });

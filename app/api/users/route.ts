@@ -37,9 +37,8 @@ export async function POST(request: Request) {
         const userId = await UserModel.create({ name, email, password, role_id });
         
         return NextResponse.json({ user_id: userId, name, email });
-    } catch (error: unknown) {
-        const err = error as { code?: string };
-        if (err.code === 'SQLITE_CONSTRAINT_UNIQUE') {
+    } catch (error: any) {
+        if (error.code === 'ER_DUP_ENTRY') {
             return NextResponse.json({ error: 'Email already exists' }, { status: 400 });
         }
         return NextResponse.json({ error: 'Failed to create user' }, { status: 500 });
@@ -70,7 +69,7 @@ export async function DELETE(request: Request) {
     try {
         if (!id) return NextResponse.json({ error: 'Missing ID' }, { status: 400 });
         if (id === session.user_id) return NextResponse.json({ error: "Cannot delete yourself" }, { status: 400 });
-        UserModel.delete(id);
+        await UserModel.delete(id);
         return NextResponse.json({ success: true });
     } catch {
         return NextResponse.json({ error: 'Failed to delete user' }, { status: 500 });

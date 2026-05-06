@@ -81,7 +81,7 @@ async function initDb() {
     if (permIds[name]) await connection.query('INSERT IGNORE INTO role_permissions (role_id, permission_id) VALUES (?, ?)', [qaRoleId, permIds[name]]);
   }
 
-  // QA gets projects:read, tests:run, tests:write
+  // Observer gets projects:read
   const obsPerms = ['projects:read'];
   for (const name of obsPerms) {
     if (permIds[name]) await connection.query('INSERT IGNORE INTO role_permissions (role_id, permission_id) VALUES (?, ?)', [observerId, permIds[name]]);

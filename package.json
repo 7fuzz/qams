@@ -6,7 +6,11 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "db:init": "node scripts/init-db.js",
+    "db:seed": "node scripts/seed.js",
+    "db:rebuild": "node scripts/rebuild-db.js",
+    "db:reset": "node scripts/reset-db.js"
   },
   "dependencies": {
     "ag-grid-community": "^35.2.1",

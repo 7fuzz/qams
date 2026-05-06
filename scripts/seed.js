@@ -39,10 +39,12 @@ async function seed() {
     const adminRoleId = randomUUID();
     const devRoleId = randomUUID();
     const qaRoleId = randomUUID();
+    const observerRoleId = randomUUID();
     
     await connection.execute('INSERT INTO roles (role_id, name) VALUES (?, ?)', [adminRoleId, 'Admin']);
     await connection.execute('INSERT INTO roles (role_id, name) VALUES (?, ?)', [devRoleId, 'Developer']);
     await connection.execute('INSERT INTO roles (role_id, name) VALUES (?, ?)', [qaRoleId, 'QA']);
+    await connection.execute('INSERT INTO roles (role_id, name) VALUES (?, ?)', [observerRoleId, 'Observer']);
 
     const perms = [
         { id: randomUUID(), name: 'users:manage', desc: 'Create, update, delete users' },
@@ -76,6 +78,12 @@ async function seed() {
         await connection.execute('INSERT INTO role_permissions (role_id, permission_id) VALUES (?, ?)', [qaRoleId, p.id]);
     }
 
+    // Observer gets projects:read
+    const obsPermNames = ['projects:read'];
+    for (const p of perms.filter(p => obsPermNames.includes(p.name))) {
+        await connection.execute('INSERT INTO role_permissions (role_id, permission_id) VALUES (?, ?)', [observerRoleId, p.id]);
+    }
+
     // 2. Seed Users
     console.log('Seeding users...');
     const users = {
@@ -83,7 +91,8 @@ async function seed() {
         dev1: { id: randomUUID(), name: 'Alex Dev', email: 'alex@example.com' },
         dev2: { id: randomUUID(), name: 'Sam Coder', email: 'sam@example.com' },
         qa1: { id: randomUUID(), name: 'Jordan Tester', email: 'qa@example.com' },
-        qa2: { id: randomUUID(), name: 'Casey QA', email: 'casey@example.com' }
+        qa2: { id: randomUUID(), name: 'Casey QA', email: 'casey@example.com' },
+        obs1: { id: randomUUID(), name: 'Riley Observer', email: 'observer@example.com' }
     };
 
     const userEntries = [
@@ -91,7 +100,8 @@ async function seed() {
         [users.dev1.id, users.dev1.name, users.dev1.email, hashed, devRoleId],
         [users.dev2.id, users.dev2.name, users.dev2.email, hashed, devRoleId],
         [users.qa1.id, users.qa1.name, users.qa1.email, hashed, qaRoleId],
-        [users.qa2.id, users.qa2.name, users.qa2.email, hashed, qaRoleId]
+        [users.qa2.id, users.qa2.name, users.qa2.email, hashed, qaRoleId],
+        [users.obs1.id, users.obs1.name, users.obs1.email, hashed, observerRoleId]
     ];
 
     for (const u of userEntries) {

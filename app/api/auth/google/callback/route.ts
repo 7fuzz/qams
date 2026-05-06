@@ -48,14 +48,14 @@ export async function GET(request: Request) {
         await UserModel.linkGoogleAccount(user.user_id, googleId!);
       } else {
         // 3. Create new user if doesn't exist at all
-        const qaRole = await RoleModel.findByName('Observer');
-        if (!qaRole) throw new Error("Default Observer role not found");
+        const observerRole = await RoleModel.findByName('Observer');
+        if (!observerRole) throw new Error("Default Observer role not found");
 
         const userId = await UserModel.createGoogleUser({
           name: name || email,
           email: email,
           googleId: googleId!,
-          roleId: qaRole.role_id
+          roleId: observerRole.role_id
         });
 
         user = await UserModel.findById(userId);

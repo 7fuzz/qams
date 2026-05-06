@@ -2,7 +2,7 @@
 
 import React, { use, useState, useEffect, useCallback } from 'react';
 import { Button } from "@/components/ui";
-import { TestExecutionGrid } from "@/components/grids/TestExecutionGrid";
+import { TestExecutionTable } from "@/components/grids/TestExecutionTable";
 import { CheckCircle, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -68,7 +68,7 @@ export default function RunExecutionPage({ params }: { params: Promise<{ id: str
         )}
       </div>
 
-      <TestExecutionGrid runId={id} />
+      <TestExecutionTable runId={id} />
     </div>
   );
 }

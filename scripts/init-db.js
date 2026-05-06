@@ -37,20 +37,23 @@ async function initDb() {
   const adminRoleId = randomUUID();
   const devRoleId = randomUUID();
   const qaRoleId = randomUUID();
-  
+  const observerId = randomUUID();
+
   await connection.query('INSERT IGNORE INTO roles (role_id, name) VALUES (?, ?)', [adminRoleId, 'Admin']);
   await connection.query('INSERT IGNORE INTO roles (role_id, name) VALUES (?, ?)', [devRoleId, 'Developer']);
   await connection.query('INSERT IGNORE INTO roles (role_id, name) VALUES (?, ?)', [qaRoleId, 'QA']);
+  await connection.query('INSERT IGNORE INTO roles (role_id, name) VALUES (?, ?)', [observerId, 'Observer']);
+
 
   const perms = [
-      { name: 'users:manage', desc: 'Create, update, delete users' },
-      { name: 'roles:manage', desc: 'Create, update, delete roles' },
-      { name: 'projects:write', desc: 'Create, update, delete projects/modules/scenarios' },
-      { name: 'projects:read', desc: 'View projects' },
-      { name: 'tests:write', desc: 'Create and update test cases' },
-      { name: 'tests:run', desc: 'Execute test runs' },
-      { name: 'issues:manage', desc: 'Update/close any issue' },
-      { name: 'logs:read', desc: 'View system activity logs' }
+    { name: 'users:manage', desc: 'Create, update, delete users' },
+    { name: 'roles:manage', desc: 'Create, update, delete roles' },
+    { name: 'projects:write', desc: 'Create, update, delete projects/modules/scenarios' },
+    { name: 'projects:read', desc: 'View projects' },
+    { name: 'tests:write', desc: 'Create and update test cases' },
+    { name: 'tests:run', desc: 'Execute test runs' },
+    { name: 'issues:manage', desc: 'Update/close any issue' },
+    { name: 'logs:read', desc: 'View system activity logs' }
   ];
 
   const permIds = {};
@@ -65,27 +68,31 @@ async function initDb() {
   for (const pid of Object.values(permIds)) {
     await connection.query('INSERT IGNORE INTO role_permissions (role_id, permission_id) VALUES (?, ?)', [adminRoleId, pid]);
   }
-  
+
   // Dev gets projects:write, projects:read, tests:write, issues:manage
   const devPerms = ['projects:write', 'projects:read', 'tests:write', 'issues:manage'];
   for (const name of devPerms) {
     if (permIds[name]) await connection.query('INSERT IGNORE INTO role_permissions (role_id, permission_id) VALUES (?, ?)', [devRoleId, permIds[name]]);
   }
-         
+
   // QA gets projects:read, tests:run, tests:write
   const qaPerms = ['projects:read', 'tests:run', 'tests:write'];
   for (const name of qaPerms) {
     if (permIds[name]) await connection.query('INSERT IGNORE INTO role_permissions (role_id, permission_id) VALUES (?, ?)', [qaRoleId, permIds[name]]);
   }
 
+  // QA gets projects:read, tests:run, tests:write
+  const obsPerms = ['projects:read'];
+  for (const name of obsPerms) {
+    if (permIds[name]) await connection.query('INSERT IGNORE INTO role_permissions (role_id, permission_id) VALUES (?, ?)', [observerId, permIds[name]]);
+  }
+
   // Seed Users (password: 123)
   const salt = await bcrypt.genSalt(10);
   const hashed = await bcrypt.hash('123', salt);
 
-  await connection.query('INSERT IGNORE INTO users (user_id, name, email, password, role_id) VALUES (?, ?, ?, ?, ?)', 
+  await connection.query('INSERT IGNORE INTO users (user_id, name, email, password, role_id) VALUES (?, ?, ?, ?, ?)',
     [randomUUID(), 'Admin User', 'admin@example.com', hashed, adminRoleId]);
-  await connection.query('INSERT IGNORE INTO users (user_id, name, email, password, role_id) VALUES (?, ?, ?, ?, ?)', 
-    [randomUUID(), 'Dev User', 'dev@example.com', hashed, devRoleId]);
 
   console.log('Seed data added.');
   await connection.end();

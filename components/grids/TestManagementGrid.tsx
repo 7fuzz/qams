@@ -7,7 +7,8 @@ import {
   CellValueChangedEvent,
   AllCommunityModule,
   ModuleRegistry,
-  ICellRendererParams
+  ICellRendererParams,
+  GridReadyEvent
 } from 'ag-grid-community';
 import { Button, IconButton, Input, Pagination } from '../ui';
 import { Trash2, Plus, Copy, AlertCircle, Edit2, CheckCircle2, ExternalLink, Download, Upload } from 'lucide-react';
@@ -43,7 +44,7 @@ interface ExcelRow {
 export const TestManagementGrid = ({ moduleId }: TestManagementGridProps) => {
   const gridRef = useRef<AgGridReact>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
+
   const [rowData, setRowData] = useState<TestCase[]>([]);
   const [scenarios, setScenarios] = useState<Scenario[]>([]);
   const [loading, setLoading] = useState(true);
@@ -58,6 +59,56 @@ export const TestManagementGrid = ({ moduleId }: TestManagementGridProps) => {
   const [selectedTestCase, setSelectedTestCase] = useState<TestCase | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isIssuesDialogOpen, setIsIssuesDialogOpen] = useState(false);
+
+  const STORAGE_KEY = `grid_state_test_cases`;
+  const isApplyingStateRef = useRef(false);
+
+  const saveGridState = useCallback((params: any) => {
+    if (isApplyingStateRef.current) return;
+    
+    // Only save if the change was initiated by the user
+    const source = params?.source;
+    const isUserAction = !source || source.startsWith('ui') || ['sort', 'filter', 'columnMenu'].includes(source);
+    
+    if (!isUserAction && source !== 'api') return; 
+
+    if (gridRef.current?.api) {
+      const state = gridRef.current.api.getColumnState();
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    }
+  }, [STORAGE_KEY]);
+
+  const applySavedState = useCallback(() => {
+    const savedState = localStorage.getItem(STORAGE_KEY);
+    if (savedState && gridRef.current?.api) {
+      try {
+        isApplyingStateRef.current = true;
+        const state = JSON.parse(savedState);
+        gridRef.current.api.applyColumnState({
+          state: state,
+          applyOrder: true,
+        });
+        // Release the lock after a short delay to ensure events have fired
+        setTimeout(() => { isApplyingStateRef.current = false; }, 200);
+      } catch (e) {
+        console.error('Failed to restore grid state', e);
+        isApplyingStateRef.current = false;
+      }
+    }
+  }, [STORAGE_KEY]);
+
+  const onGridReady = (params: GridReadyEvent) => {
+    applySavedState();
+  };
+
+  useEffect(() => {
+    if (scenarios.length > 0) {
+        // Ensure state is applied after column definitions are updated
+        const timer = setTimeout(applySavedState, 200);
+        return () => clearTimeout(timer);
+    }
+  }, [scenarios, applySavedState]);
+
 
   const fetchScenarios = useCallback(() => fetch(`/api/scenarios?moduleId=${moduleId}`).then(res => res.json()).then(setScenarios), [moduleId]);
   
@@ -201,7 +252,6 @@ export const TestManagementGrid = ({ moduleId }: TestManagementGridProps) => {
         field: 'scenario_id', 
         headerName: 'Scenario', 
         width: 180,
-        pinned: 'left',
         cellRenderer: (params: ICellRendererParams<TestCase>) => {
             const scenarioName = scenarios.find(s => s.scenario_id === params.value)?.name || params.value;
             return <span className="truncate font-medium">{scenarioName}</span>;
@@ -395,7 +445,7 @@ export const TestManagementGrid = ({ moduleId }: TestManagementGridProps) => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  if (loading) return <div className="p-8 text-center text-gray-500 text-sm font-bold uppercase tracking-widest animate-pulse">Syncing Library...</div>;
+  if (loading && rowData.length === 0) return <div className="p-8 text-center text-gray-500 text-sm font-bold uppercase tracking-widest animate-pulse">Syncing Library...</div>;
 
   return (
     <div className="flex flex-col w-full overflow-hidden">
@@ -443,7 +493,12 @@ export const TestManagementGrid = ({ moduleId }: TestManagementGridProps) => {
         </div>
       </div>
       
-      <div className="w-full border dark:border-gray-800 overflow-hidden bg-white dark:bg-gray-950 shadow-sm">
+      <div className="w-full border dark:border-gray-800 overflow-hidden bg-white dark:bg-gray-950 shadow-sm relative">
+        {loading && (
+            <div className="absolute inset-0 z-50 bg-white/50 dark:bg-black/50 flex items-center justify-center backdrop-blur-[1px]">
+                <div className="text-[10px] font-bold uppercase tracking-widest text-primary-theme animate-pulse">Refreshing...</div>
+            </div>
+        )}
         <AgGridReact
           ref={gridRef}
           theme={unifiedGridTheme}
@@ -451,9 +506,16 @@ export const TestManagementGrid = ({ moduleId }: TestManagementGridProps) => {
           columnDefs={columnDefs}
           defaultColDef={defaultColDef}
           onCellValueChanged={onCellValueChanged}
+          onGridReady={onGridReady}
+          onFirstDataRendered={applySavedState}
+          onColumnMoved={saveGridState}
+          onColumnResized={saveGridState}
+          onSortChanged={saveGridState}
+          onColumnVisible={saveGridState}
           rowSelection="multiple"
           animateRows={true}
           domLayout="autoHeight"
+          suppressColumnVirtualisation={true}
           rowClassRules={{
             'bg-gray-50/30 dark:bg-gray-900/20': 'node.rowIndex % 2 !== 0',
           }}

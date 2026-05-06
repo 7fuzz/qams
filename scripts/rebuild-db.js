@@ -28,7 +28,9 @@ async function rebuild() {
     const schema = fs.readFileSync(SCHEMA_PATH, 'utf8');
     
     console.log('Applying schema from:', SCHEMA_PATH);
+    await connection.query('SET FOREIGN_KEY_CHECKS = 0');
     await connection.query(schema);
+    await connection.query('SET FOREIGN_KEY_CHECKS = 1');
     
     console.log('Database rebuilt successfully.');
     await connection.end();

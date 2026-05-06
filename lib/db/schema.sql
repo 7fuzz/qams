@@ -1,20 +1,26 @@
 -- Roles Table (RBAC)
 CREATE TABLE IF NOT EXISTS roles (
     role_id VARCHAR(255) PRIMARY KEY,
-    name VARCHAR(255) UNIQUE NOT NULL
+    name VARCHAR(255) UNIQUE NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- Permissions Table
 CREATE TABLE IF NOT EXISTS permissions (
     permission_id VARCHAR(255) PRIMARY KEY,
     name VARCHAR(255) UNIQUE NOT NULL,
-    description TEXT
+    description TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- Role-Permissions Junction
 CREATE TABLE IF NOT EXISTS role_permissions (
     role_id VARCHAR(255) NOT NULL,
     permission_id VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (role_id, permission_id),
     FOREIGN KEY (role_id) REFERENCES roles(role_id) ON DELETE CASCADE,
     FOREIGN KEY (permission_id) REFERENCES permissions(permission_id) ON DELETE CASCADE
@@ -29,6 +35,7 @@ CREATE TABLE IF NOT EXISTS users (
     google_id VARCHAR(255) UNIQUE,
     role_id VARCHAR(255),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (role_id) REFERENCES roles(role_id)
 ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
@@ -87,75 +94,6 @@ CREATE TABLE IF NOT EXISTS test_cases (
     FOREIGN KEY (scenario_id) REFERENCES scenarios(scenario_id) ON DELETE CASCADE
 ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
--- Releases Table
-CREATE TABLE IF NOT EXISTS releases (
-    release_id VARCHAR(255) PRIMARY KEY,
-    project_id VARCHAR(255) NOT NULL,
-    version_name VARCHAR(255) NOT NULL,
-    status VARCHAR(255) DEFAULT 'Planning',
-    target_date DATETIME,
-    description TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (project_id) REFERENCES projects(project_id) ON DELETE CASCADE
-) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-
--- Release Changes (Changelog)
-CREATE TABLE IF NOT EXISTS release_changes (
-    change_id VARCHAR(255) PRIMARY KEY,
-    release_id VARCHAR(255) NOT NULL,
-    type VARCHAR(255) NOT NULL, -- 'Feature', 'Bugfix', 'Enhancement'
-    title VARCHAR(255) NOT NULL,
-    description TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (release_id) REFERENCES releases(release_id) ON DELETE CASCADE
-) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-
--- Junction: Changes to Modules
-CREATE TABLE IF NOT EXISTS release_change_modules (
-    change_id VARCHAR(255) NOT NULL,
-    module_id VARCHAR(255) NOT NULL,
-    PRIMARY KEY (change_id, module_id),
-    FOREIGN KEY (change_id) REFERENCES release_changes(change_id) ON DELETE CASCADE,
-    FOREIGN KEY (module_id) REFERENCES modules(module_id) ON DELETE CASCADE
-) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-
--- Junction: Changes to Issues
-CREATE TABLE IF NOT EXISTS release_change_issues (
-    change_id VARCHAR(255) NOT NULL,
-    issue_id VARCHAR(255) NOT NULL,
-    PRIMARY KEY (change_id, issue_id),
-    FOREIGN KEY (change_id) REFERENCES release_changes(change_id) ON DELETE CASCADE,
-    FOREIGN KEY (issue_id) REFERENCES issues(issue_id) ON DELETE CASCADE
-) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-
--- Test Runs (Execution Sessions)
-CREATE TABLE IF NOT EXISTS test_runs (
-    run_id VARCHAR(255) PRIMARY KEY,
-    project_id VARCHAR(255) NOT NULL,
-    tester_id VARCHAR(255) NOT NULL,
-    name VARCHAR(255) NOT NULL,
-    status VARCHAR(255) DEFAULT 'Draft',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    completed_at DATETIME,
-    FOREIGN KEY (project_id) REFERENCES projects(project_id) ON DELETE CASCADE,
-    FOREIGN KEY (tester_id) REFERENCES users(user_id)
-) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-
--- Test Executions
-CREATE TABLE IF NOT EXISTS test_executions (
-    execution_id VARCHAR(255) PRIMARY KEY,
-    run_id VARCHAR(255) NOT NULL,
-    test_case_id VARCHAR(255) NOT NULL,
-    status VARCHAR(255) DEFAULT 'Pending',
-    notes TEXT,
-    proof_url TEXT,
-    executed_at DATETIME,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (run_id) REFERENCES test_runs(run_id) ON DELETE CASCADE,
-    FOREIGN KEY (test_case_id) REFERENCES test_cases(test_case_id) ON DELETE CASCADE
-) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-
 -- Issues Table
 CREATE TABLE IF NOT EXISTS issues (
     issue_id VARCHAR(255) PRIMARY KEY,
@@ -184,8 +122,85 @@ CREATE TABLE IF NOT EXISTS issue_notes (
     user_id VARCHAR(255) NOT NULL,
     content TEXT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (issue_id) REFERENCES issues(issue_id) ON DELETE CASCADE,
     FOREIGN KEY (user_id) REFERENCES users(user_id)
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- Releases Table
+CREATE TABLE IF NOT EXISTS releases (
+    release_id VARCHAR(255) PRIMARY KEY,
+    project_id VARCHAR(255) NOT NULL,
+    version_name VARCHAR(255) NOT NULL,
+    status VARCHAR(255) DEFAULT 'Planning',
+    target_date DATETIME,
+    description TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (project_id) REFERENCES projects(project_id) ON DELETE CASCADE
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- Release Changes (Changelog)
+CREATE TABLE IF NOT EXISTS release_changes (
+    change_id VARCHAR(255) PRIMARY KEY,
+    release_id VARCHAR(255) NOT NULL,
+    type VARCHAR(255) NOT NULL, -- 'Feature', 'Bugfix', 'Enhancement'
+    title VARCHAR(255) NOT NULL,
+    description TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (release_id) REFERENCES releases(release_id) ON DELETE CASCADE
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- Junction: Changes to Modules
+CREATE TABLE IF NOT EXISTS release_change_modules (
+    change_id VARCHAR(255) NOT NULL,
+    module_id VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (change_id, module_id),
+    FOREIGN KEY (change_id) REFERENCES release_changes(change_id) ON DELETE CASCADE,
+    FOREIGN KEY (module_id) REFERENCES modules(module_id) ON DELETE CASCADE
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- Junction: Changes to Issues
+CREATE TABLE IF NOT EXISTS release_change_issues (
+    change_id VARCHAR(255) NOT NULL,
+    issue_id VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (change_id, issue_id),
+    FOREIGN KEY (change_id) REFERENCES release_changes(change_id) ON DELETE CASCADE,
+    FOREIGN KEY (issue_id) REFERENCES issues(issue_id) ON DELETE CASCADE
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- Test Runs (Execution Sessions)
+CREATE TABLE IF NOT EXISTS test_runs (
+    run_id VARCHAR(255) PRIMARY KEY,
+    project_id VARCHAR(255) NOT NULL,
+    tester_id VARCHAR(255) NOT NULL,
+    name VARCHAR(255) NOT NULL,
+    status VARCHAR(255) DEFAULT 'Draft',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    completed_at DATETIME,
+    FOREIGN KEY (project_id) REFERENCES projects(project_id) ON DELETE CASCADE,
+    FOREIGN KEY (tester_id) REFERENCES users(user_id)
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- Test Executions
+CREATE TABLE IF NOT EXISTS test_executions (
+    execution_id VARCHAR(255) PRIMARY KEY,
+    run_id VARCHAR(255) NOT NULL,
+    test_case_id VARCHAR(255) NOT NULL,
+    status VARCHAR(255) DEFAULT 'Pending',
+    notes TEXT,
+    proof_url TEXT,
+    executed_at DATETIME,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (run_id) REFERENCES test_runs(run_id) ON DELETE CASCADE,
+    FOREIGN KEY (test_case_id) REFERENCES test_cases(test_case_id) ON DELETE CASCADE
 ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- Issue History
@@ -197,6 +212,8 @@ CREATE TABLE IF NOT EXISTS issue_history (
     status VARCHAR(255) NOT NULL,
     user_id VARCHAR(255) NOT NULL,
     timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (issue_id) REFERENCES issues(issue_id) ON DELETE CASCADE,
     FOREIGN KEY (run_id) REFERENCES test_runs(run_id) ON DELETE SET NULL,
     FOREIGN KEY (user_id) REFERENCES users(user_id)
@@ -211,6 +228,8 @@ CREATE TABLE IF NOT EXISTS activity_log (
     entity_id VARCHAR(255) NOT NULL,
     details TEXT,
     timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(user_id)
 ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
@@ -221,5 +240,6 @@ CREATE TABLE IF NOT EXISTS attachments (
     entity_id VARCHAR(255) NOT NULL,
     url VARCHAR(255) NOT NULL,
     name VARCHAR(255),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;

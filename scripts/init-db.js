@@ -26,7 +26,9 @@ async function initDb() {
   console.log(`Using database: ${dbName}`);
 
   const schema = fs.readFileSync(SCHEMA_PATH, 'utf8');
+  await connection.query('SET FOREIGN_KEY_CHECKS = 0');
   await connection.query(schema);
+  await connection.query('SET FOREIGN_KEY_CHECKS = 1');
 
   console.log('Database schema applied successfully.');
 

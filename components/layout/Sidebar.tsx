@@ -64,6 +64,19 @@ export const Sidebar = ({ userPermissions = [] }: SidebarProps) => {
     }
   ];
 
+  // Master Data Group
+  const masterDataItems: MenuItem[] = [];
+  if (userPermissions.includes('tags:manage')) {
+    masterDataItems.push({ name: "Tag Management", href: "/management/tags", icon: Tag });
+  }
+
+  if (masterDataItems.length > 0) {
+    groups.push({
+        label: "Master Data",
+        items: masterDataItems
+    });
+  }
+
   // Admin Group
   const adminItems: MenuItem[] = [];
   if (userPermissions.includes('users:manage')) {

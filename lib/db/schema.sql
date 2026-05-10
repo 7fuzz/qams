@@ -136,6 +136,26 @@ CREATE TABLE IF NOT EXISTS issue_test_cases (
     FOREIGN KEY (test_case_id) REFERENCES test_cases(test_case_id) ON DELETE CASCADE
 ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
+-- Tags Table
+CREATE TABLE IF NOT EXISTS tags (
+    tag_id VARCHAR(255) PRIMARY KEY,
+    name VARCHAR(255) NOT NULL UNIQUE,
+    color VARCHAR(50) DEFAULT '#3b82f6',
+    description TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- Junction: Issues to Tags
+CREATE TABLE IF NOT EXISTS issue_tags (
+    issue_id VARCHAR(255) NOT NULL,
+    tag_id VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (issue_id, tag_id),
+    FOREIGN KEY (issue_id) REFERENCES issues(issue_id) ON DELETE CASCADE,
+    FOREIGN KEY (tag_id) REFERENCES tags(tag_id) ON DELETE CASCADE
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
 -- Issue Notes Table
 CREATE TABLE IF NOT EXISTS issue_notes (
     note_id VARCHAR(255) PRIMARY KEY,

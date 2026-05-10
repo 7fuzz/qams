@@ -18,9 +18,9 @@ async function seed() {
     
     console.log('Cleaning existing data...');
     const tables = [
-        'activity_log', 'issue_history', 'issue_notes', 'release_change_issues', 
+        'activity_log', 'issue_history', 'issue_notes', 'issue_tags', 'tags', 'release_change_issues', 
         'release_change_modules', 'release_changes', 'release_issues', 'releases', 'issues', 
-        'test_executions', 'test_runs', 'test_cases', 'scenarios', 
+        'test_executions', 'test_runs', 'test_run_assignments', 'test_cases', 'scenarios', 
         'modules', 'projects', 'users', 'roles', 'permissions'
     ];
     
@@ -54,6 +54,7 @@ async function seed() {
         { id: randomUUID(), name: 'tests:write', desc: 'Create and update test cases' },
         { id: randomUUID(), name: 'tests:run', desc: 'Execute test runs' },
         { id: randomUUID(), name: 'issues:manage', desc: 'Update/close any issue' },
+        { id: randomUUID(), name: 'tags:manage', desc: 'Manage issue tags (Master Data)' },
         { id: randomUUID(), name: 'logs:read', desc: 'View system activity logs' }
     ];
 
@@ -76,6 +77,20 @@ async function seed() {
     const qaPermNames = ['projects:read', 'tests:run', 'tests:write'];
     for (const p of perms.filter(p => qaPermNames.includes(p.name))) {
         await connection.execute('INSERT INTO role_permissions (role_id, permission_id) VALUES (?, ?)', [qaRoleId, p.id]);
+    }
+
+    // 1b. Seed Initial Tags
+    console.log('Seeding tags...');
+    const initialTags = [
+        { id: randomUUID(), name: 'Vulnerability', color: '#ef4444' },
+        { id: randomUUID(), name: 'Software Bug', color: '#f97316' },
+        { id: randomUUID(), name: 'UI/UX', color: '#8b5cf6' },
+        { id: randomUUID(), name: 'Performance', color: '#10b981' },
+        { id: randomUUID(), name: 'Enhancement', color: '#3b82f6' }
+    ];
+
+    for (const tag of initialTags) {
+        await connection.execute('INSERT INTO tags (tag_id, name, color) VALUES (?, ?, ?)', [tag.id, tag.name, tag.color]);
     }
 
     // Observer gets projects:read

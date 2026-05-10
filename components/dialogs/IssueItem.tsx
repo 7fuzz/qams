@@ -39,6 +39,8 @@ interface Issue {
   actual_date: string | null;
   created_at: string;
   test_case_titles?: string;
+  tag_ids?: string[];
+  tags?: { tag_id: string, name: string, color: string }[];
 }
 
 interface TestCase {
@@ -76,6 +78,7 @@ interface IssueItemProps {
   isExpanded: boolean;
   onToggle: () => void;
   users: User[];
+  allTags: { tag_id: string, name: string, color: string }[];
   notes: IssueNote[];
   history: IssueHistoryEntry[];
   testCases: TestCase[];
@@ -90,6 +93,7 @@ export const IssueItem = ({
     isExpanded, 
     onToggle, 
     users, 
+    allTags,
     notes, 
     history, 
     testCases, 
@@ -102,6 +106,7 @@ export const IssueItem = ({
   const [newNoteContent, setNewNoteContent] = useState('');
   
   const userOptions = users.map(u => ({ value: u.user_id, label: u.name }));
+  const tagOptions = allTags.map(t => ({ value: t.tag_id, label: t.name }));
 
   const handleAddNoteInternal = async () => {
       if (!newNoteContent) return;
@@ -123,18 +128,33 @@ export const IssueItem = ({
                 issue.severity.includes('Critical') || issue.severity.includes('High') ? 'bg-danger-theme' : 'bg-primary-theme'
             }`} />
           )}
-          <div>
-            <div className={`font-bold text-sm text-text-theme-main ${issue.status === ISSUE_STATUS.CLOSED ? 'line-through opacity-50' : ''}`}>{issue.title}</div>
-            <div className="text-[10px] text-text-theme-muted flex flex-wrap gap-x-2 gap-y-0.5 font-bold uppercase tracking-wider mt-0.5">
-              <span className={issue.severity.includes('Critical') ? 'text-danger-theme' : ''}>{issue.severity}</span>
-              <span className="opacity-30">•</span>
-              <span className="text-primary-theme">{issue.status}</span>
-              {issue.developer_name && (
-                <>
-                    <span className="opacity-30">•</span>
-                    <span className="flex items-center gap-1"><UserCheck size={10} /> {issue.developer_name}</span>
-                </>
-              )}
+          <div className="flex-1 min-w-0">
+            <div className={`font-bold text-sm text-text-theme-main truncate ${issue.status === ISSUE_STATUS.CLOSED ? 'line-through opacity-50' : ''}`}>{issue.title}</div>
+            <div className="flex items-center gap-2 mt-0.5">
+                <div className="text-[10px] text-text-theme-muted flex flex-wrap gap-x-2 gap-y-0.5 font-bold uppercase tracking-wider">
+                <span className={issue.severity.includes('Critical') ? 'text-danger-theme' : ''}>{issue.severity}</span>
+                <span className="opacity-30">•</span>
+                <span className="text-primary-theme">{issue.status}</span>
+                {issue.developer_name && (
+                    <>
+                        <span className="opacity-30">•</span>
+                        <span className="flex items-center gap-1"><UserCheck size={10} /> {issue.developer_name}</span>
+                    </>
+                )}
+                </div>
+                {issue.tags && issue.tags.length > 0 && (
+                    <div className="flex gap-1 overflow-hidden ml-2">
+                        {issue.tags.map(t => (
+                            <span 
+                                key={t.tag_id} 
+                                className="text-[8px] font-black uppercase px-1.5 py-0.5 rounded-full border shadow-sm text-white"
+                                style={{ backgroundColor: t.color, borderColor: t.color + '40' }}
+                            >
+                                {t.name}
+                            </span>
+                        ))}
+                    </div>
+                )}
             </div>
           </div>
         </div>
@@ -190,6 +210,17 @@ export const IssueItem = ({
                                     onChange={(val) => onUpdate({ developer_id: val as string })} 
                                     placeholder="Assign..."
                                     className="bg-surface h-9"
+                                />
+                            </div>
+                            <div className="space-y-1.5">
+                                <Label className="text-[10px] font-bold text-text-theme-muted uppercase">Issue Tags</Label>
+                                <Combobox 
+                                    options={tagOptions} 
+                                    value={issue.tag_ids || []} 
+                                    onChange={(val) => onUpdate({ tag_ids: val as string[] })} 
+                                    placeholder="Add Tags..."
+                                    className="bg-surface"
+                                    multiSelect={true}
                                 />
                             </div>
                         </div>

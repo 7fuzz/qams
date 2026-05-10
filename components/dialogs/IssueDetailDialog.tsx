@@ -23,6 +23,14 @@ interface Issue {
   actual_date: string | null;
   created_at: string;
   test_case_titles?: string;
+  tag_ids?: string[];
+  tags?: { tag_id: string, name: string, color: string }[];
+}
+
+interface Tag {
+    tag_id: string;
+    name: string;
+    color: string;
 }
 
 interface TestCase {
@@ -65,6 +73,7 @@ interface IssueDetailDialogProps {
 export const IssueDetailDialog = ({ issueId, isOpen, onClose, onRefresh }: IssueDetailDialogProps) => {
   const [issue, setIssue] = useState<Issue | null>(null);
   const [users, setUsers] = useState<User[]>([]);
+  const [tags, setTags] = useState<Tag[]>([]);
   const [notes, setNotes] = useState<IssueNote[]>([]);
   const [history, setHistory] = useState<IssueHistoryEntry[]>([]);
   const [testCases, setTestCases] = useState<TestCase[]>([]);
@@ -100,14 +109,21 @@ export const IssueDetailDialog = ({ issueId, isOpen, onClose, onRefresh }: Issue
     setUsers(resData.data || []);
   }, []);
 
+  const fetchTags = useCallback(async () => {
+    const res = await fetch('/api/tags');
+    const resData = await res.json();
+    setTags(resData || []);
+  }, []);
+
   useEffect(() => {
     queueMicrotask(() => {
         if (issueId && isOpen) {
             fetchIssueData(issueId);
             fetchUsers();
+            fetchTags();
         }
     });
-  }, [issueId, isOpen, fetchIssueData, fetchUsers]);
+  }, [issueId, isOpen, fetchIssueData, fetchUsers, fetchTags]);
 
   const handleUpdateIssue = async (data: Partial<Issue>) => {
     if (!issueId) return;
@@ -144,6 +160,7 @@ export const IssueDetailDialog = ({ issueId, isOpen, onClose, onRefresh }: Issue
             isExpanded={true}
             onToggle={() => {}}
             users={users}
+            allTags={tags}
             notes={notes}
             history={history}
             testCases={testCases}

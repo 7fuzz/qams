@@ -62,7 +62,7 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json();
-    const { test_case_id, test_case_ids, title, description, severity, execution_id, developer_id, sla_date, actual_date } = body;
+    const { test_case_id, test_case_ids, title, description, severity, execution_id, developer_id, sla_date, actual_date, tag_ids } = body;
 
     const finalTestCaseIds = test_case_ids || (test_case_id ? [test_case_id] : []);
     
@@ -83,7 +83,8 @@ export async function POST(request: Request) {
         execution_id,
         developer_id,
         sla_date,
-        actual_date
+        actual_date,
+        tag_ids
     });
 
     if (finalTestCaseIds.length > 0) {
@@ -104,7 +105,7 @@ export async function PUT(request: Request) {
   }
 
   try {
-    const { issue_id, status, severity, title, description, execution_id, developer_id, sla_date, actual_date, test_case_ids } = await request.json();
+    const { issue_id, status, severity, title, description, execution_id, developer_id, sla_date, actual_date, test_case_ids, tag_ids } = await request.json();
 
     // Check project access
     const pIds = await IssueModel.getProjectIdsFromIssue(issue_id);
@@ -130,7 +131,8 @@ export async function PUT(request: Request) {
         execution_id,
         developer_id,
         sla_date,
-        actual_date
+        actual_date,
+        tag_ids
     });
 
     return NextResponse.json({ success: true });

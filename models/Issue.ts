@@ -122,7 +122,18 @@ export const IssueModel = {
             LIMIT ? OFFSET ?
         `, [...params, limit, offset]);
 
-        // Map titles back to the type if needed, or just use test_case_titles
+        // Fetch tags for each issue
+        for (const issue of data) {
+            const [tagRows] = await db.execute<RowDataPacket[]>(`
+                SELECT t.tag_id, t.name, t.color
+                FROM tags t
+                JOIN issue_tags it ON t.tag_id = it.tag_id
+                WHERE it.issue_id = ?
+            `, [issue.issue_id]);
+            issue.tags = tagRows as { tag_id: string, name: string, color: string }[];
+            issue.tag_ids = (tagRows as { tag_id: string }[]).map(t => t.tag_id);
+        }
+
         return { data, total };
     },
 
@@ -135,7 +146,8 @@ export const IssueModel = {
         sla_date?: string,
         actual_date?: string,
         execution_id?: string, 
-        developer_id?: string 
+        developer_id?: string,
+        tag_ids?: string[]
     }): Promise<string> {
         const issueId = generateId();
         const connection = await db.getConnection();
@@ -150,12 +162,22 @@ export const IssueModel = {
                 data.developer_id || null, data.title, data.description, data.severity, ISSUE_STATUS.OPEN, data.sla_date || null, data.actual_date || null
             ]);
 
-            // Add junction entries
+            // Add junction entries for test cases
             for (const tcId of data.test_case_ids) {
                 await connection.execute(`
                     INSERT INTO issue_test_cases (issue_id, test_case_id)
                     VALUES (?, ?)
                 `, [issueId, tcId]);
+            }
+
+            // Add junction entries for tags
+            if (data.tag_ids && data.tag_ids.length > 0) {
+                for (const tagId of data.tag_ids) {
+                    await connection.execute(`
+                        INSERT INTO issue_tags (issue_id, tag_id)
+                        VALUES (?, ?)
+                    `, [issueId, tagId]);
+                }
             }
 
             let runId = null;
@@ -189,7 +211,8 @@ export const IssueModel = {
         sla_date?: string,
         actual_date?: string,
         execution_id?: string, 
-        developer_id?: string 
+        developer_id?: string,
+        tag_ids?: string[]
     }): Promise<void> {
         const connection = await db.getConnection();
         await connection.beginTransaction();
@@ -242,6 +265,17 @@ export const IssueModel = {
                         INSERT INTO issue_test_cases (issue_id, test_case_id)
                         VALUES (?, ?)
                     `, [id, tcId]);
+                }
+            }
+
+            if (data.tag_ids) {
+                // Refresh tag junction
+                await connection.execute('DELETE FROM issue_tags WHERE issue_id = ?', [id]);
+                for (const tagId of data.tag_ids) {
+                    await connection.execute(`
+                        INSERT INTO issue_tags (issue_id, tag_id)
+                        VALUES (?, ?)
+                    `, [id, tagId]);
                 }
             }
 

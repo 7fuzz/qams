@@ -97,6 +97,7 @@ export interface Issue {
     module_name?: string;
     test_case_id?: string;
     test_case_title?: string;
+    test_case_titles?: string;
     reporter_id: string;
     reporter_name?: string;
     developer_id?: string;
@@ -104,6 +105,8 @@ export interface Issue {
     sla_date?: string | null;
     actual_date?: string | null;
     created_at: string;
+    tag_ids?: string[];
+    tags?: { tag_id: string, name: string, color: string }[];
 }
 
 export interface Attachment {

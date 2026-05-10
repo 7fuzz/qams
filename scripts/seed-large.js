@@ -18,10 +18,10 @@ async function seedLarge() {
     
     console.log('Cleaning business data (preserving users/roles)...');
     const businessTables = [
-        'activity_log', 'issue_history', 'issue_notes', 'release_change_issues', 
+        'activity_log', 'issue_history', 'issue_notes', 'issue_tags', 'tags', 'release_change_issues', 
         'release_change_modules', 'release_changes', 'release_issues', 'releases', 
-        'issue_test_cases', 'issues', 'test_executions', 'test_runs', 'test_cases', 
-        'scenarios', 'modules', 'projects'
+        'issue_test_cases', 'issues', 'test_executions', 'test_runs', 'test_run_assignments', 
+        'test_cases', 'scenarios', 'modules', 'projects'
     ];
     
     await connection.query('SET FOREIGN_KEY_CHECKS = 0');

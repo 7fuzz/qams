@@ -26,6 +26,14 @@ interface Issue {
   actual_date: string | null;
   created_at: string;
   test_case_titles?: string;
+  tag_ids?: string[];
+  tags?: { tag_id: string, name: string, color: string }[];
+}
+
+interface Tag {
+    tag_id: string;
+    name: string;
+    color: string;
 }
 
 interface TestCase {
@@ -70,13 +78,14 @@ interface IssuesListDialogProps {
 export const IssuesListDialog = ({ testCaseId, issueId, testCaseTitle, isOpen, onClose, onRefresh }: IssuesListDialogProps) => {
   const [issues, setIssues] = useState<Issue[]>([]);
   const [users, setUsers] = useState<User[]>([]);
+  const [tags, setTags] = useState<Tag[]>([]);
   const [expandedIssueId, setExpandedIssueId] = useState<string | null>(null);
   const [issueNotes, setIssueNotes] = useState<Record<string, IssueNote[]>>({});
   const [issueHistory, setIssueHistory] = useState<Record<string, IssueHistoryEntry[]>>({});
   const [issueTestCases, setIssueTestCases] = useState<Record<string, TestCase[]>>({});
   
   const [showNewIssueForm, setShowNewIssueForm] = useState(false);
-  const [newIssue, setNewIssue] = useState({ title: '', description: '', severity: ISSUE_SEVERITY.MEDIUM as string, developer_id: '', sla_date: '' });
+  const [newIssue, setNewIssue] = useState({ title: '', description: '', severity: ISSUE_SEVERITY.MEDIUM as string, developer_id: '', sla_date: '', tag_ids: [] as string[] });
 
   const fetchDataForIssue = useCallback(async (id: string) => {
     const [notesRes, historyRes, tcRes] = await Promise.all([
@@ -119,16 +128,23 @@ export const IssuesListDialog = ({ testCaseId, issueId, testCaseTitle, isOpen, o
     setUsers(resData.data || []);
   }, []);
 
+  const fetchTags = useCallback(async () => {
+    const res = await fetch('/api/tags');
+    const resData = await res.json();
+    setTags(resData || []);
+  }, []);
+
   useEffect(() => {
     queueMicrotask(() => {
         if ((testCaseId || issueId) && isOpen) {
             fetchIssues();
             fetchUsers();
+            fetchTags();
             setShowNewIssueForm(false);
             if (!issueId) setExpandedIssueId(null);
         }
     });
-  }, [testCaseId, issueId, isOpen, fetchIssues, fetchUsers]);
+  }, [testCaseId, issueId, isOpen, fetchIssues, fetchUsers, fetchTags]);
 
   const handleCreateIssue = async () => {
     if (!newIssue.title || !testCaseId) return;
@@ -137,7 +153,7 @@ export const IssuesListDialog = ({ testCaseId, issueId, testCaseTitle, isOpen, o
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ test_case_id: testCaseId, ...newIssue }),
     });
-    setNewIssue({ title: '', description: '', severity: ISSUE_SEVERITY.MEDIUM, developer_id: '', sla_date: '' });
+    setNewIssue({ title: '', description: '', severity: ISSUE_SEVERITY.MEDIUM, developer_id: '', sla_date: '', tag_ids: [] });
     setShowNewIssueForm(false);
     fetchIssues();
     onRefresh();
@@ -166,6 +182,7 @@ export const IssuesListDialog = ({ testCaseId, issueId, testCaseTitle, isOpen, o
   if (!testCaseId && !issueId) return null;
 
   const userOptions = users.map(u => ({ value: u.user_id, label: u.name }));
+  const tagOptions = tags.map(t => ({ value: t.tag_id, label: t.name }));
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={`Issues History: ${testCaseTitle}`} maxWidth="max-w-7xl">
@@ -207,6 +224,17 @@ export const IssuesListDialog = ({ testCaseId, issueId, testCaseTitle, isOpen, o
                         <Input type="date" value={newIssue.sla_date} onChange={e => setNewIssue({...newIssue, sla_date: e.target.value})} className="h-10 text-xs bg-surface" />
                     </div>
                 </div>
+                <div className="space-y-1.5">
+                    <Label className="text-[10px] font-bold uppercase text-text-theme-muted">Tags</Label>
+                    <Combobox 
+                        options={tagOptions} 
+                        value={newIssue.tag_ids} 
+                        onChange={val => setNewIssue({...newIssue, tag_ids: val as string[]})} 
+                        placeholder="Select Tags..." 
+                        className="bg-surface"
+                        multiSelect={true}
+                    />
+                </div>
             </div>
             <Button size="sm" onClick={handleCreateIssue} className="w-full h-11 font-bold uppercase tracking-widest shadow-lg shadow-primary-theme/10">Report Issue</Button>
           </div>
@@ -227,6 +255,7 @@ export const IssuesListDialog = ({ testCaseId, issueId, testCaseTitle, isOpen, o
                     }
                 }}
                 users={users}
+                allTags={tags}
                 notes={issueNotes[issue.issue_id] || []}
                 history={issueHistory[issue.issue_id] || []}
                 testCases={issueTestCases[issue.issue_id] || []}

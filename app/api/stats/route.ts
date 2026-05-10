@@ -4,6 +4,8 @@ import { cookies } from "next/headers";
 import { sessionOptions, SessionData } from "@/lib/session";
 import db from '@/lib/db';
 
+import { RowDataPacket } from 'mysql2';
+
 export async function GET() {
     const session = await getIronSession<SessionData>(await cookies(), sessionOptions);
     if (!session.isLoggedIn) {
@@ -11,14 +13,14 @@ export async function GET() {
     }
 
     try {
-        const [[{ count: total_projects }]] = await db.execute('SELECT COUNT(*) as count FROM projects') as any;
-        const [[{ count: total_users }]] = await db.execute('SELECT COUNT(*) as count FROM users') as any;
-        const [[{ count: recent_activity_count }]] = await db.execute("SELECT COUNT(*) as count FROM activity_log WHERE timestamp >= NOW() - INTERVAL 24 HOUR") as any;
+        const [projectsRows] = await db.execute<RowDataPacket[]>('SELECT COUNT(*) as count FROM projects');
+        const [usersRows] = await db.execute<RowDataPacket[]>('SELECT COUNT(*) as count FROM users');
+        const [activityRows] = await db.execute<RowDataPacket[]>("SELECT COUNT(*) as count FROM activity_log WHERE timestamp >= NOW() - INTERVAL 24 HOUR");
 
         const stats = {
-            total_projects,
-            total_users,
-            recent_activity_count,
+            total_projects: projectsRows[0].count,
+            total_users: usersRows[0].count,
+            recent_activity_count: activityRows[0].count,
         };
         return NextResponse.json(stats);
     } catch (error) {

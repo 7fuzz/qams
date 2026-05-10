@@ -38,7 +38,7 @@ interface ManagementPageProps<T> {
   beforeTable?: React.ReactNode;
 }
 
-export function ManagementPage<T extends Record<string, unknown>>({
+export function ManagementPage<T extends object>({
   title,
   description,
   icon,

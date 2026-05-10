@@ -94,7 +94,7 @@ export const ExecutionDialog = ({ execution, isOpen, onClose, onSave }: Executio
     // Get current test cases for this issue
     const tcRes = await fetch(`/api/issues/test-cases?id=${issue.issue_id}`);
     const tcData = await tcRes.json();
-    const currentTcs = Array.isArray(tcData) ? tcData.map((t: any) => t.test_case_id) : [];
+    const currentTcs = Array.isArray(tcData) ? tcData.map((t: { test_case_id: string }) => t.test_case_id) : [];
     
     if (currentTcs.includes(execution.test_case_id)) {
         alert('This issue is already linked to this test case.');

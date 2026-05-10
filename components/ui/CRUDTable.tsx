@@ -45,7 +45,7 @@ interface CRUDTableProps<T> {
   hideHeader?: boolean;
 }
 
-export function CRUDTable<T extends Record<string, unknown>>({
+export function CRUDTable<T extends object>({
   data,
   columns,
   loading = false,

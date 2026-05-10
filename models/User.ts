@@ -2,7 +2,7 @@ import db from '@/lib/db';
 import { LoginUser } from '@/types/auth';
 import { generateId } from '@/lib/id-utils';
 import { hashPassword } from '@/lib/crypto-utils';
-import { RowDataPacket, ResultSetHeader } from 'mysql2';
+import { RowDataPacket } from 'mysql2';
 
 export const UserModel = {
     async findAll(limit: number, offset: number): Promise<{ data: LoginUser[], total: number }> {

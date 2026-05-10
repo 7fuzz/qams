@@ -40,16 +40,10 @@ interface EditData {
   lead_developer_id?: string;
 }
 
-interface CurrentUser {
-    user_id: string;
-    permissions: string[];
-}
-
 export default function ProjectManagementPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [assignedUsers, setAssignedUsers] = useState<User[]>([]);
-  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
   const [loading, setLoading] = useState(true);
 
   // Pagination & Search
@@ -66,12 +60,6 @@ export default function ProjectManagementPage() {
 
   const [newName, setNewName] = useState({ project: '', project_version: '1.0.0', project_desc: '', lead_developer_id: '' });
   const [editData, setEditData] = useState<EditData>({});
-
-  const fetchSession = useCallback(async () => {
-    const res = await fetch('/api/user');
-    const data = await res.json();
-    setCurrentUser(data);
-  }, []);
 
   const fetchUsers = useCallback(async () => {
     const res = await fetch('/api/users?limit=1000');
@@ -100,11 +88,10 @@ export default function ProjectManagementPage() {
 
   useEffect(() => {
     queueMicrotask(() => {
-      fetchSession();
       fetchUsers();
       fetchProjects();
     });
-  }, [fetchSession, fetchUsers, fetchProjects]);
+  }, [fetchUsers, fetchProjects]);
 
   const handleAddProject = async () => {
     if (!newName.project) return;
@@ -140,11 +127,11 @@ export default function ProjectManagementPage() {
     setIsProjectModalOpen(false);
   };
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = useCallback(async (id: string) => {
     if (!confirm('Are you sure you want to delete this project? This will delete all child items.')) return;
     await fetch(`/api/projects?id=${id}`, { method: 'DELETE' });
     fetchProjects();
-  };
+  }, [fetchProjects]);
 
   const handleAssignUser = async (userId: string) => {
     if (!selectedProjectId) return;
@@ -164,9 +151,9 @@ export default function ProjectManagementPage() {
     if (res.ok) fetchAssignedUsers(selectedProjectId);
   };
 
-  const formatDate = (dateStr: string) => {
+  const formatDate = useCallback((dateStr: string) => {
     return new Date(dateStr).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
-  };
+  }, []);
 
   const currentProject = projects.find(p => p.project_id === selectedProjectId);
   const userOptions = useMemo(() => users.map(u => ({ value: u.user_id, label: u.name })), [users]);
@@ -242,7 +229,7 @@ export default function ProjectManagementPage() {
         );
       }
     }
-  ], [fetchAssignedUsers, formatDate]);
+  ], [fetchAssignedUsers, formatDate, handleDelete]);
 
   return (
     <>

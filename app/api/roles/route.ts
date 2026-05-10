@@ -3,6 +3,7 @@ import { getIronSession } from "iron-session";
 import { cookies } from "next/headers";
 import { sessionOptions, SessionData } from "@/lib/session";
 import { RoleModel } from '@/models/Role';
+import { Role } from '@/types/app';
 
 export async function GET() {
     const session = await getIronSession<SessionData>(await cookies(), sessionOptions);
@@ -12,7 +13,7 @@ export async function GET() {
 
     try {
         const roles = await RoleModel.findAll();
-        const rolesWithPermissions = await Promise.all(roles.map(async (role: any) => ({
+        const rolesWithPermissions = await Promise.all(roles.map(async (role: Role) => ({
             ...role,
             permissions: await RoleModel.getPermissions(role.role_id)
         })));

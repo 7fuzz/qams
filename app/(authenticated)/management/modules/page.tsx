@@ -28,6 +28,8 @@ interface Module {
   project_name: string;
   responsible_id: string;
   responsible_name: string;
+  sla_date: string | null;
+  actual_date: string | null;
 }
 
 interface User {
@@ -157,6 +159,7 @@ export default function ModuleManagementPage() {
         cell: (item) => (
             <div className="flex flex-col gap-1" onClick={e => e.stopPropagation()}>
                 <div className="flex items-center gap-2">
+                    <Calendar size={12} className="text-text-theme-muted" />
                     <span className="text-[9px] font-bold text-text-theme-muted uppercase w-8">SLA:</span>
                     <input 
                         type="date" 
@@ -166,6 +169,7 @@ export default function ModuleManagementPage() {
                     />
                 </div>
                 <div className="flex items-center gap-2">
+                    <CheckCircle2 size={12} className="text-success-theme" />
                     <span className="text-[9px] font-bold text-text-theme-muted uppercase w-8">ACT:</span>
                     <input 
                         type="date" 

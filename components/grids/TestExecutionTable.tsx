@@ -179,7 +179,7 @@ export const TestExecutionTable = ({ runId }: { runId: string }) => {
             </div>
         )
     }
-  ], [fetchExecutions, handleQuickPass, setSelectedExecution, setIsDialogOpen]);
+  ], [handleQuickPass, setSelectedExecution, setIsDialogOpen]);
 
   return (
     <div className="pt-4">

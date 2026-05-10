@@ -37,8 +37,8 @@ export async function POST(request: Request) {
         const userId = await UserModel.create({ name, email, password, role_id });
         
         return NextResponse.json({ user_id: userId, name, email });
-    } catch (error: any) {
-        if (error.code === 'ER_DUP_ENTRY') {
+    } catch (error) {
+        if (error && typeof error === 'object' && 'code' in error && error.code === 'ER_DUP_ENTRY') {
             return NextResponse.json({ error: 'Email already exists' }, { status: 400 });
         }
         return NextResponse.json({ error: 'Failed to create user' }, { status: 500 });

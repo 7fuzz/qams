@@ -5,7 +5,6 @@ import { OAuth2Client } from "google-auth-library";
 import { sessionOptions, SessionData } from "@/lib/session";
 import { UserModel } from "@/models/User";
 import { RoleModel } from "@/models/Role";
-import { LoginUser } from "@/types/auth";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);

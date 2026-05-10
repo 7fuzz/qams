@@ -6,16 +6,18 @@ import {
   ColDef, 
   CellValueChangedEvent,
   AllCommunityModule,
-  ModuleRegistry
+  ModuleRegistry,
+  ICellRendererParams
 } from 'ag-grid-community';
 import { Button, IconButton, Input, Pagination } from '../ui';
 import { Trash2, Plus, Copy, AlertCircle, Edit2, CheckCircle2, ExternalLink, Download, Upload } from 'lucide-react';
-import { TEST_CASE_TYPE_OPTIONS, TEST_PRIORITY, TEST_PRIORITY_OPTIONS, AUTOMATION_STATUS_OPTIONS } from '@/lib/constants';
+import { TEST_CASE_TYPE, TEST_CASE_TYPE_OPTIONS, TEST_PRIORITY, TEST_PRIORITY_OPTIONS, AUTOMATION_STATUS_OPTIONS } from '@/lib/constants';
 import { unifiedGridTheme } from '@/lib/theme';
 import { EditTestCaseDialog } from '../dialogs/EditTestCaseDialog';
 import { IssuesListDialog } from '../dialogs/IssuesListDialog';
 import { TestCase, Scenario } from '@/types/app';
 import * as XLSX from 'xlsx';
+import { saveState, loadState } from '@/lib/persistence';
 
 ModuleRegistry.registerModules([AllCommunityModule]);
 
@@ -61,43 +63,39 @@ export const TestManagementGrid = ({ moduleId }: TestManagementGridProps) => {
   const STORAGE_KEY = `grid_state_test_cases`;
   const isApplyingStateRef = useRef(false);
 
-  const saveGridState = useCallback((params: any) => {
+  const saveGridState = useCallback((params: { source?: string }) => {
     if (isApplyingStateRef.current) return;
     
     // Only save if the change was initiated by the user
     const source = params?.source;
     const isUserAction = !source || source.startsWith('ui') || ['sort', 'filter', 'columnMenu'].includes(source);
     
-    if (!isUserAction && source !== 'api') return; 
-
-    if (gridRef.current?.api) {
+    if (isUserAction && gridRef.current?.api) {
       const state = gridRef.current.api.getColumnState();
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      saveState(STORAGE_KEY, state);
     }
   }, [STORAGE_KEY]);
-
-  const applySavedState = useCallback(() => {
-    const savedState = localStorage.getItem(STORAGE_KEY);
-    if (savedState && gridRef.current?.api) {
-      try {
-        isApplyingStateRef.current = true;
-        const state = JSON.parse(savedState);
-        gridRef.current.api.applyColumnState({
-          state: state,
-          applyOrder: true,
-        });
-        // Release the lock after a short delay to ensure events have fired
-        setTimeout(() => { isApplyingStateRef.current = false; }, 200);
-      } catch (e) {
-        console.error('Failed to restore grid state', e);
-        isApplyingStateRef.current = false;
-      }
+const applySavedState = useCallback(() => {
+  const savedState = loadState<Record<string, unknown>[]>(STORAGE_KEY);
+  if (savedState && gridRef.current?.api) {
+    try {
+      isApplyingStateRef.current = true;
+      gridRef.current.api.applyColumnState({
+        state: savedState as any[],
+        applyOrder: true,
+      });
+      // Release the lock after a short delay to ensure events have fired
+      setTimeout(() => { isApplyingStateRef.current = false; }, 200);
+    } catch (e) {
+      console.error('Failed to restore grid state', e);
+      isApplyingStateRef.current = false;
     }
-  }, [STORAGE_KEY]);
+  }
+}, [STORAGE_KEY]);
 
-  const onGridReady = (params: GridReadyEvent) => {
-    applySavedState();
-  };
+const onGridReady = () => {
+  applySavedState();
+};
 
   useEffect(() => {
     if (scenarios.length > 0) {
@@ -353,8 +351,6 @@ export const TestManagementGrid = ({ moduleId }: TestManagementGridProps) => {
         field: 'steps', 
         headerName: 'Test Steps', 
         width: 300, 
-        autoHeight: true, 
-        wrapText: true, 
         cellEditor: 'agLargeTextCellEditor',
         cellEditorParams: {
             cols: 50,
@@ -385,7 +381,7 @@ export const TestManagementGrid = ({ moduleId }: TestManagementGridProps) => {
     },
   ];
   return cols;
-  }, [scenarios]);
+  }, [scenarios, setSelectedTestCase, setIsEditDialogOpen, setIsIssuesDialogOpen]);
 
   const defaultColDef = useMemo<ColDef<TestCase>>(() => ({
     resizable: true,

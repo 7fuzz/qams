@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Card, CardContent, Input, Button, ManagementTemplate, Combobox } from "@/components/ui";
+import { Card, Input, Button, ManagementTemplate, Combobox } from "@/components/ui";
 import { TestManagementGrid } from "@/components/grids/TestManagementGrid";
 import { Plus, FolderTree, Layers, ListChecks, ClipboardList } from 'lucide-react';
 import { saveState, loadState } from '@/lib/persistence';

@@ -10,7 +10,7 @@ import {
 } from 'ag-grid-community';
 import { Button, IconButton, Input, Pagination } from '../ui';
 import { Trash2, Plus, Copy, AlertCircle, Edit2, CheckCircle2, ExternalLink, Download, Upload } from 'lucide-react';
-import { TEST_CASE_TYPE, TEST_CASE_TYPE_OPTIONS, TEST_PRIORITY, TEST_PRIORITY_OPTIONS, AUTOMATION_STATUS_OPTIONS } from '@/lib/constants';
+import { TEST_CASE_TYPE_OPTIONS, TEST_PRIORITY, TEST_PRIORITY_OPTIONS, AUTOMATION_STATUS_OPTIONS } from '@/lib/constants';
 import { unifiedGridTheme } from '@/lib/theme';
 import { EditTestCaseDialog } from '../dialogs/EditTestCaseDialog';
 import { IssuesListDialog } from '../dialogs/IssuesListDialog';
@@ -234,7 +234,7 @@ export const TestManagementGrid = ({ moduleId }: TestManagementGridProps) => {
     const cols: ColDef<TestCase>[] = [
     { 
         field: 'custom_id', 
-        headerName: 'ID', 
+        headerName: 'Case ID', 
         width: 120,
         filter: true,
         pinned: 'left',

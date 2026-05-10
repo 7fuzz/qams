@@ -72,9 +72,21 @@ export const ProjectModel = {
         return projectId;
     },
 
-    async update(id: string, data: { name: string, version: string, description?: string, lead_developer_id?: string }): Promise<void> {
-        await db.execute('UPDATE projects SET name = ?, version = ?, description = ?, lead_developer_id = COALESCE(?, lead_developer_id) WHERE project_id = ?', 
-            [data.name, data.version, data.description || null, data.lead_developer_id || null, id]);
+    async update(id: string, data: { name?: string, version?: string, description?: string, lead_developer_id?: string }): Promise<void> {
+        await db.execute(`
+            UPDATE projects 
+            SET name = COALESCE(?, name), 
+                version = COALESCE(?, version), 
+                description = COALESCE(?, description), 
+                lead_developer_id = COALESCE(?, lead_developer_id) 
+            WHERE project_id = ?
+        `, [
+            data.name ?? null, 
+            data.version ?? null, 
+            data.description ?? null, 
+            data.lead_developer_id ?? null, 
+            id
+        ]);
     },
 
     async delete(id: string): Promise<void> {
@@ -148,9 +160,23 @@ export const ProjectModel = {
         return moduleId;
     },
 
-    async updateModule(id: string, data: { name: string, description?: string, responsible_id?: string, sla_date?: string, actual_date?: string }): Promise<void> {
-        await db.execute('UPDATE modules SET name = ?, description = ?, responsible_id = ?, sla_date = ?, actual_date = ? WHERE module_id = ?', 
-            [data.name, data.description || null, data.responsible_id || null, data.sla_date || null, data.actual_date || null, id]);
+    async updateModule(id: string, data: { name?: string, description?: string, responsible_id?: string, sla_date?: string, actual_date?: string }): Promise<void> {
+        await db.execute(`
+            UPDATE modules 
+            SET name = COALESCE(?, name), 
+                description = COALESCE(?, description), 
+                responsible_id = COALESCE(?, responsible_id), 
+                sla_date = COALESCE(?, sla_date), 
+                actual_date = COALESCE(?, actual_date) 
+            WHERE module_id = ?
+        `, [
+            data.name ?? null, 
+            data.description ?? null, 
+            data.responsible_id ?? null, 
+            data.sla_date ?? null, 
+            data.actual_date ?? null, 
+            id
+        ]);
     },
 
     async deleteModule(id: string): Promise<void> {

@@ -180,10 +180,10 @@ export const IssueModel = {
     },
 
     async update(id: string, data: { 
-        status: string, 
-        severity: string, 
-        title: string, 
-        description: string, 
+        status?: string, 
+        severity?: string, 
+        title?: string, 
+        description?: string, 
         user_id: string,
         test_case_ids?: string[],
         sla_date?: string,
@@ -196,17 +196,43 @@ export const IssueModel = {
 
         try {
             let solved_by_id = null;
+            let historyStatus = data.status;
+
+            // Fetch existing data for history and status logic
+            const [existingIssues] = await connection.execute<RowDataPacket[]>('SELECT status, solved_by_id FROM issues WHERE issue_id = ?', [id]);
+            const existing = existingIssues[0];
+
+            if (!historyStatus && existing) {
+                historyStatus = existing.status;
+            }
+
             if (data.status === ISSUE_STATUS.CLOSED) {
-                const [issues] = await connection.execute<RowDataPacket[]>('SELECT solved_by_id FROM issues WHERE issue_id = ?', [id]);
-                solved_by_id = issues.length > 0 ? issues[0].solved_by_id : null;
+                solved_by_id = existing?.solved_by_id;
                 if (!solved_by_id) solved_by_id = data.user_id;
             }
 
             await connection.execute(`
                 UPDATE issues 
-                SET status = ?, severity = ?, title = ?, description = ?, developer_id = ?, solved_by_id = COALESCE(?, solved_by_id), sla_date = ?, actual_date = ?
+                SET status = COALESCE(?, status), 
+                    severity = COALESCE(?, severity), 
+                    title = COALESCE(?, title), 
+                    description = COALESCE(?, description), 
+                    developer_id = COALESCE(?, developer_id), 
+                    solved_by_id = COALESCE(?, solved_by_id), 
+                    sla_date = COALESCE(?, sla_date), 
+                    actual_date = COALESCE(?, actual_date)
                 WHERE issue_id = ?
-            `, [data.status, data.severity, data.title, data.description, data.developer_id || null, solved_by_id, data.sla_date || null, data.actual_date || null, id]);
+            `, [
+                data.status ?? null, 
+                data.severity ?? null, 
+                data.title ?? null, 
+                data.description ?? null, 
+                data.developer_id ?? null, 
+                solved_by_id, 
+                data.sla_date ?? null, 
+                data.actual_date ?? null, 
+                id
+            ]);
 
             if (data.test_case_ids) {
                 // Refresh junction table
@@ -228,7 +254,7 @@ export const IssueModel = {
             await connection.execute(`
                 INSERT INTO issue_history (history_id, issue_id, run_id, execution_id, status, user_id)
                 VALUES (?, ?, ?, ?, ?, ?)
-            `, [generateId(), id, runId, data.execution_id || null, data.status, data.user_id]);
+            `, [generateId(), id, runId, data.execution_id ?? null, historyStatus ?? 'Updated', data.user_id]);
 
             await connection.commit();
         } catch (error) {
@@ -243,11 +269,12 @@ export const IssueModel = {
         await db.execute('DELETE FROM issues WHERE issue_id = ?', [id]);
     },
 
-    async getTestCases(issueId: string): Promise<{ test_case_id: string, title: string, project_name: string, module_name: string, scenario_name: string }[]> {
+    async getTestCases(issueId: string): Promise<{ test_case_id: string, title: string, custom_id: string | null, project_name: string, module_name: string, scenario_name: string }[]> {
         const [rows] = await db.execute<RowDataPacket[]>(`
             SELECT 
                 tc.test_case_id, 
                 tc.title,
+                tc.custom_id,
                 p.name as project_name,
                 m.name as module_name,
                 s.name as scenario_name
@@ -258,7 +285,7 @@ export const IssueModel = {
             JOIN projects p ON m.project_id = p.project_id
             WHERE itc.issue_id = ?
         `, [issueId]);
-        return rows as { test_case_id: string, title: string, project_name: string, module_name: string, scenario_name: string }[];
+        return rows as { test_case_id: string, title: string, custom_id: string | null, project_name: string, module_name: string, scenario_name: string }[];
     },
 
     async getProjectIdsFromIssue(issueId: string): Promise<string[]> {

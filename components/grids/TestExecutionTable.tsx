@@ -4,12 +4,8 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { 
   Button, 
   IconButton, 
-  Table, 
-  TableHeader, 
-  TableBody, 
-  TableRow, 
-  TableHead, 
-  TableCell 
+  CRUDTable,
+  Column
 } from '../ui';
 import { ExecutionDialog } from '../dialogs/ExecutionDialog';
 import { 
@@ -20,15 +16,13 @@ import {
   PauseCircle, 
   HelpCircle, 
   FastForward,
-  ArrowUpDown,
-  ChevronUp,
-  ChevronDown
 } from 'lucide-react';
 import { TEST_STATUS, TestStatus } from '@/lib/constants';
 
 interface Execution {
   execution_id: string;
   test_case_id: string;
+  custom_id: string | null;
   title: string;
   status: TestStatus;
   steps: string;
@@ -38,9 +32,6 @@ interface Execution {
   notes: string;
   executed_at: string | null;
 }
-
-type SortColumn = 'id' | 'title' | 'status' | 'executed_at';
-type SortDirection = 'asc' | 'desc';
 
 const getStatusIcon = (status: TestStatus) => {
   switch (status) {
@@ -59,33 +50,40 @@ const getStatusIcon = (status: TestStatus) => {
   }
 };
 
-const TableSortIcon = ({ column, sortColumn, sortDirection }: { column: SortColumn, sortColumn: SortColumn, sortDirection: SortDirection }) => {
-    if (sortColumn !== column) return <ArrowUpDown size={14} className="ml-1 opacity-50" />;
-    return sortDirection === 'asc' ? <ChevronUp size={14} className="ml-1" /> : <ChevronDown size={14} className="ml-1" />;
-};
-
 export const TestExecutionTable = ({ runId }: { runId: string }) => {
   const [executions, setExecutions] = useState<Execution[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedExecution, setSelectedExecution] = useState<Execution | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   
-  const [sortColumn, setSortColumn] = useState<SortColumn>('title');
-  const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
+  // Pagination & Search
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(50);
+  const [total, setTotal] = useState(0);
+  const [search, setSearch] = useState('');
+  const [sortBy, setSortBy] = useState('title');
+  const [sortOrder, setSortOrder] = useState<'ASC' | 'DESC'>('ASC');
 
   const fetchExecutions = useCallback(() => {
     setLoading(true);
-    fetch(`/api/test-executions?runId=${runId}`)
+    fetch(`/api/test-executions?runId=${runId}&page=${page}&limit=${limit}&sortBy=${sortBy}&sortOrder=${sortOrder}&search=${encodeURIComponent(search)}`)
       .then(res => res.json())
-      .then((data: Execution[]) => {
-        setExecutions(data);
+      .then(res => {
+        if (res.data) {
+            setExecutions(res.data);
+            setTotal(res.total || 0);
+        } else {
+            setExecutions([]);
+            setTotal(0);
+        }
         setLoading(false);
       })
       .catch(() => {
           setExecutions([]);
+          setTotal(0);
           setLoading(false);
       });
-  }, [runId]);
+  }, [runId, page, limit, sortBy, sortOrder, search]);
 
   useEffect(() => {
     queueMicrotask(() => {
@@ -93,159 +91,119 @@ export const TestExecutionTable = ({ runId }: { runId: string }) => {
     });
   }, [fetchExecutions]);
 
-  const handleQuickPass = async (e: React.MouseEvent, id: string) => {
-    e.stopPropagation();
+  const handleQuickPass = useCallback(async (id: string) => {
     await fetch('/api/test-executions', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ execution_id: id, status: TEST_STATUS.PASSED }),
     });
     fetchExecutions();
-  };
+  }, [fetchExecutions]);
 
-  const toggleSort = (column: SortColumn) => {
-    if (sortColumn === column) {
-      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
-    } else {
-      setSortColumn(column);
-      setSortDirection('asc');
-    }
-  };
-
-  const sortedExecutions = useMemo(() => {
-    return [...executions].sort((a, b) => {
-      let valA: string = '';
-      let valB: string = '';
-
-      switch (sortColumn) {
-        case 'id':
-          valA = a.execution_id;
-          valB = b.execution_id;
-          break;
-        case 'title':
-          valA = a.title.toLowerCase();
-          valB = b.title.toLowerCase();
-          break;
-        case 'status':
-          valA = a.status;
-          valB = b.status;
-          break;
-        case 'executed_at':
-          valA = a.executed_at || '';
-          valB = b.executed_at || '';
-          break;
-      }
-
-      if (valA < valB) return sortDirection === 'asc' ? -1 : 1;
-      if (valA > valB) return sortDirection === 'asc' ? 1 : -1;
-      return 0;
-    });
-  }, [executions, sortColumn, sortDirection]);
-
-  if (loading) return <div className="p-8 text-center text-gray-500 text-sm italic uppercase tracking-widest">Loading execution data...</div>;
-
-  return (
-    <div className="flex flex-col gap-6 pt-4">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead 
-              className="cursor-pointer hover:bg-surface-accent transition-colors w-[100px]"
-              onClick={() => toggleSort('id')}
-            >
-              <div className="flex items-center">ID <TableSortIcon column="id" sortColumn={sortColumn} sortDirection={sortDirection} /></div>
-            </TableHead>
-            <TableHead 
-              className="cursor-pointer hover:bg-surface-accent transition-colors"
-              onClick={() => toggleSort('title')}
-            >
-              <div className="flex items-center">Test Case Title <TableSortIcon column="title" sortColumn={sortColumn} sortDirection={sortDirection} /></div>
-            </TableHead>
-            <TableHead 
-              className="cursor-pointer hover:bg-surface-accent transition-colors w-[150px]"
-              onClick={() => toggleSort('status')}
-            >
-              <div className="flex items-center">Status <TableSortIcon column="status" sortColumn={sortColumn} sortDirection={sortDirection} /></div>
-            </TableHead>
-            <TableHead className="w-[250px]">Notes</TableHead>
-            <TableHead 
-              className="cursor-pointer hover:bg-surface-accent transition-colors w-[180px]"
-              onClick={() => toggleSort('executed_at')}
-            >
-              <div className="flex items-center">Executed At <TableSortIcon column="executed_at" sortColumn={sortColumn} sortDirection={sortDirection} /></div>
-            </TableHead>
-            <TableHead className="text-right w-[150px]">Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {sortedExecutions.map((exec) => (
-            <TableRow 
-              key={exec.execution_id}
-              className="group cursor-pointer"
-              onClick={() => {
-                setSelectedExecution(exec);
-                setIsDialogOpen(true);
-              }}
-            >
-              <TableCell className="font-mono text-[10px] text-text-theme-muted uppercase">
-                {exec.execution_id.split('-')[0]}
-              </TableCell>
-              <TableCell className="font-medium">
-                {exec.title}
-              </TableCell>
-              <TableCell>
-                <div className="flex items-center gap-2">
-                  {getStatusIcon(exec.status)}
-                  <span className={`text-[10px] font-bold uppercase tracking-widest ${
-                    exec.status === TEST_STATUS.PENDING ? 'text-text-theme-muted' : 'text-primary-theme'
-                  }`}>
-                    {exec.status}
-                  </span>
-                </div>
-              </TableCell>
-              <TableCell className="text-xs text-text-theme-muted italic line-clamp-1">
-                {exec.notes ? `“${exec.notes}”` : '-'}
-              </TableCell>
-              <TableCell className="text-xs text-text-theme-muted">
-                {exec.executed_at ? new Date(exec.executed_at).toLocaleString() : 'Not executed'}
-              </TableCell>
-              <TableCell className="text-right">
-                <div className="flex justify-end gap-1" onClick={(e) => e.stopPropagation()}>
-                  {exec.status === TEST_STATUS.PENDING && (
+  const columns: Column<Execution>[] = useMemo(() => [
+    {
+        header: 'Case ID',
+        accessorKey: 'custom_id',
+        sortable: true,
+        className: 'w-[120px] font-mono text-[10px] text-text-theme-muted uppercase',
+        cell: (item) => (
+            <div className="flex flex-col gap-0.5">
+                <span className="font-black text-primary-theme">{item.custom_id || 'TC-NEW'}</span>
+                <span className="text-[8px] opacity-50">{item.execution_id.split('-')[0]}</span>
+            </div>
+        )
+    },
+    {
+        header: 'Test Case Title',
+        accessorKey: 'title',
+        sortable: true,
+        className: 'font-medium',
+        cell: (item) => item.title
+    },
+    {
+        header: 'Status',
+        accessorKey: 'status',
+        sortable: true,
+        className: 'w-[150px]',
+        cell: (item) => (
+            <div className="flex items-center gap-2">
+                {getStatusIcon(item.status)}
+                <span className={`text-[10px] font-bold uppercase tracking-widest ${
+                    item.status === TEST_STATUS.PENDING ? 'text-text-theme-muted' : 'text-primary-theme'
+                }`}>
+                    {item.status}
+                </span>
+            </div>
+        )
+    },
+    {
+        header: 'Notes',
+        accessorKey: 'notes',
+        className: 'w-[250px] text-xs text-text-theme-muted italic line-clamp-1',
+        cell: (item) => item.notes ? `“${item.notes}”` : '-'
+    },
+    {
+        header: 'Executed At',
+        accessorKey: 'executed_at',
+        sortable: true,
+        className: 'w-[180px] text-xs text-text-theme-muted',
+        cell: (item) => item.executed_at ? new Date(item.executed_at).toLocaleString() : 'Not executed'
+    },
+    {
+        header: 'Actions',
+        className: 'text-right w-[150px]',
+        cell: (item) => (
+            <div className="flex justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+                {item.status === TEST_STATUS.PENDING && (
                     <IconButton 
-                      icon={FastForward} 
-                      size="sm" 
-                      variant="ghost" 
-                      className="text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20" 
-                      label="Quick pass"
-                      title="Quick Pass"
-                      onClick={(e) => handleQuickPass(e, exec.execution_id)}
+                        icon={FastForward} 
+                        size="sm" 
+                        variant="ghost" 
+                        className="text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20" 
+                        label="Quick pass"
+                        title="Quick Pass"
+                        onClick={() => handleQuickPass(item.execution_id)}
                     />
-                  )}
-                  <Button 
+                )}
+                <Button 
                     size="sm" 
                     variant="ghost" 
                     className="h-8 px-2 text-primary-theme font-bold text-[10px] uppercase tracking-wider"
                     onClick={() => {
-                      setSelectedExecution(exec);
-                      setIsDialogOpen(true);
+                        setSelectedExecution(item);
+                        setIsDialogOpen(true);
                     }}
-                  >
+                >
                     <Play size={12} className="mr-1" fill="currentColor" /> Execute
-                  </Button>
-                </div>
-              </TableCell>
-            </TableRow>
-          ))}
-          {sortedExecutions.length === 0 && (
-            <TableRow>
-              <TableCell colSpan={6} className="text-center py-8 text-text-theme-muted italic">
-                No test cases found in this run.
-              </TableCell>
-            </TableRow>
-          )}
-        </TableBody>
-      </Table>
+                </Button>
+            </div>
+        )
+    }
+  ], [fetchExecutions, handleQuickPass, setSelectedExecution, setIsDialogOpen]);
+
+  return (
+    <div className="pt-4">
+      <CRUDTable
+        data={executions as unknown as Record<string, unknown>[]}
+        columns={columns as unknown as Column<Record<string, unknown>>[]}
+        loading={loading}
+        totalItems={total}
+        currentPage={page}
+        pageSize={limit}
+        onPageChange={setPage}
+        onPageSizeChange={(s) => { setLimit(s); setPage(1); }}
+        onSearch={(q) => { setSearch(q); setPage(1); }}
+        onSort={(key, order) => { setSortBy(key); setSortOrder(order); }}
+        sortBy={sortBy}
+        sortOrder={sortOrder}
+        onRowClick={(item) => {
+            setSelectedExecution(item as unknown as Execution);
+            setIsDialogOpen(true);
+        }}
+        searchPlaceholder="Search title, status or notes..."
+        title="Execution Queue"
+        description="Verify and document results for each assigned test case"
+      />
 
       <ExecutionDialog 
         execution={selectedExecution}

@@ -4,23 +4,30 @@ import { cookies } from "next/headers";
 import { sessionOptions, SessionData } from "@/lib/session";
 import { TestRunModel } from '@/models/TestRun';
 import { logActivity } from '@/lib/logger';
+import { createPaginatedResponse } from '@/lib/pagination-utils';
 
 export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
-    const projectId = searchParams.get('projectId');
+    const projectId = searchParams.get('projectId') || undefined;
+    const moduleId = searchParams.get('moduleId') || undefined;
+    const search = searchParams.get('search') || undefined;
+    const sortBy = searchParams.get('sortBy') || undefined;
+    const sortOrder = (searchParams.get('sortOrder') as 'ASC' | 'DESC') || undefined;
+
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '20');
     const offset = (page - 1) * limit;
 
     try {
-        const { data: runs, total } = await TestRunModel.findAll(projectId, limit, offset);
+        const { data: runs, total } = await TestRunModel.findAll({
+            projectId,
+            moduleId,
+            search,
+            sortBy,
+            sortOrder
+        }, limit, offset);
 
-        return NextResponse.json({
-            data: runs,
-            total,
-            totalPages: Math.ceil(total / limit)
-        });
-    } catch {
+        return NextResponse.json(createPaginatedResponse(runs, total, page, limit));    } catch {
         return NextResponse.json({ error: 'Failed to fetch test runs' }, { status: 500 });
     }
 }
@@ -32,14 +39,15 @@ export async function POST(request: Request) {
     }
 
     try {
-        const { project_id, name, type, scenario_ids } = await request.json();
+        const { project_id, name, type, scenario_ids, module_ids } = await request.json();
         
         const runId = await TestRunModel.create({
             project_id,
             name,
             type,
             tester_id: session.user_id,
-            scenario_ids
+            scenario_ids,
+            module_ids
         });
 
         await logActivity(session.user_id, 'CREATE', 'TEST_RUN', runId, { name, project_id });

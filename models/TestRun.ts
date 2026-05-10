@@ -4,21 +4,59 @@ import { generateId } from '@/lib/id-utils';
 import { RowDataPacket, ResultSetHeader } from 'mysql2';
 
 export const TestRunModel = {
-    async findAll(projectId: string | null, limit: number, offset: number) {
-        let baseQuery = `
+    async findAll(filters: { 
+        projectId?: string, 
+        moduleId?: string,
+        search?: string, 
+        sortBy?: string, 
+        sortOrder?: 'ASC' | 'DESC' 
+    } = {}, limit: number, offset: number) {
+        let whereClause = 'WHERE 1=1';
+        const params: unknown[] = [];
+        
+        if (filters.projectId) {
+            whereClause += ' AND tr.project_id = ?';
+            params.push(filters.projectId);
+        }
+
+        if (filters.moduleId) {
+            // A test run is linked to a module if at least one of its executions is for a test case in that module
+            whereClause += ` AND tr.run_id IN (
+                SELECT DISTINCT te.run_id 
+                FROM test_executions te 
+                JOIN test_cases tc ON te.test_case_id = tc.test_case_id 
+                JOIN scenarios s ON tc.scenario_id = s.scenario_id 
+                WHERE s.module_id = ?
+            )`;
+            params.push(filters.moduleId);
+        }
+
+        if (filters.search) {
+            whereClause += ' AND (tr.name LIKE ? OR p.name LIKE ?)';
+            params.push(`%${filters.search}%`, `%${filters.search}%`);
+        }
+
+        const baseQuery = `
             FROM test_runs tr 
             JOIN users u ON tr.tester_id = u.user_id
             JOIN projects p ON tr.project_id = p.project_id
             JOIN users po ON p.lead_developer_id = po.user_id
+            ${whereClause}
         `;
-        const params: unknown[] = [];
-        if (projectId) {
-            baseQuery += ' WHERE tr.project_id = ?';
-            params.push(projectId);
-        }
 
         const [countRows] = await db.execute<(RowDataPacket & { total: number })[]>(`SELECT COUNT(*) as total ${baseQuery}`, params);
         const total = countRows[0].total;
+
+        const allowedSortColumns: Record<string, string> = {
+            'name': 'tr.name',
+            'project_name': 'p.name',
+            'tester_name': 'u.name',
+            'status': 'tr.status',
+            'created_at': 'tr.created_at'
+        };
+
+        const sortColumn = allowedSortColumns[filters.sortBy ?? ''] ?? 'tr.created_at';
+        const sortOrder = filters.sortOrder === 'ASC' ? 'ASC' : 'DESC';
         
         const [data] = await db.execute<TestRun[] & RowDataPacket[]>(`
             SELECT 
@@ -31,14 +69,14 @@ export const TestRunModel = {
                 (SELECT COUNT(*) FROM test_executions WHERE run_id = tr.run_id AND status = 'Failed') as failed_count,
                 (SELECT COUNT(*) FROM test_executions WHERE run_id = tr.run_id AND status = 'Pending') as pending_count
             ${baseQuery}
-            ORDER BY tr.created_at DESC
+            ORDER BY ${sortColumn} ${sortOrder}
             LIMIT ? OFFSET ?
         `, [...params, limit, offset]);
 
         return { data, total };
     },
 
-    async create(data: { project_id: string, name: string, type: string | null, tester_id: string, scenario_ids: string[] }) {
+    async create(data: { project_id: string, name: string, type: string | null, tester_id: string, scenario_ids?: string[], module_ids?: string[] }) {
         const runId = generateId();
         const connection = await db.getConnection();
         await connection.beginTransaction();
@@ -49,11 +87,24 @@ export const TestRunModel = {
                 [runId, data.project_id, data.tester_id, data.name, data.type || null, 'In Progress']
             );
 
-            if (data.scenario_ids.length > 0) {
-                const placeholders = data.scenario_ids.map(() => '?').join(',');
+            const finalScenarioIds = new Set<string>(data.scenario_ids || []);
+
+            // If module_ids are provided, fetch all scenarios for those modules
+            if (data.module_ids && data.module_ids.length > 0) {
+                const placeholders = data.module_ids.map(() => '?').join(',');
+                const [rows] = await connection.execute<RowDataPacket[]>(
+                    `SELECT scenario_id FROM scenarios WHERE module_id IN (${placeholders})`,
+                    data.module_ids
+                );
+                rows.forEach(r => finalScenarioIds.add(r.scenario_id));
+            }
+
+            if (finalScenarioIds.size > 0) {
+                const scenarioIdArray = Array.from(finalScenarioIds);
+                const placeholders = scenarioIdArray.map(() => '?').join(',');
                 const [testCases] = await connection.execute<RowDataPacket[]>(
                     `SELECT test_case_id FROM test_cases WHERE scenario_id IN (${placeholders})`,
-                    data.scenario_ids
+                    scenarioIdArray
                 );
 
                 for (const tc of testCases as { test_case_id: string }[]) {
@@ -95,14 +146,53 @@ export const TestRunModel = {
     },
 
     // Execution Logic
-    async findExecutions(runId: string) {
-        const [rows] = await db.execute<RowDataPacket[]>(`
-            SELECT te.*, tc.title, tc.steps, tc.expected_result, tc.precondition, tc.test_data
+    async findExecutions(runId: string, sortBy?: string, sortOrder?: 'ASC' | 'DESC', search?: string, limit?: number, offset?: number) {
+        let whereClause = 'WHERE te.run_id = ?';
+        const params: unknown[] = [runId];
+
+        if (search) {
+            whereClause += ' AND (tc.title LIKE ? OR te.status LIKE ? OR te.notes LIKE ?)';
+            const searchParam = `%${search}%`;
+            params.push(searchParam, searchParam, searchParam);
+        }
+
+        const countQuery = `
+            SELECT COUNT(*) as total 
             FROM test_executions te
             JOIN test_cases tc ON te.test_case_id = tc.test_case_id
-            WHERE te.run_id = ?
-        `, [runId]);
-        return rows;
+            ${whereClause}
+        `;
+        const [countRows] = await db.execute<(RowDataPacket & { total: number })[]>(countQuery, params);
+        const total = countRows[0].total;
+
+        const allowedSortColumns: Record<string, string> = {
+            'id': 'tc.custom_id',
+            'title': 'tc.title',
+            'status': 'te.status',
+            'executed_at': 'te.executed_at'
+        };
+
+        const sortColumn = allowedSortColumns[sortBy || ''] || 'tc.title';
+        const order = sortOrder === 'DESC' ? 'DESC' : 'ASC';
+
+        const dataQuery = `
+            SELECT te.*, tc.title, tc.custom_id, tc.steps, tc.expected_result, tc.precondition, tc.test_data
+            FROM test_executions te
+            JOIN test_cases tc ON te.test_case_id = tc.test_case_id
+            ${whereClause}
+            ORDER BY ${sortColumn} ${order}
+        `;
+
+        const queryWithLimit = limit !== undefined && offset !== undefined 
+            ? `${dataQuery} LIMIT ? OFFSET ?` 
+            : dataQuery;
+
+        if (limit !== undefined && offset !== undefined) {
+            params.push(limit, offset);
+        }
+
+        const [rows] = await db.execute<RowDataPacket[]>(queryWithLimit, params);
+        return { data: rows, total };
     },
 
     async findExecutionById(id: string) {
@@ -115,12 +205,20 @@ export const TestRunModel = {
         return rows[0] as { execution_id: string, run_id: string, test_case_id: string, title: string } | undefined;
     },
 
-    async updateExecution(id: string, data: { status: string, notes?: string, proof_url?: string }) {
+    async updateExecution(id: string, data: { status?: string, notes?: string, proof_url?: string }) {
         const [result] = await db.execute<ResultSetHeader>(`
             UPDATE test_executions 
-            SET status = ?, notes = COALESCE(?, notes), proof_url = COALESCE(?, proof_url), executed_at = CURRENT_TIMESTAMP 
+            SET status = COALESCE(?, status), 
+                notes = COALESCE(?, notes), 
+                proof_url = COALESCE(?, proof_url), 
+                executed_at = CURRENT_TIMESTAMP 
             WHERE execution_id = ?
-        `, [data.status, data.notes || null, data.proof_url || null, id]);
+        `, [
+            data.status ?? null, 
+            data.notes ?? null, 
+            data.proof_url ?? null, 
+            id
+        ]);
         return result;
     },
 

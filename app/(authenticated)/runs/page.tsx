@@ -1,72 +1,93 @@
 "use client";
 
-import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import Link from 'next/link';
-import { Button, IconButton, Pagination } from "@/components/ui";
-import { AgGridReact } from 'ag-grid-react';
 import { 
-  ColDef, 
-  AllCommunityModule,
-  ModuleRegistry,
-  ICellRendererParams,
-} from 'ag-grid-community';
-import { Play, Trash2, Plus, Info, LayoutPanelTop, User } from 'lucide-react';
-import { unifiedGridTheme } from '@/lib/theme';
+  Button, 
+  IconButton, 
+  ManagementPage, 
+  Column,
+  Combobox,
+  Label
+} from "@/components/ui";
+import { Play, Trash2, Plus, Info, LayoutPanelTop, User, Filter, ClipboardList, Layers } from 'lucide-react';
 import { RunDetailDialog } from '@/components/dialogs/RunDetailDialog';
 import { TestRun } from '@/types/app';
 
-ModuleRegistry.registerModules([AllCommunityModule]);
+interface Project {
+  project_id: string;
+  name: string;
+}
 
 export default function TestRunsPage() {
-  const gridRef = useRef<AgGridReact>(null);
   const [runs, setRuns] = useState<TestRun[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [modules, setModules] = useState<Module[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedRun, setSelectedRun] = useState<TestRun | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
 
-  // Pagination
+  // Pagination & Search
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(20);
   const [total, setTotal] = useState(0);
-  const [totalPages, setTotalPages] = useState(0);
+  const [search, setSearch] = useState('');
+  const [sortBy, setSortBy] = useState('created_at');
+  const [sortOrder, setSortOrder] = useState<'ASC' | 'DESC'>('DESC');
+
+  // Filters
+  const [selectedProjectId, setSelectedProjectId] = useState<string>('all');
+  const [selectedModuleId, setSelectedModuleId] = useState<string>('all');
+
+  const fetchProjects = useCallback(() => {
+    fetch('/api/projects?limit=1000')
+      .then(res => res.json())
+      .then(resData => setProjects(resData.data || []));
+  }, []);
+
+  const fetchModules = useCallback((pid: string) => {
+    if (pid === 'all') {
+      setModules([]);
+      return;
+    }
+    fetch(`/api/modules?projectId=${pid}&limit=1000`)
+      .then(res => res.json())
+      .then(resData => setModules(resData.data || []));
+  }, []);
 
   const fetchRuns = useCallback(() => {
     setLoading(true);
-    fetch(`/api/test-runs?page=${page}&limit=${limit}`)
+    let url = `/api/test-runs?page=${page}&limit=${limit}&sortBy=${sortBy}&sortOrder=${sortOrder}`;
+    if (selectedProjectId !== 'all') {
+      url += `&projectId=${selectedProjectId}`;
+    }
+    if (selectedModuleId !== 'all') {
+      url += `&moduleId=${selectedModuleId}`;
+    }
+    if (search) {
+      url += `&search=${encodeURIComponent(search)}`;
+    }
+    
+    fetch(url)
       .then(res => res.json())
       .then(res => {
-        if (res.data) {
-            setRuns(res.data);
-            setTotal(res.total || 0);
-            setTotalPages(res.totalPages || 0);
-        } else {
-            setRuns([]);
-            setTotal(0);
-            setTotalPages(0);
-        }
+        setRuns(res.data || []);
+        setTotal(res.total || 0);
         setLoading(false);
       })
       .catch(() => {
         setRuns([]);
         setTotal(0);
-        setTotalPages(0);
         setLoading(false);
       });
-  }, [page, limit]);
+  }, [page, limit, sortBy, sortOrder, selectedProjectId, selectedModuleId, search]);
 
   useEffect(() => {
     queueMicrotask(() => {
+        fetchProjects();
         fetchRuns();
     });
-  }, [fetchRuns]);
-
-  useEffect(() => {
-    const handleResize = () => {
-        gridRef.current?.api?.sizeColumnsToFit();
-    };
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
+  }, [fetchProjects, fetchRuns]);
 
   const deleteRun = useCallback((id: string) => {
     if (!confirm('Are you sure you want to delete this test run? All execution data will be lost.')) return;
@@ -74,64 +95,83 @@ export default function TestRunsPage() {
       .then(() => fetchRuns());
   }, [fetchRuns]);
 
-  const columnDefs = useMemo<ColDef<TestRun>[]>(() => [
+  const columns: Column<TestRun>[] = useMemo(() => [
     { 
-        field: 'name', 
-        headerName: 'Run Name', 
-        flex: 1.5, 
-        filter: true,
-        pinned: 'left',
-        cellRenderer: (params: ICellRendererParams<TestRun>) => (
+        header: 'Run Name', 
+        accessorKey: 'name',
+        sortable: true,
+        cell: (item) => (
             <div className="flex flex-col gap-0.5 py-1">
-                <div className="font-bold text-primary-theme leading-tight">{params.value}</div>
-                {params.data?.type && <div className="text-[9px] font-black uppercase tracking-widest text-text-theme-subtle opacity-70 leading-none">{params.data.type}</div>}
+                <div className="font-bold text-primary-theme leading-tight">{item.name}</div>
+                {item.type && <div className="text-[9px] font-black uppercase tracking-widest text-text-theme-subtle opacity-70 leading-none">{item.type}</div>}
             </div>
         )
     },
     { 
-        field: 'project_name', 
-        headerName: 'Project', 
-        width: 180,
-        cellRenderer: (params: ICellRendererParams<TestRun>) => (
-            <div className="flex items-center gap-2"><LayoutPanelTop size={14} className="text-text-theme-subtle" /> {params.value}</div>
+        header: 'Project', 
+        accessorKey: 'project_name',
+        sortable: true,
+        cell: (item) => (
+            <div className="flex items-center gap-2 text-xs font-bold text-text-theme-muted uppercase tracking-tight">
+                <LayoutPanelTop size={14} className="text-text-theme-subtle" />
+                {item.project_name}
+            </div>
         )
     },
     { 
-        field: 'project_owner', 
-        headerName: 'Owner', 
-        width: 140,
-        cellRenderer: (params: ICellRendererParams<TestRun>) => (
-            <div className="flex items-center gap-2"><User size={14} className="text-text-theme-subtle" /> {params.value}</div>
+        header: 'Status', 
+        accessorKey: 'status',
+        sortable: true,
+        cell: (item) => (
+            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
+                item.status === 'Completed' ? 'bg-success-theme/10 text-success-theme' :
+                item.status === 'In Progress' ? 'bg-primary-theme/10 text-primary-theme' :
+                'bg-surface-accent text-text-theme-muted'
+            }`}>
+                {item.status}
+            </span>
         )
-    },
-    { 
-      field: 'status', 
-      headerName: 'Status', 
-      width: 130,
-      cellClassRules: {
-        'text-primary-theme font-bold bg-primary-theme/10': params => params.value === "In Progress",
-        'text-success-theme font-bold bg-success-theme/10': params => params.value === "Completed",
-        'text-text-theme-muted bg-surface-accent': params => params.value === "Draft",
-      }
     },
     {
-        headerName: 'Progress',
-        width: 120,
-        valueGetter: (params) => {
-            if (!params.data) return '';
-            const total = params.data.total_cases || 0;
-            const passed = params.data.passed_count || 0;
-            return `${passed} / ${total} Passed`;
+        header: 'Progress',
+        cell: (item) => {
+            const total = item.total_cases || 0;
+            const passed = item.passed_count || 0;
+            const percent = total > 0 ? Math.round((passed / total) * 100) : 0;
+            return (
+                <div className="flex flex-col gap-1.5 min-w-[100px]">
+                    <div className="flex justify-between items-center text-[9px] font-bold uppercase tracking-tighter">
+                        <span className="text-text-theme-muted">{passed} / {total} Passed</span>
+                        <span className="text-primary-theme">{percent}%</span>
+                    </div>
+                    <div className="w-full bg-surface-muted h-1 rounded-full overflow-hidden">
+                        <div className="bg-primary-theme h-full transition-all duration-500" style={{ width: `${percent}%` }} />
+                    </div>
+                </div>
+            );
         }
     },
-    { field: 'tester_name', headerName: 'Tester', width: 140 },
-    { field: 'created_at', headerName: 'Date', width: 140, valueFormatter: (p) => p.value ? new Date(p.value).toLocaleDateString() : '' },
     { 
-      headerName: 'Actions', 
-      width: 140, 
-      pinned: 'right',
-      cellRenderer: (params: ICellRendererParams<TestRun>) => (
-        <div className="flex gap-1 h-full items-center justify-center">
+        header: 'Tester', 
+        accessorKey: 'tester_name',
+        sortable: true,
+        cell: (item) => (
+            <div className="flex items-center gap-2 text-[10px] font-bold text-text-theme-muted uppercase">
+                <User size={12} /> {item.tester_name}
+            </div>
+        )
+    },
+    { 
+        header: 'Date', 
+        accessorKey: 'created_at',
+        sortable: true,
+        cell: (item) => <span className="text-[10px] font-bold text-text-theme-subtle uppercase">{new Date(item.created_at).toLocaleDateString()}</span>
+    },
+    { 
+      header: 'Actions', 
+      className: 'text-right',
+      cell: (item) => (
+        <div className="flex gap-1 justify-end" onClick={e => e.stopPropagation()}>
           <IconButton 
             icon={Info} 
             size="sm" 
@@ -140,62 +180,87 @@ export default function TestRunsPage() {
             title="View Summary"
             aria-label="View summary"
             onClick={() => {
-                if (params.data) {
-                    setSelectedRun(params.data);
-                    setIsDetailOpen(true);
-                }
+                setSelectedRun(item);
+                setIsDetailOpen(true);
             }}
           />
-          <Link href={params.data ? `/runs/${params.data.run_id}` : '#'}>
+          <Link href={`/runs/${item.run_id}`}>
             <IconButton icon={Play} size="sm" variant="ghost" className="text-primary-theme hover:bg-primary-theme/10" title="Execute" aria-label="Execute run" />
           </Link>
-          <IconButton icon={Trash2} size="sm" variant="ghost" className="text-danger-theme hover:bg-danger-theme/10" aria-label="Delete run" title="Delete" onClick={() => params.data && deleteRun(params.data.run_id)} />
+          <IconButton icon={Trash2} size="sm" variant="ghost" className="text-danger-theme hover:bg-danger-theme/10" aria-label="Delete run" title="Delete" onClick={() => deleteRun(item.run_id)} />
         </div>
       )
     },
   ], [deleteRun]);
 
-  if (loading && total === 0) return <div className="p-12 text-center text-text-theme-muted uppercase tracking-widest text-xs font-bold animate-pulse">Loading Test Matrix...</div>;
+  const filters = (
+    <div className="flex flex-wrap items-center gap-6">
+        <div className="flex items-center gap-2 min-w-[240px]">
+            <Filter size={16} className="text-text-theme-muted" />
+            <Label className="text-[10px] font-black uppercase tracking-widest text-text-theme-subtle mr-2 whitespace-nowrap">Project</Label>
+            <div className="flex-1">
+                <Combobox 
+                    options={[{ value: 'all', label: 'All Projects' }, ...projects.map(p => ({ value: p.project_id, label: p.name }))]}
+                    value={selectedProjectId}
+                    onChange={val => { 
+                        setSelectedProjectId(val as string); 
+                        setSelectedModuleId('all');
+                        fetchModules(val as string);
+                        setPage(1); 
+                    }}
+                />
+            </div>
+        </div>
+
+        <div className="flex items-center gap-2 min-w-[240px]">
+            <Layers size={16} className="text-text-theme-muted" />
+            <Label className="text-[10px] font-black uppercase tracking-widest text-text-theme-subtle mr-2 whitespace-nowrap">Module</Label>
+            <div className="flex-1">
+                <Combobox 
+                    options={[{ value: 'all', label: 'All Modules' }, ...modules.map(m => ({ value: m.module_id, label: m.name }))]}
+                    value={selectedModuleId}
+                    onChange={val => { setSelectedModuleId(val as string); setPage(1); }}
+                    disabled={selectedProjectId === 'all'}
+                />
+            </div>
+        </div>
+    </div>
+  );
 
   return (
-    <div className="container mx-auto p-4 md:p-8 flex flex-col gap-8 max-w-full">
-      <div className="flex justify-between items-center">
-        <div className="space-y-1">
-          <h1 className="text-3xl font-bold tracking-tight text-text-theme-main">Test Executions</h1>
-          <p className="text-text-theme-muted font-medium">Track and analyze testing progress across your organization.</p>
-        </div>
-        <Link href="/runs/new">
-          <Button className="shadow-lg">
-            <Plus size={18} className="mr-2" /> New Test Run
-          </Button>
-        </Link>
-      </div>
-
-      <div className="w-full border border-border-theme rounded-lg overflow-hidden bg-surface shadow-sm">
-          <AgGridReact
-            ref={gridRef}
-            theme={unifiedGridTheme}
-            rowData={runs}
-
-            columnDefs={columnDefs}
-            animateRows={true}
-            domLayout="autoHeight"
-          />
-          <Pagination 
-            currentPage={page}
-            totalPages={totalPages}
-            pageSize={limit}
-            totalItems={total}
-            onPageChange={setPage}
-            onPageSizeChange={(s) => { setLimit(s); setPage(1); }}
-          />
-      </div>
+    <>
+      <ManagementPage
+        title="Test Executions"
+        description="Track and analyze testing progress across your organization."
+        icon={ClipboardList}
+        primaryAction={
+          <Link href="/runs/new">
+            <Button className="shadow-lg shadow-primary-theme/20">
+              <Plus size={18} className="mr-2" /> New Test Run
+            </Button>
+          </Link>
+        }
+        filters={filters}
+        data={runs as unknown as Record<string, unknown>[]}
+        columns={columns as unknown as Column<Record<string, unknown>>[]}
+        loading={loading}
+        totalItems={total}
+        currentPage={page}
+        pageSize={limit}
+        onPageChange={setPage}
+        onPageSizeChange={(s) => { setLimit(s); setPage(1); }}
+        onSearch={(q) => { setSearch(q); setPage(1); }}
+        onSort={(key, order) => { setSortBy(key); setSortOrder(order); }}
+        sortBy={sortBy}
+        sortOrder={sortOrder}
+        searchPlaceholder="Search runs or projects..."
+      />
 
       <RunDetailDialog 
         run={selectedRun}
         isOpen={isDetailOpen}
         onClose={() => setIsDetailOpen(false)}
       />
-    </div>
+    </>
   );
 }

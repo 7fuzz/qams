@@ -5,16 +5,26 @@ import { sessionOptions, SessionData } from "@/lib/session";
 import { TestRunModel } from '@/models/TestRun';
 import { logActivity } from '@/lib/logger';
 
+import { createPaginatedResponse } from '@/lib/pagination-utils';
+
 export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const runId = searchParams.get('runId');
+    const sortBy = searchParams.get('sortBy') || undefined;
+    const sortOrder = (searchParams.get('sortOrder') as 'ASC' | 'DESC') || undefined;
+    const search = searchParams.get('search') || undefined;
+
+    const page = parseInt(searchParams.get('page') || '1');
+    const limit = parseInt(searchParams.get('limit') || '50');
+    const offset = (page - 1) * limit;
 
     if (!runId) return NextResponse.json({ error: 'Missing runId' }, { status: 400 });
 
     try {
-        const executions = await TestRunModel.findExecutions(runId);
-        return NextResponse.json(executions);
-    } catch {
+        const { data: executions, total } = await TestRunModel.findExecutions(runId, sortBy, sortOrder, search, limit, offset);
+        return NextResponse.json(createPaginatedResponse(executions, total, page, limit));
+    } catch (error) {
+        console.error('Fetch Executions Error:', error);
         return NextResponse.json({ error: 'Failed to fetch executions' }, { status: 500 });
     }
 }

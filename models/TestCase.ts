@@ -113,13 +113,33 @@ export const TestCaseModel = {
     async update(id: string, data: Partial<TestCase>): Promise<void> {
         await db.execute(`
             UPDATE test_cases 
-            SET custom_id = ?, title = ?, type = ?, priority = ?, automation_status = ?, requirement_link = ?, estimated_duration = ?, precondition = ?, steps = ?, test_data = ?, expected_result = ?, scenario_id = ?
+            SET custom_id = COALESCE(?, custom_id), 
+                title = COALESCE(?, title), 
+                type = COALESCE(?, type), 
+                priority = COALESCE(?, priority), 
+                automation_status = COALESCE(?, automation_status), 
+                requirement_link = COALESCE(?, requirement_link), 
+                estimated_duration = COALESCE(?, estimated_duration), 
+                precondition = COALESCE(?, precondition), 
+                steps = COALESCE(?, steps), 
+                test_data = COALESCE(?, test_data), 
+                expected_result = COALESCE(?, expected_result), 
+                scenario_id = COALESCE(?, scenario_id)
             WHERE test_case_id = ?
         `, [
-            data.custom_id || null, data.title, data.type || null, data.priority || null, 
-            data.automation_status || null, data.requirement_link || null, 
-            data.estimated_duration || null, data.precondition || null, data.steps || null, 
-            data.test_data || null, data.expected_result || null, data.scenario_id, id
+            data.custom_id ?? null, 
+            data.title ?? null, 
+            data.type ?? null, 
+            data.priority ?? null, 
+            data.automation_status ?? null, 
+            data.requirement_link ?? null, 
+            data.estimated_duration ?? null, 
+            data.precondition ?? null, 
+            data.steps ?? null, 
+            data.test_data ?? null, 
+            data.expected_result ?? null, 
+            data.scenario_id ?? null, 
+            id
         ]);
     },
 

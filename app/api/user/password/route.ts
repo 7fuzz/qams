@@ -3,7 +3,7 @@ import { getIronSession } from "iron-session";
 import { cookies } from "next/headers";
 import { sessionOptions, SessionData } from "@/lib/session";
 import { UserModel } from '@/models/User';
-import { comparePassword } from '@/lib/auth-utils';
+import { comparePassword } from '@/lib/crypto-utils';
 
 export async function PUT(request: Request) {
     const session = await getIronSession<SessionData>(await cookies(), sessionOptions);

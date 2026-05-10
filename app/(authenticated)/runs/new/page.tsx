@@ -2,8 +2,9 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter, Label, Input, Button, Checkbox } from "@/components/ui";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter, Label, Input, Button, Checkbox, Combobox } from "@/components/ui";
 import { AlertTriangle } from 'lucide-react';
+import { EXECUTION_TYPE_OPTIONS } from '@/lib/constants';
 
 interface Project {
   project_id: string;
@@ -30,6 +31,7 @@ export default function NewRunPage() {
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [selectedScenarioIds, setSelectedScenarioIds] = useState<string[]>([]);
   const [runName, setRunName] = useState('');
+  const [executionType, setExecutionType] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -81,6 +83,7 @@ export default function NewRunPage() {
         body: JSON.stringify({
           project_id: selectedProjectId,
           name: runName,
+          type: executionType,
           scenario_ids: selectedScenarioIds
         }),
       });
@@ -129,6 +132,15 @@ export default function NewRunPage() {
                 value={runName}
                 onChange={e => setRunName(e.target.value)}
                 className="bg-surface text-text-theme-main"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label>Execution Type</Label>
+              <Combobox
+                options={EXECUTION_TYPE_OPTIONS}
+                value={executionType || undefined}
+                onChange={val => setExecutionType(val as string)}
+                placeholder="Select Type..."
               />
             </div>
           </CardContent>

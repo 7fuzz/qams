@@ -82,7 +82,10 @@ export default function TestRunsPage() {
         filter: true,
         pinned: 'left',
         cellRenderer: (params: ICellRendererParams<TestRun>) => (
-            <div className="font-bold text-primary-theme">{params.value}</div>
+            <div className="flex flex-col gap-0.5 py-1">
+                <div className="font-bold text-primary-theme leading-tight">{params.value}</div>
+                {params.data?.type && <div className="text-[9px] font-black uppercase tracking-widest text-text-theme-subtle opacity-70 leading-none">{params.data.type}</div>}
+            </div>
         )
     },
     { 

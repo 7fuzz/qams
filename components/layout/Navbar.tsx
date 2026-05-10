@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { Button, IconButton } from "../ui";
 import { User } from "@/types/auth";
 import { useTheme } from "@/lib/theme-provider";
@@ -12,19 +12,24 @@ export const Navbar = () => {
   const [user, setUser] = useState<User | null>(null);
   const [visible, setVisible] = useState(true);
   const router = useRouter();
+  const pathname = usePathname();
   const { theme, toggleTheme } = useTheme();
 
-  const fetchUser = async () => {
-    const res = await fetch("/api/user");
-    const data = await res.json();
-    setUser(data);
-  };
+  const fetchUser = useCallback(async () => {
+    try {
+      const res = await fetch("/api/user");
+      const data = await res.json();
+      setUser(data);
+    } catch {
+      setUser({ isLoggedIn: false, role: "", name: "", user_id: "", email: "", permissions: [] });
+    }
+  }, []);
 
   useEffect(() => {
     queueMicrotask(() => {
       fetchUser();
     });
-  }, []);
+  }, [fetchUser, pathname]);
 
   useEffect(() => {
     let lastScrollY = window.scrollY;
@@ -62,9 +67,9 @@ export const Navbar = () => {
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
         {/* Left: Brand & Navigation */}
         <div className="flex items-center gap-8">
-          <Link href="/" className="flex items-center gap-2 group">
-            <div className="w-8 h-8 bg-primary-theme rounded-lg flex items-center justify-center text-white font-black shadow-lg shadow-primary-theme/20 group-hover:scale-105 transition-transform">CL</div>
-            <span className="text-xl font-bold tracking-tighter text-text-theme-main">ComponentLab</span>
+          <Link href={user?.isLoggedIn ? "/dashboard" : "/"} className="flex items-center gap-2 group">
+            <div className="w-8 h-8 bg-primary-theme rounded-lg flex items-center justify-center text-white font-black shadow-lg shadow-primary-theme/20 group-hover:scale-105 transition-transform">TM</div>
+            <span className="text-xl font-bold tracking-tighter text-text-theme-main">Test Management System</span>
           </Link>
 
           <div className="hidden lg:flex items-center gap-6">
@@ -105,7 +110,9 @@ export const Navbar = () => {
 
           {/* User Auth Group */}
           <div className="flex items-center gap-3">
-            {user?.isLoggedIn ? (
+            {user === null ? (
+              <div className="w-24 h-8 bg-surface-accent animate-pulse rounded-md" />
+            ) : user.isLoggedIn ? (
               <>
                 <div className="hidden sm:flex flex-col items-end justify-center">
                   <span className="text-xs font-bold text-text-theme-main leading-tight">{user.name}</span>
@@ -118,7 +125,6 @@ export const Navbar = () => {
                 <Link href="/login">
                   <Button variant="ghost" size="sm" className="text-[10px] font-bold uppercase tracking-widest">Log in</Button>
                 </Link>
-                <Button size="sm" className="h-8 bg-primary-theme text-white text-[10px] font-bold uppercase tracking-widest px-6 shadow-lg shadow-primary-theme/20">Get Started</Button>
               </>
             )}
           </div>

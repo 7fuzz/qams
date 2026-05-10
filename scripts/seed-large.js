@@ -85,7 +85,8 @@ async function seedLarge() {
     for (let pIdx = 0; pIdx < projectTypes.length; pIdx++) {
         const projectId = randomUUID();
         const name = `${projectTypes[pIdx]} System`;
-        await connection.execute('INSERT INTO projects (project_id, name, version, owner_id, description) VALUES (?, ?, ?, ?, ?)', 
+        // FIX: owner_id -> lead_developer_id
+        await connection.execute('INSERT INTO projects (project_id, name, version, lead_developer_id, description) VALUES (?, ?, ?, ?, ?)', 
             [projectId, name, `v${pIdx + 1}.0.0`, adminUser.id, `Mission-critical ${name} infrastructure.`]);
         allProjectIds.push(projectId);
 
@@ -96,9 +97,12 @@ async function seedLarge() {
             const mDate = new Date();
             mDate.setDate(mDate.getDate() + 30);
             const mDateStr = mDate.toISOString().slice(0, 19).replace('T', ' ');
+            
+            // Add some actual_dates for older modules
+            const actualDate = mIdx % 2 === 0 ? new Date().toISOString().slice(0, 19).replace('T', ' ') : null;
 
-            await connection.execute('INSERT INTO modules (module_id, project_id, name, responsible_id, description, sla_date) VALUES (?, ?, ?, ?, ?, ?)', 
-                [moduleId, projectId, mName, devUsers[Math.floor(Math.random() * devUsers.length)].id, `Handles ${mName} logic for the ${name}.`, mDateStr]);
+            await connection.execute('INSERT INTO modules (module_id, project_id, name, responsible_id, description, sla_date, actual_date) VALUES (?, ?, ?, ?, ?, ?, ?)', 
+                [moduleId, projectId, mName, devUsers[Math.floor(Math.random() * devUsers.length)].id, `Handles ${mName} logic for the ${name}.`, mDateStr, actualDate]);
 
             const scenarioCount = 3 + Math.floor(Math.random() * 3);
             for (let sIdx = 0; sIdx < scenarioCount; sIdx++) {
@@ -144,8 +148,12 @@ async function seedLarge() {
         date.setDate(date.getDate() - (60 - rIdx)); // Spread over last 60 days
         
         const runDateStr = date.toISOString().slice(0, 19).replace('T', ' ');
-        await connection.execute('INSERT INTO test_runs (run_id, project_id, tester_id, name, status, created_at, completed_at) VALUES (?, ?, ?, ?, ?, ?, ?)', 
-            [runId, project, tester.id, `Regression Cycle #${100 + rIdx}`, status, runDateStr, status === 'Completed' ? runDateStr : null]);
+        const runTypes = ['Regression', 'Internal Test', 'UAT', 'Smoke Test', 'Exploratory', 'Hotfix'];
+        const runType = runTypes[rIdx % runTypes.length];
+
+        // FIX: Added type column
+        await connection.execute('INSERT INTO test_runs (run_id, project_id, tester_id, name, type, status, created_at, completed_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)', 
+            [runId, project, tester.id, `Regression Cycle #${100 + rIdx}`, runType, status, runDateStr, status === 'Completed' ? runDateStr : null]);
 
         const runTCs = [...allTestCases].sort(() => 0.5 - Math.random()).slice(0, 25);
         for (const tc of runTCs) {
@@ -157,10 +165,14 @@ async function seedLarge() {
             if (execStatus === 'Failed' && Math.random() > 0.4) {
                 const issueId = randomUUID();
                 const severity = ['Critical (P0)', 'High (P1)', 'Medium (P2)'][Math.floor(Math.random() * 3)];
+                const issueStatus = Math.random() > 0.5 ? 'Open' : 'Closed';
+                const actualFixDate = issueStatus === 'Closed' ? runDateStr : null;
+
+                // FIX: Added sla_date and actual_date
                 await connection.execute(`
-                    INSERT INTO issues (issue_id, snapshot_execution_id, reporter_id, developer_id, title, description, severity, status, created_at, sla_date)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                `, [issueId, execId, tester.id, devUsers[Math.floor(Math.random() * devUsers.length)].id, `Bug: ${tc.title}`, 'Automatic failure report from regression suite.', severity, 'Open', runDateStr, runDateStr]);
+                    INSERT INTO issues (issue_id, snapshot_execution_id, reporter_id, developer_id, title, description, severity, status, created_at, sla_date, actual_date)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                `, [issueId, execId, tester.id, devUsers[Math.floor(Math.random() * devUsers.length)].id, `Bug: ${tc.title}`, 'Automatic failure report from regression suite.', severity, issueStatus, runDateStr, runDateStr, actualFixDate]);
                 
                 await connection.execute('INSERT INTO issue_test_cases (issue_id, test_case_id) VALUES (?, ?)', [issueId, tc.test_case_id]);
                 

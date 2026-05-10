@@ -32,11 +32,12 @@ export async function POST(request: Request) {
     }
 
     try {
-        const { project_id, name, scenario_ids } = await request.json();
+        const { project_id, name, type, scenario_ids } = await request.json();
         
         const runId = await TestRunModel.create({
             project_id,
             name,
+            type,
             tester_id: session.user_id,
             scenario_ids
         });

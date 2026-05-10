@@ -10,6 +10,7 @@ import { useRouter } from 'next/navigation';
 interface Run {
   run_id: string;
   name: string;
+  type: string;
   status: string;
   tester_name: string;
   project_name: string;
@@ -64,6 +65,11 @@ export default function RunExecutionPage({ params }: { params: Promise<{ id: str
             <span className="text-[10px] font-bold uppercase tracking-widest text-primary-theme bg-primary-theme/10 px-2 py-0.5 rounded-full">
                 Run Details
             </span>
+            {run?.type && (
+                <span className="text-[10px] font-bold uppercase tracking-widest text-text-theme-subtle bg-surface-accent px-2 py-0.5 rounded-full">
+                    {run.type}
+                </span>
+            )}
           </div>
           <h1 className="text-3xl font-bold tracking-tight text-text-theme-main">
             {run?.name || 'Loading Run...'}

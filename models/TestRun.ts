@@ -38,15 +38,15 @@ export const TestRunModel = {
         return { data, total };
     },
 
-    async create(data: { project_id: string, name: string, tester_id: string, scenario_ids: string[] }) {
+    async create(data: { project_id: string, name: string, type: string | null, tester_id: string, scenario_ids: string[] }) {
         const runId = generateId();
         const connection = await db.getConnection();
         await connection.beginTransaction();
 
         try {
             await connection.execute(
-                'INSERT INTO test_runs (run_id, project_id, tester_id, name, status) VALUES (?, ?, ?, ?, ?)',
-                [runId, data.project_id, data.tester_id, data.name, 'In Progress']
+                'INSERT INTO test_runs (run_id, project_id, tester_id, name, type, status) VALUES (?, ?, ?, ?, ?, ?)',
+                [runId, data.project_id, data.tester_id, data.name, data.type || null, 'In Progress']
             );
 
             if (data.scenario_ids.length > 0) {

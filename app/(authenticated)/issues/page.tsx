@@ -6,7 +6,7 @@ import {
 } from "@/components/ui";
 import { AlertTriangle, UserCheck, ShieldCheck, ExternalLink, LayoutPanelTop, Layers, ChevronUp, ChevronDown, Calendar, CheckCircle2 } from 'lucide-react';
 import { ISSUE_STATUS_OPTIONS, ISSUE_STATUS } from '@/lib/constants';
-import { IssuesListDialog } from '@/components/dialogs/IssuesListDialog';
+import { IssueDetailDialog } from '@/components/dialogs/IssueDetailDialog';
 
 interface Project {
   project_id: string;
@@ -367,10 +367,8 @@ export default function IssueManagementPage() {
         />
       </div>
 
-      <IssuesListDialog
-        testCaseId={null}
+      <IssueDetailDialog
         issueId={selectedIssue?.id || null}
-        testCaseTitle={selectedIssue?.title || ''}
         isOpen={isIssuesDialogOpen}
         onClose={() => setIsIssuesDialogOpen(false)}
         onRefresh={() => fetchIssues()}

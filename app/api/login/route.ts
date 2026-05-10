@@ -2,7 +2,7 @@ import { getIronSession } from "iron-session";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { sessionOptions, SessionData } from "@/lib/session";
-import { comparePassword } from "@/lib/auth-utils";
+import { comparePassword } from "@/lib/crypto-utils";
 import { UserModel } from "@/models/User";
 import { RoleModel } from "@/models/Role";
 

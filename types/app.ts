@@ -45,6 +45,7 @@ export interface TestCase {
 export interface TestRun {
     run_id: string;
     name: string;
+    type: string;
     project_id: string;
     project_name: string;
     project_owner: string;

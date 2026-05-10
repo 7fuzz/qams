@@ -9,9 +9,10 @@ interface ModalProps {
   onClose: () => void;
   title: string;
   children: React.ReactNode;
+  maxWidth?: string;
 }
 
-export const Modal = ({ isOpen, onClose, title, children }: ModalProps) => {
+export const Modal = ({ isOpen, onClose, title, children, maxWidth = "max-w-2xl" }: ModalProps) => {
   const modalRef = useRef<HTMLDivElement>(null);
 
   if (!isOpen) return null;
@@ -29,7 +30,7 @@ export const Modal = ({ isOpen, onClose, title, children }: ModalProps) => {
     >
       <div 
         ref={modalRef}
-        className="bg-surface rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col border border-border-theme animate-in zoom-in duration-200"
+        className={`bg-surface rounded-xl shadow-2xl w-full ${maxWidth} max-h-[95vh] overflow-hidden flex flex-col border border-border-theme animate-in zoom-in duration-200`}
       >
         <div className="flex items-center justify-between px-6 py-4 border-b border-border-theme">
           <h3 className="text-xl font-semibold tracking-tight text-text-theme-main">{title}</h3>

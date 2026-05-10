@@ -76,6 +76,23 @@ export const TEST_RUN_STATUS = {
 
 export type TestRunStatus = typeof TEST_RUN_STATUS[keyof typeof TEST_RUN_STATUS];
 
+// Execution Types
+export const EXECUTION_TYPE = {
+  REGRESSION: 'Regression',
+  INTERNAL: 'Internal Test',
+  UAT: 'UAT',
+  SMOKE: 'Smoke Test',
+  EXPLORATORY: 'Exploratory',
+  HOTFIX: 'Hotfix',
+} as const;
+
+export type ExecutionType = typeof EXECUTION_TYPE[keyof typeof EXECUTION_TYPE];
+
+export const EXECUTION_TYPE_OPTIONS = Object.values(EXECUTION_TYPE).map(val => ({
+  value: val,
+  label: val
+}));
+
 // Test Case Priority
 export const TEST_PRIORITY = {
   P0: 'P0 - Critical',

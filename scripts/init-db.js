@@ -53,6 +53,7 @@ async function initDb(existingConnection = null) {
   const perms = [
     { name: 'users:manage', desc: 'Create, update, delete users' },
     { name: 'roles:manage', desc: 'Create, update, delete roles' },
+    { name: 'projects:manage_all', desc: 'Manage any project regardless of assignment' },
     { name: 'projects:write', desc: 'Create, update, delete projects/modules/scenarios' },
     { name: 'projects:read', desc: 'View projects' },
     { name: 'tests:write', desc: 'Create and update test cases' },

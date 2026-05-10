@@ -3,9 +3,14 @@ import { getIronSession } from "iron-session";
 import { cookies } from "next/headers";
 import { sessionOptions, SessionData } from "@/lib/session";
 import { TestCaseModel } from '@/models/TestCase';
+import { ProjectModel } from '@/models/Project';
 import { logActivity } from '@/lib/logger';
+import { canManageProject } from '@/lib/auth-utils';
 
 export async function GET(request: Request) {
+    const session = await getIronSession<SessionData>(await cookies(), sessionOptions);
+    if (!session.isLoggedIn) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
     const { searchParams } = new URL(request.url);
     const scenarioId = searchParams.get('scenarioId');
     const projectId = searchParams.get('projectId');
@@ -47,6 +52,15 @@ export async function POST(request: Request) {
 
     try {
         const body = await request.json();
+        
+        // Check project access
+        const projectId = await ProjectModel.getProjectIdFromScenario(body.scenario_id);
+        if (!projectId) return NextResponse.json({ error: "Scenario not found" }, { status: 404 });
+        
+        if (!await canManageProject(session, projectId)) {
+            return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+        }
+
         const testCaseId = await TestCaseModel.create(body);
         
         await logActivity(session.user_id, 'CREATE', 'TEST_CASE', testCaseId, { title: body.title, scenario_id: body.scenario_id });
@@ -66,6 +80,15 @@ export async function PUT(request: Request) {
     try {
         const body = await request.json();
         const { test_case_id } = body;
+        
+        // Check project access
+        const projectId = await ProjectModel.getProjectIdFromTestCase(test_case_id);
+        if (!projectId) return NextResponse.json({ error: "Test case not found" }, { status: 404 });
+        
+        if (!await canManageProject(session, projectId)) {
+            return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+        }
+
         await TestCaseModel.update(test_case_id, body);
         
         await logActivity(session.user_id, 'UPDATE', 'TEST_CASE', test_case_id, { title: body.title });
@@ -84,9 +107,17 @@ export async function DELETE(request: Request) {
 
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
+    if (!id) return NextResponse.json({ error: 'Missing ID' }, { status: 400 });
     
     try {
-        if (!id) return NextResponse.json({ error: 'Missing ID' }, { status: 400 });
+        // Check project access
+        const projectId = await ProjectModel.getProjectIdFromTestCase(id);
+        if (!projectId) return NextResponse.json({ error: "Test case not found" }, { status: 404 });
+        
+        if (!await canManageProject(session, projectId)) {
+            return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+        }
+
         await TestCaseModel.delete(id);
         await logActivity(session.user_id, 'DELETE', 'TEST_CASE', id);
         return NextResponse.json({ success: true });
@@ -103,6 +134,15 @@ export async function PATCH(request: Request) {
 
     try {
         const { test_case_id } = await request.json();
+        
+        // Check project access
+        const projectId = await ProjectModel.getProjectIdFromTestCase(test_case_id);
+        if (!projectId) return NextResponse.json({ error: "Test case not found" }, { status: 404 });
+        
+        if (!await canManageProject(session, projectId)) {
+            return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+        }
+
         const result = await TestCaseModel.duplicate(test_case_id);
         
         if (!result) return NextResponse.json({ error: "Source not found" }, { status: 404 });

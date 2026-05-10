@@ -43,12 +43,22 @@ CREATE TABLE IF NOT EXISTS users (
 CREATE TABLE IF NOT EXISTS projects (
     project_id VARCHAR(255) PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
+    version VARCHAR(50) DEFAULT '1.0.0',
     description TEXT,
-    version VARCHAR(255),
-    owner_id VARCHAR(255) NOT NULL,
+    lead_developer_id VARCHAR(255) NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (owner_id) REFERENCES users(user_id)
+    FOREIGN KEY (lead_developer_id) REFERENCES users(user_id)
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- Project Assignments (Many-to-Many)
+CREATE TABLE IF NOT EXISTS project_assignments (
+    project_id VARCHAR(255) NOT NULL,
+    user_id VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (project_id, user_id),
+    FOREIGN KEY (project_id) REFERENCES projects(project_id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
 ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- Project Modules Table

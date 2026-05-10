@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import { sessionOptions, SessionData } from "@/lib/session";
 import { ProjectModel } from '@/models/Project';
 import { logActivity } from '@/lib/logger';
+import { canManageProject } from '@/lib/auth-utils';
 
 import { createPaginatedResponse } from '@/lib/pagination-utils';
 
@@ -29,7 +30,6 @@ export async function GET(request: Request) {
         return NextResponse.json({ error: 'Failed to fetch projects' }, { status: 500 });
     }
 }
-
 export async function POST(request: Request) {
     const session = await getIronSession<SessionData>(await cookies(), sessionOptions);
     if (!session.isLoggedIn || !session.permissions.includes('projects:write')) {
@@ -37,19 +37,17 @@ export async function POST(request: Request) {
     }
 
     try {
-        const { name, version, description } = await request.json();
+        const { name, version, description, lead_developer_id } = await request.json() as { name: string, version?: string, description?: string, lead_developer_id?: string };
         const projectId = await ProjectModel.create({
             name,
             version,
             description,
-            owner_id: session.user_id
+            lead_developer_id: lead_developer_id || session.user_id
         });
-        
-        logActivity(session.user_id, 'CREATE', 'PROJECT', projectId, { name, version });
-        
-        return NextResponse.json({ project_id: projectId, name, version, description });
-    } catch (error) {
-        console.error(error);
+
+        await logActivity(session.user_id, 'CREATE', 'PROJECT', projectId, { name });
+        return NextResponse.json({ project_id: projectId, name });
+    } catch {
         return NextResponse.json({ error: 'Failed to create project' }, { status: 500 });
     }
 }
@@ -61,11 +59,20 @@ export async function PUT(request: Request) {
     }
 
     try {
-        const { project_id, name, version, description } = await request.json();
-        await ProjectModel.update(project_id, { name, version, description });
+        const { project_id, name, version, description, lead_developer_id } = await request.json() as { project_id: string, name: string, version: string, description?: string, lead_developer_id?: string };
         
-        await logActivity(session.user_id, 'UPDATE', 'PROJECT', project_id, { name, version });
-        
+        if (!await canManageProject(session, project_id)) {
+            return NextResponse.json({ error: "Forbidden: You don't have access to this project" }, { status: 403 });
+        }
+
+        await ProjectModel.update(project_id, {
+            name,
+            version,
+            description,
+            lead_developer_id
+        });
+
+        await logActivity(session.user_id, 'UPDATE', 'PROJECT', project_id, { name });
         return NextResponse.json({ success: true });
     } catch {
         return NextResponse.json({ error: 'Failed to update project' }, { status: 500 });
@@ -80,9 +87,13 @@ export async function DELETE(request: Request) {
 
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
-    
+    if (!id) return NextResponse.json({ error: 'Missing ID' }, { status: 400 });
+
     try {
-        if (!id) return NextResponse.json({ error: 'Missing ID' }, { status: 400 });
+        if (!await canManageProject(session, id)) {
+            return NextResponse.json({ error: "Forbidden: You don't have access to this project" }, { status: 403 });
+        }
+
         await ProjectModel.delete(id);
         await logActivity(session.user_id, 'DELETE', 'PROJECT', id);
         return NextResponse.json({ success: true });

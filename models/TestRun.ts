@@ -9,9 +9,9 @@ export const TestRunModel = {
             FROM test_runs tr 
             JOIN users u ON tr.tester_id = u.user_id
             JOIN projects p ON tr.project_id = p.project_id
-            JOIN users po ON p.owner_id = po.user_id
+            JOIN users po ON p.lead_developer_id = po.user_id
         `;
-        const params: any[] = [];
+        const params: unknown[] = [];
         if (projectId) {
             baseQuery += ' WHERE tr.project_id = ?';
             params.push(projectId);
@@ -76,7 +76,7 @@ export const TestRunModel = {
 
     async updateStatus(id: string, status: string) {
         let updateQuery = 'UPDATE test_runs SET status = ?';
-        const params: any[] = [status];
+        const params: unknown[] = [status];
 
         if (status === 'Completed') {
             updateQuery += ', completed_at = CURRENT_TIMESTAMP';

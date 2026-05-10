@@ -2,6 +2,7 @@ export interface Project {
     project_id: string;
     name: string;
     description?: string;
+    lead_developer_id?: string;
 }
 
 export interface Module {

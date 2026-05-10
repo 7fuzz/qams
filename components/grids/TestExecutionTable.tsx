@@ -42,6 +42,28 @@ interface Execution {
 type SortColumn = 'id' | 'title' | 'status' | 'executed_at';
 type SortDirection = 'asc' | 'desc';
 
+const getStatusIcon = (status: TestStatus) => {
+  switch (status) {
+    case TEST_STATUS.PASSED:
+      return <CheckCircle2 className="text-green-500" size={18} />;
+    case TEST_STATUS.PASSED_WITH_NOTE:
+      return <CheckCircle2 className="text-emerald-500" size={18} />;
+    case TEST_STATUS.FAILED:
+      return <AlertCircle className="text-red-500" size={18} />;
+    case TEST_STATUS.ON_HOLD:
+      return <PauseCircle className="text-orange-500" size={18} />;
+    case TEST_STATUS.PENDING:
+      return <Clock className="text-gray-400" size={18} />;
+    default:
+      return <HelpCircle className="text-gray-400" size={18} />;
+  }
+};
+
+const TableSortIcon = ({ column, sortColumn, sortDirection }: { column: SortColumn, sortColumn: SortColumn, sortDirection: SortDirection }) => {
+    if (sortColumn !== column) return <ArrowUpDown size={14} className="ml-1 opacity-50" />;
+    return sortDirection === 'asc' ? <ChevronUp size={14} className="ml-1" /> : <ChevronDown size={14} className="ml-1" />;
+};
+
 export const TestExecutionTable = ({ runId }: { runId: string }) => {
   const [executions, setExecutions] = useState<Execution[]>([]);
   const [loading, setLoading] = useState(true);
@@ -81,23 +103,6 @@ export const TestExecutionTable = ({ runId }: { runId: string }) => {
     fetchExecutions();
   };
 
-  const getStatusIcon = (status: TestStatus) => {
-    switch (status) {
-      case TEST_STATUS.PASSED:
-        return <CheckCircle2 className="text-green-500" size={18} />;
-      case TEST_STATUS.PASSED_WITH_NOTE:
-        return <CheckCircle2 className="text-emerald-500" size={18} />;
-      case TEST_STATUS.FAILED:
-        return <AlertCircle className="text-red-500" size={18} />;
-      case TEST_STATUS.ON_HOLD:
-        return <PauseCircle className="text-orange-500" size={18} />;
-      case TEST_STATUS.PENDING:
-        return <Clock className="text-gray-400" size={18} />;
-      default:
-        return <HelpCircle className="text-gray-400" size={18} />;
-    }
-  };
-
   const toggleSort = (column: SortColumn) => {
     if (sortColumn === column) {
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
@@ -109,8 +114,8 @@ export const TestExecutionTable = ({ runId }: { runId: string }) => {
 
   const sortedExecutions = useMemo(() => {
     return [...executions].sort((a, b) => {
-      let valA: any = '';
-      let valB: any = '';
+      let valA: string = '';
+      let valB: string = '';
 
       switch (sortColumn) {
         case 'id':
@@ -137,11 +142,6 @@ export const TestExecutionTable = ({ runId }: { runId: string }) => {
     });
   }, [executions, sortColumn, sortDirection]);
 
-  const SortIcon = ({ column }: { column: SortColumn }) => {
-    if (sortColumn !== column) return <ArrowUpDown size={14} className="ml-1 opacity-50" />;
-    return sortDirection === 'asc' ? <ChevronUp size={14} className="ml-1" /> : <ChevronDown size={14} className="ml-1" />;
-  };
-
   if (loading) return <div className="p-8 text-center text-gray-500 text-sm italic uppercase tracking-widest">Loading execution data...</div>;
 
   return (
@@ -153,26 +153,26 @@ export const TestExecutionTable = ({ runId }: { runId: string }) => {
               className="cursor-pointer hover:bg-surface-accent transition-colors w-[100px]"
               onClick={() => toggleSort('id')}
             >
-              <div className="flex items-center">ID <SortIcon column="id" /></div>
+              <div className="flex items-center">ID <TableSortIcon column="id" sortColumn={sortColumn} sortDirection={sortDirection} /></div>
             </TableHead>
             <TableHead 
               className="cursor-pointer hover:bg-surface-accent transition-colors"
               onClick={() => toggleSort('title')}
             >
-              <div className="flex items-center">Test Case Title <SortIcon column="title" /></div>
+              <div className="flex items-center">Test Case Title <TableSortIcon column="title" sortColumn={sortColumn} sortDirection={sortDirection} /></div>
             </TableHead>
             <TableHead 
               className="cursor-pointer hover:bg-surface-accent transition-colors w-[150px]"
               onClick={() => toggleSort('status')}
             >
-              <div className="flex items-center">Status <SortIcon column="status" /></div>
+              <div className="flex items-center">Status <TableSortIcon column="status" sortColumn={sortColumn} sortDirection={sortDirection} /></div>
             </TableHead>
             <TableHead className="w-[250px]">Notes</TableHead>
             <TableHead 
               className="cursor-pointer hover:bg-surface-accent transition-colors w-[180px]"
               onClick={() => toggleSort('executed_at')}
             >
-              <div className="flex items-center">Executed At <SortIcon column="executed_at" /></div>
+              <div className="flex items-center">Executed At <TableSortIcon column="executed_at" sortColumn={sortColumn} sortDirection={sortDirection} /></div>
             </TableHead>
             <TableHead className="text-right w-[150px]">Actions</TableHead>
           </TableRow>

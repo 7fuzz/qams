@@ -4,8 +4,7 @@ import React from 'react';
 import { 
   CRUDTable, 
   Column, 
-  ManagementTemplate, 
-  StatCard 
+  ManagementTemplate
 } from "@/components/ui";
 import { LucideIcon } from 'lucide-react';
 
@@ -39,7 +38,7 @@ interface ManagementPageProps<T> {
   beforeTable?: React.ReactNode;
 }
 
-export function ManagementPage<T extends { [key: string]: any }>({
+export function ManagementPage<T extends Record<string, unknown>>({
   title,
   description,
   icon,

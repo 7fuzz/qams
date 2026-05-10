@@ -1,7 +1,7 @@
 import db from '@/lib/db';
 import { TestCase, Scenario } from '@/types/app';
 import { generateId } from '@/lib/id-utils';
-import { RowDataPacket, ResultSetHeader } from 'mysql2';
+import { RowDataPacket } from 'mysql2';
 
 export const TestCaseModel = {
     async findAll(filters: { 
@@ -12,7 +12,7 @@ export const TestCaseModel = {
         sortOrder?: 'ASC' | 'DESC'
     }, limit: number, offset: number): Promise<{ data: TestCase[], total: number }> {
         let whereClause = 'WHERE 1=1';
-        const params: any[] = [];
+        const params: unknown[] = [];
 
         if (filters.scenarioId) {
             whereClause += ' AND tc.scenario_id = ?';
@@ -65,7 +65,7 @@ export const TestCaseModel = {
             JOIN scenarios s ON tc.scenario_id = s.scenario_id
             JOIN modules m ON s.module_id = m.module_id
             JOIN projects p ON m.project_id = p.project_id
-            JOIN users u ON p.owner_id = u.user_id
+            JOIN users u ON p.lead_developer_id = u.user_id
             ${whereClause}
             ORDER BY ${sortColumn} ${sortOrder}
             LIMIT ? OFFSET ?
@@ -90,13 +90,13 @@ export const TestCaseModel = {
             JOIN scenarios s ON tc.scenario_id = s.scenario_id
             JOIN modules m ON s.module_id = m.module_id
             JOIN projects p ON m.project_id = p.project_id
-            JOIN users u ON p.owner_id = u.user_id
+            JOIN users u ON p.lead_developer_id = u.user_id
             WHERE tc.test_case_id = ?
         `, [id]);
         return rows[0];
     },
 
-    async create(data: any): Promise<string> {
+    async create(data: Partial<TestCase>): Promise<string> {
         const id = generateId();
         await db.execute(`
             INSERT INTO test_cases (test_case_id, custom_id, scenario_id, title, type, priority, automation_status, requirement_link, estimated_duration, precondition, steps, test_data, expected_result)
@@ -110,7 +110,7 @@ export const TestCaseModel = {
         return id;
     },
 
-    async update(id: string, data: any): Promise<void> {
+    async update(id: string, data: Partial<TestCase>): Promise<void> {
         await db.execute(`
             UPDATE test_cases 
             SET custom_id = ?, title = ?, type = ?, priority = ?, automation_status = ?, requirement_link = ?, estimated_duration = ?, precondition = ?, steps = ?, test_data = ?, expected_result = ?, scenario_id = ?
@@ -140,15 +140,15 @@ export const TestCaseModel = {
             source.custom_id ? source.custom_id + ' (Copy)' : null,
             source.scenario_id, 
             source.title + ' (Copy)', 
-            source.type, 
-            source.priority,
-            source.automation_status,
-            source.requirement_link,
-            source.estimated_duration,
-            source.precondition, 
-            source.steps, 
-            source.test_data, 
-            source.expected_result
+            source.type || null, 
+            source.priority || null,
+            source.automation_status || null,
+            source.requirement_link || null,
+            source.estimated_duration || null,
+            source.precondition || null, 
+            source.steps || null, 
+            source.test_data || null, 
+            source.expected_result || null
         ]);
         return { id: newId, title: source.title + ' (Copy)' };
     },
@@ -164,7 +164,7 @@ export const TestCaseModel = {
                  WHERE tc.scenario_id = s.scenario_id AND i.status != 'Closed') as open_issues_count
             FROM scenarios s
         `;
-        const params: any[] = [];
+        const params: unknown[] = [];
         if (moduleId) {
             query += ' WHERE module_id = ?';
             params.push(moduleId);
@@ -187,7 +187,7 @@ export const TestCaseModel = {
         await db.execute('DELETE FROM scenarios WHERE scenario_id = ?', [id]);
     },
 
-    async importTestCases(moduleId: string, testCases: any[], normalizers: { type: (value: any) => string, priority: (value: any) => string, automation: (value: any) => string }): Promise<{ importedCount: number, skippedCount: number }> {
+    async importTestCases(moduleId: string, testCases: Record<string, unknown>[], normalizers: { type: (value: unknown) => string, priority: (value: unknown) => string, automation: (value: unknown) => string }): Promise<{ importedCount: number, skippedCount: number }> {
         let importedCount = 0;
         let skippedCount = 0;
 
@@ -198,7 +198,7 @@ export const TestCaseModel = {
             const scenarioCache: Record<string, string> = {};
 
             for (const tc of testCases) {
-                const title = tc.title || tc.case;
+                const title = (tc.title || tc.case) as string;
                 if (!title) {
                     skippedCount++;
                     continue;
@@ -207,7 +207,7 @@ export const TestCaseModel = {
                 const type = normalizers.type(tc.type);
                 const priority = normalizers.priority(tc.priority);
 
-                const scenarioName = tc.scenario || 'Default Scenario';
+                const scenarioName = (tc.scenario || 'Default Scenario') as string;
                 
                 let scenarioId = scenarioCache[scenarioName];
                 if (!scenarioId) {
@@ -228,7 +228,7 @@ export const TestCaseModel = {
                     scenarioCache[scenarioName] = scenarioId;
                 }
 
-                const customId = tc.id || tc.custom_id || null;
+                const customId = (tc.id || tc.custom_id || null) as string | null;
                 let existingId = null;
 
                 if (customId) {
@@ -255,7 +255,7 @@ export const TestCaseModel = {
                         scenarioId, title, type, priority,
                         normalizers.automation(tc.automation_status),
                         tc.requirement_link || null,
-                        parseInt(tc.estimated_duration) || 0,
+                        parseInt(tc.estimated_duration as string) || 0,
                         tc.precondition || '',
                         tc.steps || '',
                         tc.test_data || '',
@@ -273,7 +273,7 @@ export const TestCaseModel = {
                         generateId(), customId, scenarioId, title, type, priority,
                         normalizers.automation(tc.automation_status),
                         tc.requirement_link || null,
-                        parseInt(tc.estimated_duration) || 0,
+                        parseInt(tc.estimated_duration as string) || 0,
                         tc.precondition || '',
                         tc.steps || '',
                         tc.test_data || '',

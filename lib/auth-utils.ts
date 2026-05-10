@@ -1,10 +1,19 @@
-import bcrypt from 'bcryptjs';
+import { SessionData } from "./session";
+import { ProjectModel } from "@/models/Project";
 
-export async function hashPassword(password: string): Promise<string> {
-    const salt = await bcrypt.genSalt(10);
-    return bcrypt.hash(password, salt);
-}
-
-export async function comparePassword(password: string, hashed: string): Promise<boolean> {
-    return bcrypt.compare(password, hashed);
+/**
+ * Checks if a user has permission to manage a project.
+ * Returns true if the user has the 'projects:manage_all' permission
+ * OR if the user is explicitly assigned to the project (including lead developer).
+ */
+export async function canManageProject(session: SessionData, projectId: string): Promise<boolean> {
+    if (!session.isLoggedIn) return false;
+    
+    // Admins or users with global project management permission
+    if (session.permissions.includes('projects:manage_all')) {
+        return true;
+    }
+    
+    // Check project-specific assignment
+    return await ProjectModel.isUserAssigned(projectId, session.user_id);
 }

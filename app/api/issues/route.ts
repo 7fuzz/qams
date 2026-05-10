@@ -3,8 +3,10 @@ import { getIronSession } from "iron-session";
 import { cookies } from "next/headers";
 import { sessionOptions, SessionData } from "@/lib/session";
 import { IssueModel } from '@/models/Issue';
+import { ProjectModel } from '@/models/Project';
 import { logActivity } from '@/lib/logger';
 import { ISSUE_STATUS } from '@/lib/constants';
+import { canManageProject } from '@/lib/auth-utils';
 
 export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
@@ -62,8 +64,15 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { test_case_id, test_case_ids, title, description, severity, execution_id, developer_id, sla_date, actual_date } = body;
 
-    // Support both single and multiple test cases during transition or from different components
     const finalTestCaseIds = test_case_ids || (test_case_id ? [test_case_id] : []);
+    
+    // Check project access for each test case
+    for (const tcId of finalTestCaseIds) {
+        const pId = await ProjectModel.getProjectIdFromTestCase(tcId);
+        if (pId && !await canManageProject(session, pId)) {
+            return NextResponse.json({ error: "Forbidden: You don't have access to one of the associated projects" }, { status: 403 });
+        }
+    }
 
     const id = await IssueModel.create({
         test_case_ids: finalTestCaseIds,
@@ -97,6 +106,20 @@ export async function PUT(request: Request) {
   try {
     const { issue_id, status, severity, title, description, execution_id, developer_id, sla_date, actual_date, test_case_ids } = await request.json();
 
+    // Check project access
+    const pIds = await IssueModel.getProjectIdsFromIssue(issue_id);
+    let allowed = session.permissions.includes('projects:manage_all');
+    if (!allowed) {
+        for (const pId of pIds) {
+            if (await ProjectModel.isUserAssigned(pId, session.user_id)) {
+                allowed = true;
+                break;
+            }
+        }
+    }
+    
+    if (!allowed) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
     await IssueModel.update(issue_id, {
         status,
         severity,
@@ -125,9 +148,23 @@ export async function DELETE(request: Request) {
 
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
-    
+    if (!id) return NextResponse.json({ error: 'Missing ID' }, { status: 400 });
+
     try {
-        if (!id) return NextResponse.json({ error: 'Missing ID' }, { status: 400 });
+        // Check project access
+        const pIds = await IssueModel.getProjectIdsFromIssue(id);
+        let allowed = session.permissions.includes('projects:manage_all');
+        if (!allowed) {
+            for (const pId of pIds) {
+                if (await ProjectModel.isUserAssigned(pId, session.user_id)) {
+                    allowed = true;
+                    break;
+                }
+            }
+        }
+        
+        if (!allowed) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
         await IssueModel.delete(id);
         return NextResponse.json({ success: true });
     } catch {

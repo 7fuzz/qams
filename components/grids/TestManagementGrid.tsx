@@ -6,9 +6,7 @@ import {
   ColDef, 
   CellValueChangedEvent,
   AllCommunityModule,
-  ModuleRegistry,
-  ICellRendererParams,
-  GridReadyEvent
+  ModuleRegistry
 } from 'ag-grid-community';
 import { Button, IconButton, Input, Pagination } from '../ui';
 import { Trash2, Plus, Copy, AlertCircle, Edit2, CheckCircle2, ExternalLink, Download, Upload } from 'lucide-react';

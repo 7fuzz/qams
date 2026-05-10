@@ -45,7 +45,7 @@ interface CRUDTableProps<T> {
   hideHeader?: boolean;
 }
 
-export function CRUDTable<T extends { [key: string]: any }>({
+export function CRUDTable<T extends Record<string, unknown>>({
   data,
   columns,
   loading = false,
@@ -180,13 +180,13 @@ export function CRUDTable<T extends { [key: string]: any }>({
             ) : (
               data.map((item, rowIdx) => (
                 <TableRow
-                  key={item.id || rowIdx}
+                  key={(item.id as string | number) || rowIdx}
                   className={`${onRowClick ? 'cursor-pointer' : ''}`}
                   onClick={() => onRowClick?.(item)}
                 >
                   {columns.map((col, colIdx) => (
                     <TableCell key={colIdx} className={col.className}>
-                      {col.cell ? col.cell(item) : (col.accessorKey ? item[col.accessorKey as string] : null)}
+                      {col.cell ? col.cell(item) : (col.accessorKey ? (item[col.accessorKey as string] as React.ReactNode) : null)}
                     </TableCell>
                   ))}
                 </TableRow>

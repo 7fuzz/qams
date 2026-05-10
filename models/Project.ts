@@ -7,19 +7,25 @@ export const ProjectModel = {
     async findAll(filters: { 
         search?: string, 
         sortBy?: string, 
-        sortOrder?: 'ASC' | 'DESC' 
-    } = {}, limit?: number, offset?: number): Promise<{ data: (Project & { owner_name: string, open_issues_count: number })[], total: number }> {
+        sortOrder?: 'ASC' | 'DESC',
+        assignedUserId?: string
+    } = {}, limit?: number, offset?: number): Promise<{ data: (Project & { lead_developer_name: string, open_issues_count: number })[], total: number }> {
         let whereClause = 'WHERE 1=1';
-        const params: any[] = [];
+        const params: unknown[] = [];
 
         if (filters.search) {
             whereClause += ' AND (p.name LIKE ? OR p.description LIKE ?)';
             params.push(`%${filters.search}%`, `%${filters.search}%`);
         }
 
+        if (filters.assignedUserId) {
+            whereClause += ' AND (p.lead_developer_id = ? OR p.project_id IN (SELECT project_id FROM project_assignments WHERE user_id = ?))';
+            params.push(filters.assignedUserId, filters.assignedUserId);
+        }
+
         const baseQuery = `
             FROM projects p 
-            JOIN users u ON p.owner_id = u.user_id
+            JOIN users u ON p.lead_developer_id = u.user_id
             ${whereClause}
         `;
 
@@ -30,7 +36,7 @@ export const ProjectModel = {
             'name': 'p.name',
             'created_at': 'p.created_at',
             'updated_at': 'p.updated_at',
-            'owner_name': 'u.name'
+            'lead_developer_name': 'u.name'
         };
 
         const sortColumn = allowedSortColumns[filters.sortBy || ''] || 'p.created_at';
@@ -39,7 +45,7 @@ export const ProjectModel = {
         let query = `
             SELECT 
                 p.*, 
-                u.name as owner_name,
+                u.name as lead_developer_name,
                 (SELECT COUNT(*) FROM issue_test_cases itc
                  JOIN issues i ON itc.issue_id = i.issue_id
                  JOIN test_cases tc ON itc.test_case_id = tc.test_case_id
@@ -55,20 +61,20 @@ export const ProjectModel = {
             params.push(limit, offset);
         }
 
-        const [rows] = await db.execute<(Project & { owner_name: string, open_issues_count: number })[] & RowDataPacket[]>(query, params);
+        const [rows] = await db.execute<(Project & { lead_developer_name: string, open_issues_count: number })[] & RowDataPacket[]>(query, params);
         return { data: rows, total };
     },
 
-    async create(data: { name: string, version?: string, description?: string, owner_id: string }): Promise<string> {
+    async create(data: { name: string, version?: string, description?: string, lead_developer_id: string }): Promise<string> {
         const projectId = generateId();
-        await db.execute('INSERT INTO projects (project_id, name, version, description, owner_id) VALUES (?, ?, ?, ?, ?)', 
-            [projectId, data.name, data.version || '1.0.0', data.description || null, data.owner_id]);
+        await db.execute('INSERT INTO projects (project_id, name, version, description, lead_developer_id) VALUES (?, ?, ?, ?, ?)', 
+            [projectId, data.name, data.version || '1.0.0', data.description || null, data.lead_developer_id]);
         return projectId;
     },
 
-    async update(id: string, data: { name: string, version: string, description?: string }): Promise<void> {
-        await db.execute('UPDATE projects SET name = ?, version = ?, description = ? WHERE project_id = ?', 
-            [data.name, data.version, data.description || null, id]);
+    async update(id: string, data: { name: string, version: string, description?: string, lead_developer_id?: string }): Promise<void> {
+        await db.execute('UPDATE projects SET name = ?, version = ?, description = ?, lead_developer_id = COALESCE(?, lead_developer_id) WHERE project_id = ?', 
+            [data.name, data.version, data.description || null, data.lead_developer_id || null, id]);
     },
 
     async delete(id: string): Promise<void> {
@@ -84,7 +90,7 @@ export const ProjectModel = {
         sortOrder?: 'ASC' | 'DESC'
     } = {}, limit?: number, offset?: number): Promise<{ data: (Module & { responsible_name?: string, project_name?: string })[], total: number }> {
         let whereClause = 'WHERE 1=1';
-        const params: any[] = [];
+        const params: unknown[] = [];
         
         if (filters.projectId) {
             whereClause += ' AND m.project_id = ?';
@@ -149,5 +155,59 @@ export const ProjectModel = {
 
     async deleteModule(id: string): Promise<void> {
         await db.execute('DELETE FROM modules WHERE module_id = ?', [id]);
+    },
+
+    async getProjectIdFromModule(moduleId: string): Promise<string | null> {
+        const [rows] = await db.execute<RowDataPacket[]>('SELECT project_id FROM modules WHERE module_id = ?', [moduleId]);
+        return rows.length > 0 ? (rows[0] as { project_id: string }).project_id : null;
+    },
+
+    async getProjectIdFromScenario(scenarioId: string): Promise<string | null> {
+        const [rows] = await db.execute<RowDataPacket[]>(`
+            SELECT m.project_id 
+            FROM modules m
+            JOIN scenarios s ON m.module_id = s.module_id
+            WHERE s.scenario_id = ?
+        `, [scenarioId]);
+        return rows.length > 0 ? (rows[0] as { project_id: string }).project_id : null;
+    },
+
+    async getProjectIdFromTestCase(testCaseId: string): Promise<string | null> {
+        const [rows] = await db.execute<RowDataPacket[]>(`
+            SELECT m.project_id 
+            FROM modules m
+            JOIN scenarios s ON m.module_id = s.module_id
+            JOIN test_cases tc ON s.scenario_id = tc.scenario_id
+            WHERE tc.test_case_id = ?
+        `, [testCaseId]);
+        return rows.length > 0 ? (rows[0] as { project_id: string }).project_id : null;
+    },
+
+    // Assignment Logic
+    async assignUser(projectId: string, userId: string): Promise<void> {
+        await db.execute('INSERT IGNORE INTO project_assignments (project_id, user_id) VALUES (?, ?)', [projectId, userId]);
+    },
+
+    async unassignUser(projectId: string, userId: string): Promise<void> {
+        await db.execute('DELETE FROM project_assignments WHERE project_id = ? AND user_id = ?', [projectId, userId]);
+    },
+
+    async getAssignedUsers(projectId: string): Promise<{ user_id: string, name: string, email: string }[]> {
+        const [rows] = await db.execute<RowDataPacket[]>(`
+            SELECT u.user_id, u.name, u.email 
+            FROM users u
+            JOIN project_assignments pa ON u.user_id = pa.user_id
+            WHERE pa.project_id = ?
+        `, [projectId]);
+        return rows as { user_id: string, name: string, email: string }[];
+    },
+
+    async isUserAssigned(projectId: string, userId: string): Promise<boolean> {
+        const [rows] = await db.execute<RowDataPacket[]>(`
+            SELECT 1 FROM project_assignments WHERE project_id = ? AND user_id = ?
+            UNION
+            SELECT 1 FROM projects WHERE project_id = ? AND lead_developer_id = ?
+        `, [projectId, userId, projectId, userId]);
+        return rows.length > 0;
     }
 };

@@ -259,5 +259,17 @@ export const IssueModel = {
             WHERE itc.issue_id = ?
         `, [issueId]);
         return rows as { test_case_id: string, title: string, project_name: string, module_name: string, scenario_name: string }[];
+    },
+
+    async getProjectIdsFromIssue(issueId: string): Promise<string[]> {
+        const [rows] = await db.execute<RowDataPacket[]>(`
+            SELECT DISTINCT m.project_id
+            FROM issue_test_cases itc
+            JOIN test_cases tc ON itc.test_case_id = tc.test_case_id
+            JOIN scenarios s ON tc.scenario_id = s.scenario_id
+            JOIN modules m ON s.module_id = m.module_id
+            WHERE itc.issue_id = ?
+        `, [issueId]);
+        return rows.map(r => r.project_id) as string[];
     }
 };

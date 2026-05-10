@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import { sessionOptions, SessionData } from "@/lib/session";
 import { ProjectModel } from '@/models/Project';
 import { logActivity } from '@/lib/logger';
+import { canManageProject } from '@/lib/auth-utils';
 
 import { createPaginatedResponse } from '@/lib/pagination-utils';
 
@@ -44,6 +45,11 @@ export async function POST(request: Request) {
 
     try {
         const { project_id, name, description, responsible_id, sla_date, actual_date } = await request.json();
+        
+        if (!await canManageProject(session, project_id)) {
+            return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+        }
+
         const moduleId = await ProjectModel.createModule({
             project_id,
             name,
@@ -53,7 +59,7 @@ export async function POST(request: Request) {
             actual_date
         });
         
-        logActivity(session.user_id, 'CREATE', 'MODULE', moduleId, { name, project_id });
+        await logActivity(session.user_id, 'CREATE', 'MODULE', moduleId, { name, project_id });
         
         return NextResponse.json({ module_id: moduleId, project_id, name, description });
     } catch {
@@ -69,6 +75,15 @@ export async function PUT(request: Request) {
 
     try {
         const { module_id, name, description, responsible_id, sla_date, actual_date } = await request.json();
+        
+        // Fetch module to get project_id
+        const { data: modules } = await ProjectModel.findModules({ moduleIds: [module_id] });
+        if (modules.length === 0) return NextResponse.json({ error: "Module not found" }, { status: 404 });
+        
+        if (!await canManageProject(session, modules[0].project_id)) {
+            return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+        }
+
         await ProjectModel.updateModule(module_id, {
             name,
             description,
@@ -92,9 +107,17 @@ export async function DELETE(request: Request) {
 
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
-    
+    if (!id) return NextResponse.json({ error: 'Missing ID' }, { status: 400 });
+
     try {
-        if (!id) return NextResponse.json({ error: 'Missing ID' }, { status: 400 });
+        // Fetch module to get project_id
+        const { data: modules } = await ProjectModel.findModules({ moduleIds: [id] });
+        if (modules.length === 0) return NextResponse.json({ error: "Module not found" }, { status: 404 });
+        
+        if (!await canManageProject(session, modules[0].project_id)) {
+            return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+        }
+
         await ProjectModel.deleteModule(id);
         await logActivity(session.user_id, 'DELETE', 'MODULE', id);
         return NextResponse.json({ success: true });

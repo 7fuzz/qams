@@ -13,207 +13,205 @@ async function seedLarge() {
         database: dbName
     };
 
-    console.log('Connecting to MySQL at:', config.host);
+    console.log('Connecting to MySQL...');
     const connection = await mysql.createConnection(config);
     
-    console.log('Cleaning existing data...');
-    const tables = [
+    console.log('Cleaning business data (preserving users/roles)...');
+    const businessTables = [
         'activity_log', 'issue_history', 'issue_notes', 'release_change_issues', 
-        'release_change_modules', 'release_changes', 'release_issues', 'releases', 'issue_test_cases', 'issues', 
-        'test_executions', 'test_runs', 'test_cases', 'scenarios', 
-        'modules', 'projects', 'users', 'roles', 'permissions'
+        'release_change_modules', 'release_changes', 'release_issues', 'releases', 
+        'issue_test_cases', 'issues', 'test_executions', 'test_runs', 'test_cases', 
+        'scenarios', 'modules', 'projects'
     ];
     
     await connection.query('SET FOREIGN_KEY_CHECKS = 0');
-    for (const table of tables) {
+    for (const table of businessTables) {
         await connection.query(`DELETE FROM \`${table}\``);
     }
+    // Delete all users EXCEPT the primary admin
+    await connection.query("DELETE FROM users WHERE email != 'admin@example.com'");
     await connection.query('SET FOREIGN_KEY_CHECKS = 1');
 
     const salt = await bcrypt.genSalt(10);
     const hashed = await bcrypt.hash('123', salt);
 
-    // 1. Roles & Permissions
-    console.log('Seeding roles and permissions...');
-    const roles = {
-        admin: randomUUID(),
-        dev: randomUUID(),
-        qa: randomUUID(),
-        observer: randomUUID()
-    };
-    
-    await connection.execute('INSERT INTO roles (role_id, name) VALUES (?, ?)', [roles.admin, 'Admin']);
-    await connection.execute('INSERT INTO roles (role_id, name) VALUES (?, ?)', [roles.dev, 'Developer']);
-    await connection.execute('INSERT INTO roles (role_id, name) VALUES (?, ?)', [roles.qa, 'QA']);
-    await connection.execute('INSERT INTO roles (role_id, name) VALUES (?, ?)', [roles.observer, 'Observer']);
+    // 1. Fetch Existing Roles
+    console.log('Fetching system roles...');
+    const [roleRows] = await connection.execute('SELECT role_id, name FROM roles');
+    const roles = {};
+    roleRows.forEach(r => {
+        roles[r.name.toLowerCase()] = r.role_id;
+    });
 
-    const perms = [
-        { id: randomUUID(), name: 'users:manage', desc: 'Create, update, delete users' },
-        { id: randomUUID(), name: 'roles:manage', desc: 'Create, update, delete roles' },
-        { id: randomUUID(), name: 'projects:write', desc: 'Create, update, delete projects/modules/scenarios' },
-        { id: randomUUID(), name: 'projects:read', desc: 'View projects' },
-        { id: randomUUID(), name: 'tests:write', desc: 'Create and update test cases' },
-        { id: randomUUID(), name: 'tests:run', desc: 'Execute test runs' },
-        { id: randomUUID(), name: 'issues:manage', desc: 'Update/close any issue' },
-        { id: randomUUID(), name: 'logs:read', desc: 'View system activity logs' }
-    ];
-
-    for (const p of perms) {
-        await connection.execute('INSERT INTO permissions (permission_id, name, description) VALUES (?, ?, ?)', [p.id, p.name, p.desc]);
+    if (!roles.admin || !roles.developer || !roles.qa) {
+        console.error('Essential roles missing. Please run npm run db:init first.');
+        process.exit(1);
     }
 
-    // Assign Permissions
-    for (const p of perms) await connection.execute('INSERT INTO role_permissions (role_id, permission_id) VALUES (?, ?)', [roles.admin, p.id]);
-    
-    const devPerms = ['projects:write', 'projects:read', 'tests:write', 'issues:manage'];
-    for (const p of perms.filter(p => devPerms.includes(p.name))) await connection.execute('INSERT INTO role_permissions (role_id, permission_id) VALUES (?, ?)', [roles.dev, p.id]);
-    
-    const qaPerms = ['projects:read', 'tests:run', 'tests:write'];
-    for (const p of perms.filter(p => qaPerms.includes(p.name))) await connection.execute('INSERT INTO role_permissions (role_id, permission_id) VALUES (?, ?)', [roles.qa, p.id]);
-
-    const obsPerms = ['projects:read'];
-    for (const p of perms.filter(p => obsPerms.includes(p.name))) await connection.execute('INSERT INTO role_permissions (role_id, permission_id) VALUES (?, ?)', [roles.observer, p.id]);
-
-    // 2. Users
-    console.log('Seeding users...');
+    // 2. Users (Expanded Variant)
+    console.log('Generating 25+ Variant Users...');
     const userIds = [];
-    const mainAdminId = randomUUID();
-    await connection.execute('INSERT INTO users (user_id, name, email, password, role_id) VALUES (?, ?, ?, ?, ?)', 
-        [mainAdminId, 'Main Admin', 'admin@example.com', hashed, roles.admin]);
-    userIds.push(mainAdminId);
+    const firstNames = ['James', 'Mary', 'Robert', 'Patricia', 'John', 'Jennifer', 'Michael', 'Linda', 'William', 'Elizabeth', 'David', 'Barbara', 'Richard', 'Susan', 'Joseph', 'Jessica', 'Thomas', 'Sarah', 'Charles', 'Karen', 'Christopher', 'Nancy', 'Daniel', 'Lisa', 'Matthew', 'Betty', 'Anthony', 'Margaret', 'Mark', 'Sandra'];
+    const lastNames = ['Smith', 'Johnson', 'Williams', 'Brown', 'Jones', 'Garcia', 'Miller', 'Davis', 'Rodriguez', 'Martinez'];
 
-    const names = ['Alex', 'Jordan', 'Casey', 'Riley', 'Taylor', 'Morgan', 'Jamie', 'Peyton', 'Quinn', 'Skyler'];
-    for (let i = 0; i < 10; i++) {
+    for (let i = 0; i < 30; i++) {
         const id = randomUUID();
-        const role = i < 3 ? roles.dev : (i < 8 ? roles.qa : roles.observer);
-        const name = names[i];
+        const fname = firstNames[i % firstNames.length];
+        const lname = lastNames[i % lastNames.length];
+        const name = `${fname} ${lname}`;
+        const email = `${fname.toLowerCase()}.${lname.toLowerCase()}${i}@example.com`;
+        
+        let roleId = roles.observer;
+        if (i < 8) roleId = roles.developer;
+        else if (i < 20) roleId = roles.qa;
+
         await connection.execute('INSERT INTO users (user_id, name, email, password, role_id) VALUES (?, ?, ?, ?, ?)', 
-            [id, `${name} User`, `${name.toLowerCase()}@example.com`, hashed, role]);
-        userIds.push(id);
+            [id, name, email, hashed, roleId]);
+        userIds.push({ id, role: roleId, name });
     }
 
-    // 3. Projects, Modules, Scenarios, Test Cases
-    console.log('Seeding projects tree (heavy)...');
-    for (let pIdx = 1; pIdx <= 5; pIdx++) {
+    const devUsers = userIds.filter(u => u.role === roles.developer);
+    const qaUsers = userIds.filter(u => u.role === roles.qa);
+    const [adminRow] = await connection.execute("SELECT user_id FROM users WHERE email = 'admin@example.com'");
+    const adminUser = { id: adminRow[0].user_id };
+
+    // 3. Projects & Modules (High Variant)
+    console.log('Seeding 10 Diverse Projects with deep module trees...');
+    const projectTypes = ['CRM', 'ERP', 'Mobile App', 'Analytics Platform', 'Security Suite', 'Gateway Service', 'Legacy Port', 'Customer Portal', 'Inventory Hub', 'ML Pipeline'];
+    const modulePrefixes = ['Core', 'External', 'Background', 'Legacy', 'Alpha', 'Beta', 'Internal', 'UI', 'API', 'DB'];
+    const moduleSuffixes = ['Engine', 'Service', 'Layer', 'Adapter', 'Interface', 'Worker', 'Controller', 'Repository', 'Bridge', 'Vault'];
+
+    const allProjectIds = [];
+    for (let pIdx = 0; pIdx < projectTypes.length; pIdx++) {
         const projectId = randomUUID();
+        const name = `${projectTypes[pIdx]} System`;
         await connection.execute('INSERT INTO projects (project_id, name, version, owner_id, description) VALUES (?, ?, ?, ?, ?)', 
-            [projectId, `Project ${String.fromCharCode(64 + pIdx)}`, `1.${pIdx}.0`, mainAdminId, `Large scale project ${pIdx} for testing performance.`]);
+            [projectId, name, `v${pIdx + 1}.0.0`, adminUser.id, `Mission-critical ${name} infrastructure.`]);
+        allProjectIds.push(projectId);
 
-        for (let mIdx = 1; mIdx <= 4; mIdx++) {
+        const moduleCount = 5 + Math.floor(Math.random() * 5);
+        for (let mIdx = 0; mIdx < moduleCount; mIdx++) {
             const moduleId = randomUUID();
-            await connection.execute('INSERT INTO modules (module_id, project_id, name, description) VALUES (?, ?, ?, ?)', 
-                [moduleId, projectId, `Module ${pIdx}.${mIdx}`, `Handling core functionality ${mIdx} for Project ${pIdx}`]);
+            const mName = `${modulePrefixes[Math.floor(Math.random() * modulePrefixes.length)]}-${moduleSuffixes[Math.floor(Math.random() * moduleSuffixes.length)]}`;
+            const mDate = new Date();
+            mDate.setDate(mDate.getDate() + 30);
+            const mDateStr = mDate.toISOString().slice(0, 19).replace('T', ' ');
 
-            for (let sIdx = 1; sIdx <= 3; sIdx++) {
+            await connection.execute('INSERT INTO modules (module_id, project_id, name, responsible_id, description, sla_date) VALUES (?, ?, ?, ?, ?, ?)', 
+                [moduleId, projectId, mName, devUsers[Math.floor(Math.random() * devUsers.length)].id, `Handles ${mName} logic for the ${name}.`, mDateStr]);
+
+            const scenarioCount = 3 + Math.floor(Math.random() * 3);
+            for (let sIdx = 0; sIdx < scenarioCount; sIdx++) {
                 const scenarioId = randomUUID();
-                await connection.execute('INSERT INTO scenarios (scenario_id, module_id, name) VALUES (?, ?, ?)', 
-                    [scenarioId, moduleId, `Scenario ${pIdx}.${mIdx}.${sIdx}`]);
+                const sName = `Scenario: ${mName} Workflow ${sIdx + 1}`;
+                await connection.execute('INSERT INTO scenarios (scenario_id, module_id, name) VALUES (?, ?, ?)', [scenarioId, moduleId, sName]);
 
-                for (let tcIdx = 1; tcIdx <= 8; tcIdx++) {
-                    const testCaseId = randomUUID();
-                    const types = ['Positive', 'Negative', 'Edge Case', 'Vulnerability'];
+                const tcCount = 6 + Math.floor(Math.random() * 6);
+                for (let tcIdx = 0; tcIdx < tcCount; tcIdx++) {
+                    const types = ['Positive', 'Negative', 'Edge Case', 'Vulnerability', 'Performance'];
                     const priorities = ['P0 - Critical', 'P1 - High', 'P2 - Medium', 'P3 - Low'];
+                    const automation = ['Automated', 'Manual', 'Can be automated', 'N/A'];
                     
                     await connection.execute(`
-                        INSERT INTO test_cases (test_case_id, custom_id, scenario_id, title, type, priority, automation_status, precondition, steps, expected_result)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        INSERT INTO test_cases (test_case_id, custom_id, scenario_id, title, type, priority, automation_status, precondition, steps, expected_result, estimated_duration)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     `, [
-                        testCaseId, `TC-${pIdx}${mIdx}${sIdx}${tcIdx}`, scenarioId, 
-                        `Validate functionality ${tcIdx} for Scenario ${sIdx}`,
-                        types[tcIdx % 4], priorities[tcIdx % 4], 'Manual',
-                        'User is logged in and on the correct page.',
-                        '1. Perform action\n2. Check result\n3. Confirm status',
-                        'System should respond correctly within 200ms.'
+                        randomUUID(), `TC-${pIdx}${mIdx}${sIdx}${tcIdx}`, scenarioId, 
+                        `Validate ${mName} component behavior during cycle ${tcIdx}`,
+                        types[Math.floor(Math.random() * types.length)],
+                        priorities[Math.floor(Math.random() * priorities.length)],
+                        automation[Math.floor(Math.random() * automation.length)],
+                        'Validated environment and active session.',
+                        `1. Initialize ${mName}\n2. Pass variant parameters\n3. Capture output buffer`,
+                        `Success state indicated by 0x0 status code in ${mName} logs.`,
+                        10 + (tcIdx * 5)
                     ]);
                 }
             }
         }
     }
 
-    // 4. Test Runs & Executions
-    console.log('Seeding test runs and executions...');
+    // 4. Historical Test Runs & Executions
+    console.log('Seeding 50+ Test Runs across 6-month timeline...');
     const [allTestCases] = await connection.execute('SELECT test_case_id, title FROM test_cases');
-    const [allProjects] = await connection.execute('SELECT project_id FROM projects');
-    const qaUsers = userIds.slice(4, 9); // Some QA users
-
-    for (let rIdx = 1; rIdx <= 10; rIdx++) {
+    
+    for (let rIdx = 0; rIdx < 60; rIdx++) {
         const runId = randomUUID();
-        const project = allProjects[rIdx % allProjects.length];
-        const tester = qaUsers[rIdx % qaUsers.length];
-        const status = rIdx < 8 ? 'Completed' : 'In Progress';
+        const project = allProjectIds[Math.floor(Math.random() * allProjectIds.length)];
+        const tester = qaUsers[Math.floor(Math.random() * qaUsers.length)];
+        const status = rIdx < 50 ? 'Completed' : 'In Progress';
+        const date = new Date();
+        date.setDate(date.getDate() - (60 - rIdx)); // Spread over last 60 days
         
-        await connection.execute('INSERT INTO test_runs (run_id, project_id, tester_id, name, status, created_at) VALUES (?, ?, ?, ?, ?, ?)', 
-            [runId, project.project_id, tester, `Regression Pack - Cycle ${rIdx}`, status, `2024-05-${10 + rIdx} 10:00:00`]);
+        const runDateStr = date.toISOString().slice(0, 19).replace('T', ' ');
+        await connection.execute('INSERT INTO test_runs (run_id, project_id, tester_id, name, status, created_at, completed_at) VALUES (?, ?, ?, ?, ?, ?, ?)', 
+            [runId, project, tester.id, `Regression Cycle #${100 + rIdx}`, status, runDateStr, status === 'Completed' ? runDateStr : null]);
 
-        // Pick 20 random test cases for each run
-        const shuffled = [...allTestCases].sort(() => 0.5 - Math.random());
-        const runTCs = shuffled.slice(0, 20);
-
+        const runTCs = [...allTestCases].sort(() => 0.5 - Math.random()).slice(0, 25);
         for (const tc of runTCs) {
+            const execStatus = Math.random() > 0.2 ? 'Passed' : (Math.random() > 0.5 ? 'Failed' : 'On Hold');
             const execId = randomUUID();
-            const execStatus = Math.random() > 0.15 ? 'Passed' : (Math.random() > 0.5 ? 'Failed' : 'On Hold');
             await connection.execute('INSERT INTO test_executions (execution_id, run_id, test_case_id, status, notes, executed_at) VALUES (?, ?, ?, ?, ?, ?)', 
-                [execId, runId, tc.test_case_id, execStatus, execStatus === 'Failed' ? 'Found a discrepancy during execution.' : null, `2024-05-${10 + rIdx} 14:00:00`]);
+                [execId, runId, tc.test_case_id, execStatus, execStatus === 'Failed' ? 'Discrepancy detected in component output.' : null, runDateStr]);
 
-            // If failed, maybe create an issue
-            if (execStatus === 'Failed' && Math.random() > 0.3) {
+            if (execStatus === 'Failed' && Math.random() > 0.4) {
                 const issueId = randomUUID();
+                const severity = ['Critical (P0)', 'High (P1)', 'Medium (P2)'][Math.floor(Math.random() * 3)];
                 await connection.execute(`
-                    INSERT INTO issues (issue_id, snapshot_execution_id, reporter_id, title, description, severity, status)
-                    VALUES (?, ?, ?, ?, ?, ?, ?)
-                `, [issueId, execId, tester, `Issue with ${tc.title}`, 'Detailed description of the failure.', 'High (P1)', 'Open']);
+                    INSERT INTO issues (issue_id, snapshot_execution_id, reporter_id, developer_id, title, description, severity, status, created_at, sla_date)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                `, [issueId, execId, tester.id, devUsers[Math.floor(Math.random() * devUsers.length)].id, `Bug: ${tc.title}`, 'Automatic failure report from regression suite.', severity, 'Open', runDateStr, runDateStr]);
                 
-                // Link via M2M
                 await connection.execute('INSERT INTO issue_test_cases (issue_id, test_case_id) VALUES (?, ?)', [issueId, tc.test_case_id]);
+                
+                await connection.execute('INSERT INTO issue_notes (note_id, issue_id, user_id, content) VALUES (?, ?, ?, ?)',
+                    [randomUUID(), issueId, devUsers[0].id, 'Investigating the trace logs now.']);
             }
         }
     }
 
-    // 5. Releases & Changelog
-    console.log('Seeding releases and changelogs...');
+    // 5. Releases & Post-Release Mapping
+    console.log('Seeding Releases and complex Changelogs...');
     const [allIssues] = await connection.execute('SELECT issue_id, title FROM issues');
     
-    for (const project of allProjects) {
-        // Create 3 releases per project
-        const versions = ['1.0.0', '1.1.0', '2.0.0-beta'];
-        const statuses = ['Released', 'Released', 'Planning'];
-        
-        for (let i = 0; i < 3; i++) {
+    for (const projectId of allProjectIds) {
+        for (let v = 1; v <= 3; v++) {
             const releaseId = randomUUID();
-            const targetDate = `2024-${6 + i}-01 00:00:00`;
-            
+            const date = new Date();
+            date.setDate(date.getDate() - (40 - (v * 10)));
+            const dateStr = date.toISOString().slice(0, 19).replace('T', ' ');
+
             await connection.execute(`
-                INSERT INTO releases (release_id, project_id, version_name, status, target_date, description)
-                VALUES (?, ?, ?, ?, ?, ?)
-            `, [releaseId, project.project_id, `v${versions[i]}`, statuses[i], targetDate, `Strategic release focusing on ${i === 0 ? 'stability' : (i === 1 ? 'performance' : 'new features')}.`]);
+                INSERT INTO releases (release_id, project_id, version_name, status, sla_date, actual_date, description, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            `, [releaseId, projectId, `v${v}.0.0-final`, 'Released', dateStr, dateStr, `Stable release for milestone ${v}.`, dateStr]);
 
-            // Add 4 changelog items per release
-            const types = ['Feature', 'Bugfix', 'Enhancement', 'Bugfix'];
-            const [projModules] = await connection.execute('SELECT module_id FROM modules WHERE project_id = ?', [project.project_id]);
-            
-            for (let j = 0; j < 4; j++) {
+            const [projModules] = await connection.execute('SELECT module_id FROM modules WHERE project_id = ?', [projectId]);
+            for (let c = 0; c < 5; c++) {
                 const changeId = randomUUID();
-                await connection.execute(`
-                    INSERT INTO release_changes (change_id, release_id, type, title, description)
-                    VALUES (?, ?, ?, ?, ?)
-                `, [changeId, releaseId, types[j], `${types[j]} ${j + 1} for ${versions[i]}`, `Detailed implementation of the ${types[j].toLowerCase()} request.`]);
-
-                // Link to a random module from the project
+                const type = ['Feature', 'Bugfix', 'Enhancement'][Math.floor(Math.random() * 3)];
+                await connection.execute('INSERT INTO release_changes (change_id, release_id, type, title, description) VALUES (?, ?, ?, ?, ?)', 
+                    [changeId, releaseId, type, `${type}: Improvement to Core Logic ${c}`, 'Performance and stability enhancements.']);
+                
                 if (projModules.length > 0) {
-                    const mod = projModules[Math.floor(Math.random() * projModules.length)];
-                    await connection.execute('INSERT INTO release_change_modules (change_id, module_id) VALUES (?, ?)', [changeId, mod.module_id]);
+                    await connection.execute('INSERT INTO release_change_modules (change_id, module_id) VALUES (?, ?)', [changeId, projModules[c % projModules.length].module_id]);
                 }
 
-                // If bugfix, link to a random issue
-                if (types[j] === 'Bugfix' && allIssues.length > 0) {
-                    const issue = allIssues[Math.floor(Math.random() * allIssues.length)];
-                    await connection.execute('INSERT INTO release_change_issues (change_id, issue_id) VALUES (?, ?)', [changeId, issue.issue_id]);
+                if (type === 'Bugfix' && allIssues.length > 0) {
+                    await connection.execute('INSERT INTO release_change_issues (change_id, issue_id) VALUES (?, ?)', [changeId, allIssues[Math.floor(Math.random() * allIssues.length)].issue_id]);
                 }
+            }
+
+            const postReleaseCount = Math.floor(Math.random() * 4);
+            for (let pr = 0; pr < postReleaseCount; pr++) {
+                const issueId = allIssues[Math.floor(Math.random() * allIssues.length)].issue_id;
+                await connection.execute('INSERT IGNORE INTO release_issues (release_id, issue_id, type) VALUES (?, ?, ?)', [releaseId, issueId, 'POST_RELEASE']);
             }
         }
     }
 
-    console.log('--- LARGE SCALE SEEDING COMPLETED SUCCESSFULLY ---');
+    console.log('--- MASSIVE SEEDING COMPLETED SUCCESSFULLY ---');
+    console.log('Admin user preserved.');
     await connection.end();
 }
 

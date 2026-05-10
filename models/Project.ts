@@ -135,16 +135,16 @@ export const ProjectModel = {
         return { data: rows, total };
     },
 
-    async createModule(data: { project_id: string, name: string, description?: string, responsible_id?: string }): Promise<string> {
+    async createModule(data: { project_id: string, name: string, description?: string, responsible_id?: string, sla_date?: string, actual_date?: string }): Promise<string> {
         const moduleId = generateId();
-        await db.execute('INSERT INTO modules (module_id, project_id, name, description, responsible_id) VALUES (?, ?, ?, ?, ?)', 
-            [moduleId, data.project_id, data.name, data.description || null, data.responsible_id || null]);
+        await db.execute('INSERT INTO modules (module_id, project_id, name, description, responsible_id, sla_date, actual_date) VALUES (?, ?, ?, ?, ?, ?, ?)', 
+            [moduleId, data.project_id, data.name, data.description || null, data.responsible_id || null, data.sla_date || null, data.actual_date || null]);
         return moduleId;
     },
 
-    async updateModule(id: string, data: { name: string, description?: string, responsible_id?: string }): Promise<void> {
-        await db.execute('UPDATE modules SET name = ?, description = ?, responsible_id = ? WHERE module_id = ?', 
-            [data.name, data.description || null, data.responsible_id || null, id]);
+    async updateModule(id: string, data: { name: string, description?: string, responsible_id?: string, sla_date?: string, actual_date?: string }): Promise<void> {
+        await db.execute('UPDATE modules SET name = ?, description = ?, responsible_id = ?, sla_date = ?, actual_date = ? WHERE module_id = ?', 
+            [data.name, data.description || null, data.responsible_id || null, data.sla_date || null, data.actual_date || null, id]);
     },
 
     async deleteModule(id: string): Promise<void> {

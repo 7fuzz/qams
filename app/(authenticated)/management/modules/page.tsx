@@ -13,7 +13,7 @@ import {
   Column,
   ManagementTemplate
 } from "@/components/ui";
-import { Plus, Trash2, Layers, LayoutPanelTop, Filter } from 'lucide-react';
+import { Plus, Trash2, Layers, LayoutPanelTop, Filter, Calendar, CheckCircle2 } from 'lucide-react';
 
 interface Project {
   project_id: string;
@@ -54,7 +54,7 @@ export default function ModuleManagementPage() {
 
   // New Module Form
   const [isAdding, setIsAdding] = useState(false);
-  const [newModule, setNewModule] = useState({ name: '', project_id: '', description: '', responsible_id: '' });
+  const [newModule, setNewModule] = useState({ name: '', project_id: '', description: '', responsible_id: '', sla_date: '', actual_date: '' });
 
   const fetchBaseData = useCallback(async () => {
     const [pRes, uRes] = await Promise.all([
@@ -102,7 +102,7 @@ export default function ModuleManagementPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(newModule),
     });
-    setNewModule({ name: '', project_id: '', description: '', responsible_id: '' });
+    setNewModule({ name: '', project_id: '', description: '', responsible_id: '', sla_date: '', actual_date: '' });
     setIsAdding(false);
     fetchModules();
   };
@@ -149,6 +149,31 @@ export default function ModuleManagementPage() {
             <div className="flex items-center gap-2 text-xs font-bold text-text-theme-muted uppercase tracking-tight">
                 <LayoutPanelTop size={14} className="text-text-theme-subtle" />
                 {item.project_name}
+            </div>
+        )
+    },
+    {
+        header: 'SLA / Actual',
+        cell: (item) => (
+            <div className="flex flex-col gap-1" onClick={e => e.stopPropagation()}>
+                <div className="flex items-center gap-2">
+                    <span className="text-[9px] font-bold text-text-theme-muted uppercase w-8">SLA:</span>
+                    <input 
+                        type="date" 
+                        value={item.sla_date ? item.sla_date.split('T')[0] : ''} 
+                        onChange={e => handleUpdateModule(item.module_id, { sla_date: e.target.value })}
+                        className="text-[10px] bg-transparent border-none p-0 focus:ring-0 text-text-theme-main"
+                    />
+                </div>
+                <div className="flex items-center gap-2">
+                    <span className="text-[9px] font-bold text-text-theme-muted uppercase w-8">ACT:</span>
+                    <input 
+                        type="date" 
+                        value={item.actual_date ? item.actual_date.split('T')[0] : ''} 
+                        onChange={e => handleUpdateModule(item.module_id, { actual_date: e.target.value })}
+                        className="text-[10px] bg-transparent border-none p-0 focus:ring-0 text-text-theme-main"
+                    />
+                </div>
             </div>
         )
     },
@@ -216,7 +241,7 @@ export default function ModuleManagementPage() {
       {isAdding && (
         <Card className="border-primary-theme/20 bg-primary-theme/5 shadow-sm animate-in fade-in slide-in-from-top-4 duration-300">
           <CardContent className="p-6">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 items-end">
               <div className="space-y-1.5">
                 <Label className="text-[10px] font-bold uppercase tracking-widest text-text-theme-muted">Module Name</Label>
                 <input 
@@ -233,6 +258,15 @@ export default function ModuleManagementPage() {
                   value={newModule.project_id} 
                   onChange={val => setNewModule({...newModule, project_id: val as string})} 
                   placeholder="Select Project..."
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-[10px] font-bold uppercase tracking-widest text-text-theme-muted">SLA Date</Label>
+                <Input 
+                  type="date"
+                  value={newModule.sla_date} 
+                  onChange={e => setNewModule({...newModule, sla_date: e.target.value})}
+                  className="bg-surface"
                 />
               </div>
               <div className="space-y-1.5">

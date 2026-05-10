@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   Card, CardContent, Button, IconButton, Combobox, Table, TableHeader, TableRow, TableHead, TableBody, TableCell, Pagination, Label
 } from "@/components/ui";
-import { AlertTriangle, UserCheck, ShieldCheck, ExternalLink, LayoutPanelTop, Layers, ChevronUp, ChevronDown, Calendar } from 'lucide-react';
+import { AlertTriangle, UserCheck, ShieldCheck, ExternalLink, LayoutPanelTop, Layers, ChevronUp, ChevronDown, Calendar, CheckCircle2 } from 'lucide-react';
 import { ISSUE_STATUS_OPTIONS, ISSUE_STATUS } from '@/lib/constants';
 import { IssuesListDialog } from '@/components/dialogs/IssuesListDialog';
 
@@ -35,7 +35,8 @@ interface Issue {
   solver_name: string;
   module_name: string;
   project_name: string;
-  estimated_date: string;
+  sla_date: string;
+  actual_date: string;
   updated_at: string;
   test_case_titles?: string;
 }
@@ -258,9 +259,9 @@ export default function IssueManagementPage() {
               </TableHead>
               <TableHead 
                 className="cursor-pointer hover:bg-surface-accent transition-colors"
-                onClick={() => handleSort('estimated_date')}
+                onClick={() => handleSort('sla_date')}
               >
-                ETA <SortIcon field="estimated_date" sortBy={sortBy} sortOrder={sortOrder} />
+                SLA / Actual <SortIcon field="sla_date" sortBy={sortBy} sortOrder={sortOrder} />
               </TableHead>
               <TableHead 
                 className="cursor-pointer hover:bg-surface-accent transition-colors"
@@ -313,9 +314,17 @@ export default function IssueManagementPage() {
                     </span>
                   </TableCell>
                   <TableCell>
-                    <div className="flex items-center gap-1.5 text-[10px] font-medium uppercase text-gray-500">
-                      <Calendar size={14} className="text-text-theme-muted" />
-                      {issue.estimated_date ? new Date(issue.estimated_date).toLocaleDateString() : 'No ETA'}
+                    <div className="flex flex-col gap-1.5 text-[10px] font-medium uppercase text-gray-500">
+                      <div className="flex items-center gap-1">
+                        <Calendar size={12} className="text-text-theme-muted" />
+                        <span className="w-8 text-text-theme-muted font-bold">SLA:</span>
+                        {issue.sla_date ? new Date(issue.sla_date).toLocaleDateString() : 'None'}
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <CheckCircle2 size={12} className="text-success-theme" />
+                        <span className="w-8 text-text-theme-muted font-bold">ACT:</span>
+                        {issue.actual_date ? new Date(issue.actual_date).toLocaleDateString() : 'None'}
+                      </div>
                     </div>
                   </TableCell>
                   <TableCell>

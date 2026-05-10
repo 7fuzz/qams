@@ -23,11 +23,14 @@ async function initDb(existingConnection = null) {
   }
 
   const dbName = process.env.MYSQL_DATABASE || 'test_management';
+  
+  // Ensure database exists and is active
   await connection.query(`CREATE DATABASE IF NOT EXISTS \`${dbName}\``);
   await connection.query(`USE \`${dbName}\``);
 
   console.log(`Using database: ${dbName}`);
 
+  // Apply Schema
   const schema = fs.readFileSync(SCHEMA_PATH, 'utf8');
   await connection.query('SET FOREIGN_KEY_CHECKS = 0');
   await connection.query(schema);
@@ -35,7 +38,7 @@ async function initDb(existingConnection = null) {
 
   console.log('Database schema applied successfully.');
 
-  // Seed Roles & Permissions
+  // 1. Seed Roles & Permissions
   console.log('Seeding base roles and permissions...');
   const adminRoleId = randomUUID();
   const devRoleId = randomUUID();
@@ -89,16 +92,17 @@ async function initDb(existingConnection = null) {
     if (permIds[name]) await connection.query('INSERT IGNORE INTO role_permissions (role_id, permission_id) VALUES (?, ?)', [observerId, permIds[name]]);
   }
 
-  // Seed Users (password: 123)
+  // 2. Seed Admin User (password: 123)
+  console.log('Seeding Primary Admin User...');
   const salt = await bcrypt.genSalt(10);
   const hashed = await bcrypt.hash('123', salt);
 
-  await connection.query('INSERT IGNORE INTO users (user_id, name, email, password, role_id) VALUES (?, ?, ?, ?, ?)',
-    [randomUUID(), 'Admin User', 'admin@example.com', hashed, adminRoleId]);
+  // We use REPLACE INTO to ensure that even if the reset logic was messy, the admin user definitely exists with these credentials
+  await connection.query('REPLACE INTO users (user_id, name, email, password, role_id) VALUES (?, ?, ?, ?, ?)',
+    [randomUUID(), 'System Admin', 'admin@example.com', hashed, adminRoleId]);
 
-  console.log('Seed data added.');
+  console.log('--- ADMIN SEEDED: admin@example.com / 123 ---');
   
-  // Close connection only if we created it here
   if (!existingConnection) {
     await connection.end();
   }
@@ -106,7 +110,6 @@ async function initDb(existingConnection = null) {
 
 module.exports = { initDb };
 
-// Execute if called directly
 if (require.main === module) {
   initDb().catch(err => {
     console.error('Error initializing database:', err);

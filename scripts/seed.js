@@ -86,8 +86,9 @@ async function seed() {
 
     // 2. Seed Users
     console.log('Seeding users...');
+    const adminId = randomUUID();
     const users = {
-        admin: { id: randomUUID(), name: 'System Admin', email: 'admin@example.com' },
+        admin: { id: adminId, name: 'System Admin', email: 'admin@example.com' },
         dev1: { id: randomUUID(), name: 'Alex Dev', email: 'alex@example.com' },
         dev2: { id: randomUUID(), name: 'Sam Coder', email: 'sam@example.com' },
         qa1: { id: randomUUID(), name: 'Jordan Tester', email: 'qa@example.com' },
@@ -130,7 +131,7 @@ async function seed() {
     };
     
     for (const m of Object.values(modules)) {
-        await connection.execute('INSERT INTO modules (module_id, project_id, name) VALUES (?, ?, ?)', [m.id, m.pid, m.name]);
+        await connection.execute('INSERT INTO modules (module_id, project_id, name, sla_date) VALUES (?, ?, ?, ?)', [m.id, m.pid, m.name, '2024-06-01 00:00:00']);
     }
 
     // 5. Seed Scenarios
@@ -190,9 +191,9 @@ async function seed() {
     const taxTC = tcs.find(t => t.title.includes('Tax'));
     const issueId = randomUUID();
     await connection.execute(`
-        INSERT INTO issues (issue_id, snapshot_execution_id, reporter_id, title, description, severity, status)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-    `, [issueId, null, users.qa2.id, 'Rounding error in tax', 'Discrepancy on boundaries.', 'Medium (P2)', 'Open']);
+        INSERT INTO issues (issue_id, snapshot_execution_id, reporter_id, title, description, severity, status, sla_date)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `, [issueId, null, users.qa2.id, 'Rounding error in tax', 'Discrepancy on boundaries.', 'Medium (P2)', 'Open', '2024-05-20 00:00:00']);
 
     // Link issue to test case via junction table
     await connection.execute(`
@@ -204,7 +205,7 @@ async function seed() {
     console.log('Seeding releases...');
     const releaseId = randomUUID();
     await connection.execute(`
-        INSERT INTO releases (release_id, project_id, version_name, status, target_date, description)
+        INSERT INTO releases (release_id, project_id, version_name, status, sla_date, description)
         VALUES (?, ?, ?, ?, ?, ?)
     `, [releaseId, projects.hr.id, 'v2.5.0', 'Released', '2024-05-15', 'Major Q2 update with new auth features.']);
 

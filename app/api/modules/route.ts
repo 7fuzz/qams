@@ -43,12 +43,14 @@ export async function POST(request: Request) {
     }
 
     try {
-        const { project_id, name, description, responsible_id } = await request.json();
+        const { project_id, name, description, responsible_id, sla_date, actual_date } = await request.json();
         const moduleId = await ProjectModel.createModule({
             project_id,
             name,
             description,
-            responsible_id
+            responsible_id,
+            sla_date,
+            actual_date
         });
         
         logActivity(session.user_id, 'CREATE', 'MODULE', moduleId, { name, project_id });
@@ -66,11 +68,13 @@ export async function PUT(request: Request) {
     }
 
     try {
-        const { module_id, name, description, responsible_id } = await request.json();
+        const { module_id, name, description, responsible_id, sla_date, actual_date } = await request.json();
         await ProjectModel.updateModule(module_id, {
             name,
             description,
-            responsible_id
+            responsible_id,
+            sla_date,
+            actual_date
         });
         
         await logActivity(session.user_id, 'UPDATE', 'MODULE', module_id, { name });

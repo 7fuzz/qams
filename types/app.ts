@@ -9,6 +9,8 @@ export interface Module {
     project_id: string;
     name: string;
     description?: string;
+    sla_date?: string | null;
+    actual_date?: string | null;
 }
 
 export interface Scenario {
@@ -60,7 +62,8 @@ export interface Release {
     project_id: string;
     version_name: string;
     status: string;
-    target_date: string;
+    sla_date?: string | null;
+    actual_date?: string | null;
     description: string;
     post_release_issue_ids?: string[];
     post_release_issue_titles?: string[];
@@ -94,6 +97,8 @@ export interface Issue {
     reporter_name?: string;
     developer_id?: string;
     developer_name?: string;
+    sla_date?: string | null;
+    actual_date?: string | null;
     created_at: string;
 }
 

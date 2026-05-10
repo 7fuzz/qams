@@ -98,7 +98,8 @@ export const IssueModel = {
             'status': 'i.status',
             'updated_at': 'i.updated_at',
             'created_at': 'i.created_at',
-            'estimated_date': 'i.estimated_date',
+            'sla_date': 'i.sla_date',
+            'actual_date': 'i.actual_date',
             'reporter_name': 'u.name',
             'developer_name': 'd.name'
         };
@@ -131,7 +132,8 @@ export const IssueModel = {
         description: string, 
         severity: string, 
         reporter_id: string,
-        estimated_date?: string,
+        sla_date?: string,
+        actual_date?: string,
         execution_id?: string, 
         developer_id?: string 
     }): Promise<string> {
@@ -141,11 +143,11 @@ export const IssueModel = {
 
         try {
             await connection.execute(`
-                INSERT INTO issues (issue_id, snapshot_execution_id, reporter_id, developer_id, title, description, severity, status, estimated_date)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO issues (issue_id, snapshot_execution_id, reporter_id, developer_id, title, description, severity, status, sla_date, actual_date)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             `, [
                 issueId, data.execution_id || null, data.reporter_id, 
-                data.developer_id || null, data.title, data.description, data.severity, ISSUE_STATUS.OPEN, data.estimated_date || null
+                data.developer_id || null, data.title, data.description, data.severity, ISSUE_STATUS.OPEN, data.sla_date || null, data.actual_date || null
             ]);
 
             // Add junction entries
@@ -184,7 +186,8 @@ export const IssueModel = {
         description: string, 
         user_id: string,
         test_case_ids?: string[],
-        estimated_date?: string,
+        sla_date?: string,
+        actual_date?: string,
         execution_id?: string, 
         developer_id?: string 
     }): Promise<void> {
@@ -201,9 +204,9 @@ export const IssueModel = {
 
             await connection.execute(`
                 UPDATE issues 
-                SET status = ?, severity = ?, title = ?, description = ?, developer_id = ?, solved_by_id = COALESCE(?, solved_by_id), estimated_date = ?
+                SET status = ?, severity = ?, title = ?, description = ?, developer_id = ?, solved_by_id = COALESCE(?, solved_by_id), sla_date = ?, actual_date = ?
                 WHERE issue_id = ?
-            `, [data.status, data.severity, data.title, data.description, data.developer_id || null, solved_by_id, data.estimated_date || null, id]);
+            `, [data.status, data.severity, data.title, data.description, data.developer_id || null, solved_by_id, data.sla_date || null, data.actual_date || null, id]);
 
             if (data.test_case_ids) {
                 // Refresh junction table

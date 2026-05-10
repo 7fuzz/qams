@@ -24,7 +24,8 @@ interface Issue {
   developer_id: string;
   developer_name: string;
   solver_name: string;
-  estimated_date: string | null;
+  sla_date: string | null;
+  actual_date: string | null;
   created_at: string;
   test_case_titles?: string;
 }
@@ -77,7 +78,7 @@ export const IssuesListDialog = ({ testCaseId, issueId, testCaseTitle, isOpen, o
   const [issueTestCases, setIssueTestCases] = useState<Record<string, TestCase[]>>({});
   
   const [showNewIssueForm, setShowNewIssueForm] = useState(false);
-  const [newIssue, setNewIssue] = useState({ title: '', description: '', severity: ISSUE_SEVERITY.MEDIUM as string, developer_id: '', estimated_date: '' });
+  const [newIssue, setNewIssue] = useState({ title: '', description: '', severity: ISSUE_SEVERITY.MEDIUM as string, developer_id: '', sla_date: '' });
   const [newNoteContent, setNewNoteContent] = useState<Record<string, string>>({});
 
   const fetchDataForIssue = useCallback(async (issueId: string) => {
@@ -140,7 +141,7 @@ export const IssuesListDialog = ({ testCaseId, issueId, testCaseTitle, isOpen, o
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ test_case_id: testCaseId, ...newIssue }),
     });
-    setNewIssue({ title: '', description: '', severity: ISSUE_SEVERITY.MEDIUM, developer_id: '', estimated_date: '' });
+    setNewIssue({ title: '', description: '', severity: ISSUE_SEVERITY.MEDIUM, developer_id: '', sla_date: '' });
     setShowNewIssueForm(false);
     fetchIssues();
     onRefresh();
@@ -196,8 +197,8 @@ export const IssuesListDialog = ({ testCaseId, issueId, testCaseTitle, isOpen, o
               <Combobox options={userOptions} value={newIssue.developer_id} onChange={val => setNewIssue({...newIssue, developer_id: val as string})} placeholder="Assign Dev..." />
             </div>
             <div className="space-y-1">
-              <Label className="text-[10px] font-bold text-gray-400">ESTIMATED RESOLUTION DATE</Label>
-              <Input type="date" value={newIssue.estimated_date} onChange={e => setNewIssue({...newIssue, estimated_date: e.target.value})} className="h-8 text-xs" />
+              <Label className="text-[10px] font-bold text-gray-400 uppercase">SLA Resolution Date</Label>
+              <Input type="date" value={newIssue.sla_date} onChange={e => setNewIssue({...newIssue, sla_date: e.target.value})} className="h-8 text-xs" />
             </div>
             <Button size="sm" onClick={handleCreateIssue} className="w-full">Report Issue</Button>
           </div>
@@ -274,14 +275,25 @@ export const IssuesListDialog = ({ testCaseId, issueId, testCaseTitle, isOpen, o
                             </div>
                         </div>
 
-                        <div className="space-y-1">
-                            <Label className="text-[10px] font-bold text-gray-400 uppercase">Estimated Resolution Date</Label>
-                            <Input 
-                                type="date" 
-                                value={issue.estimated_date ? issue.estimated_date.split('T')[0] : ''} 
-                                onChange={(e) => handleUpdateIssue(issue.issue_id, { estimated_date: e.target.value })} 
-                                className="h-8 text-xs bg-white dark:bg-gray-950"
-                            />
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-1">
+                                <Label className="text-[10px] font-bold text-gray-400 uppercase">SLA Date</Label>
+                                <Input 
+                                    type="date" 
+                                    value={issue.sla_date ? issue.sla_date.split('T')[0] : ''} 
+                                    onChange={(e) => handleUpdateIssue(issue.issue_id, { sla_date: e.target.value })} 
+                                    className="h-8 text-xs bg-white dark:bg-gray-950"
+                                />
+                            </div>
+                            <div className="space-y-1">
+                                <Label className="text-[10px] font-bold text-gray-400 uppercase">Actual Date</Label>
+                                <Input 
+                                    type="date" 
+                                    value={issue.actual_date ? issue.actual_date.split('T')[0] : ''} 
+                                    onChange={(e) => handleUpdateIssue(issue.issue_id, { actual_date: e.target.value })} 
+                                    className="h-8 text-xs bg-white dark:bg-gray-950"
+                                />
+                            </div>
                         </div>
 
                         {/* Associated Test Cases */}

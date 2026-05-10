@@ -60,7 +60,7 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json();
-    const { test_case_id, test_case_ids, title, description, severity, execution_id, developer_id, estimated_date } = body;
+    const { test_case_id, test_case_ids, title, description, severity, execution_id, developer_id, sla_date, actual_date } = body;
 
     // Support both single and multiple test cases during transition or from different components
     const finalTestCaseIds = test_case_ids || (test_case_id ? [test_case_id] : []);
@@ -73,7 +73,8 @@ export async function POST(request: Request) {
         reporter_id: session.user_id,
         execution_id,
         developer_id,
-        estimated_date
+        sla_date,
+        actual_date
     });
 
     if (finalTestCaseIds.length > 0) {
@@ -94,7 +95,7 @@ export async function PUT(request: Request) {
   }
 
   try {
-    const { issue_id, status, severity, title, description, execution_id, developer_id, estimated_date, test_case_ids } = await request.json();
+    const { issue_id, status, severity, title, description, execution_id, developer_id, sla_date, actual_date, test_case_ids } = await request.json();
 
     await IssueModel.update(issue_id, {
         status,
@@ -105,7 +106,8 @@ export async function PUT(request: Request) {
         test_case_ids,
         execution_id,
         developer_id,
-        estimated_date
+        sla_date,
+        actual_date
     });
 
     return NextResponse.json({ success: true });

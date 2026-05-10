@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   Card, CardHeader, CardTitle, CardContent, Button, IconButton, Modal, Input, Label, Textarea, Combobox
 } from "@/components/ui";
-import { Tag, Plus, Calendar, Clock, GitCommit, AlertCircle, Trash2, Edit2, Info, Link as LinkIcon, Layers, ShieldCheck, AlertTriangle } from 'lucide-react';
+import { Tag, Plus, Calendar, Clock, GitCommit, AlertCircle, Trash2, Edit2, Info, Link as LinkIcon, Layers, ShieldCheck, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { Project, Module, Release, Issue, ReleaseChange } from '@/types/app';
 
 const RELEASE_STATUS_OPTIONS = [
@@ -33,7 +33,7 @@ export default function ReleasesPage() {
   const [isReleaseModalOpen, setIsReleaseModalOpen] = useState(false);
   const [isChangeModalOpen, setIsChangeModalOpen] = useState(false);
 
-  const [releaseForm, setReleaseForm] = useState<Partial<Release>>({ version_name: '', status: 'Planning', description: '', post_release_issue_ids: [] });
+  const [releaseForm, setReleaseForm] = useState<Partial<Release>>({ version_name: '', status: 'Planning', description: '', post_release_issue_ids: [], sla_date: '', actual_date: '' });
   const [changeForm, setChangeForm] = useState<Partial<ReleaseChange>>({ type: 'Feature', title: '', description: '', issue_ids: [], module_ids: [] });
 
   const fetchProjects = useCallback(() => {
@@ -252,8 +252,15 @@ export default function ReleasesPage() {
                       {release.status}
                     </span>
                   </div>
-                  <div className="text-[10px] text-text-theme-muted flex items-center gap-1.5 font-medium uppercase">
-                    <Calendar size={10} /> {release.target_date ? new Date(release.target_date).toLocaleDateString() : 'TBD'}
+                  <div className="text-[10px] text-text-theme-muted flex flex-col gap-0.5 font-medium uppercase">
+                    <div className="flex items-center gap-1.5">
+                      <Calendar size={10} /> SLA: {release.sla_date ? new Date(release.sla_date).toLocaleDateString() : 'TBD'}
+                    </div>
+                    {release.actual_date && (
+                      <div className="flex items-center gap-1.5 text-success-theme">
+                        <CheckCircle2 size={10} /> ACT: {new Date(release.actual_date).toLocaleDateString()}
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}
@@ -272,8 +279,9 @@ export default function ReleasesPage() {
                         Release {selectedRelease.version_name}
                         <IconButton icon={Edit2} size="xs" variant="ghost" className="text-text-theme-main" aria-label="Edit release" onClick={() => { setReleaseForm({ ...selectedRelease, post_release_issue_ids: selectedRelease.post_release_issue_ids || [] }); setIsReleaseModalOpen(true); }} title="Edit release" />
                       </CardTitle>
-                      <div className="flex items-center gap-4 text-xs text-text-theme-muted">
-                        <span className="flex items-center gap-1"><Clock size={12} /> Target: {selectedRelease.target_date || 'No date set'}</span>
+                      <div className="flex flex-wrap items-center gap-4 text-xs text-text-theme-muted">
+                        <span className="flex items-center gap-1"><Clock size={12} /> SLA: {selectedRelease.sla_date ? new Date(selectedRelease.sla_date).toLocaleDateString() : 'No date set'}</span>
+                        <span className="flex items-center gap-1 text-success-theme"><CheckCircle2 size={12} /> Actual: {selectedRelease.actual_date ? new Date(selectedRelease.actual_date).toLocaleDateString() : 'Not released'}</span>
                         <span className="flex items-center gap-1 uppercase font-bold text-primary-theme">{selectedRelease.status}</span>
                       </div>
                     </div>
@@ -378,9 +386,13 @@ export default function ReleasesPage() {
               <Combobox options={RELEASE_STATUS_OPTIONS} value={releaseForm.status} onChange={val => setReleaseForm({ ...releaseForm, status: val as string })} />
             </div>
             <div className="space-y-2">
-              <Label className="text-text-theme-main">Target Date</Label>
-              <Input type="date" value={releaseForm.target_date?.split(' ')[0] || ''} onChange={e => setReleaseForm({ ...releaseForm, target_date: e.target.value })} className="bg-surface text-text-theme-main" />
+              <Label className="text-text-theme-main">SLA Date</Label>
+              <Input type="date" value={releaseForm.sla_date?.split(' ')[0] || ''} onChange={e => setReleaseForm({ ...releaseForm, sla_date: e.target.value })} className="bg-surface text-text-theme-main" />
             </div>
+          </div>
+          <div className="space-y-2">
+            <Label className="text-text-theme-main">Actual Release Date</Label>
+            <Input type="date" value={releaseForm.actual_date?.split(' ')[0] || ''} onChange={e => setReleaseForm({ ...releaseForm, actual_date: e.target.value })} className="bg-surface text-text-theme-main" />
           </div>
           <div className="space-y-2">
             <Label className="text-text-theme-main">Description</Label>

@@ -37,9 +37,9 @@ export const ReleaseModel = {
 
         try {
             await connection.query(`
-                INSERT INTO releases (release_id, project_id, version_name, status, target_date, description)
-                VALUES (?, ?, ?, ?, ?, ?)
-            `, [id, data.project_id, data.version_name, data.status || 'Planning', data.target_date || null, data.description || null]);
+                INSERT INTO releases (release_id, project_id, version_name, status, sla_date, actual_date, description)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            `, [id, data.project_id, data.version_name, data.status || 'Planning', data.sla_date || null, data.actual_date || null, data.description || null]);
 
             if (data.post_release_issue_ids && Array.isArray(data.post_release_issue_ids)) {
                 for (const issueId of data.post_release_issue_ids) {
@@ -64,9 +64,9 @@ export const ReleaseModel = {
         try {
             await connection.query(`
                 UPDATE releases 
-                SET version_name = ?, status = ?, target_date = ?, description = ?
+                SET version_name = ?, status = ?, sla_date = ?, actual_date = ?, description = ?
                 WHERE release_id = ?
-            `, [data.version_name, data.status, data.target_date || null, data.description || null, id]);
+            `, [data.version_name, data.status, data.sla_date || null, data.actual_date || null, data.description || null, id]);
 
             await connection.query('DELETE FROM release_issues WHERE release_id = ? AND type = "POST_RELEASE"', [id]);
 

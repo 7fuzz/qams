@@ -212,7 +212,7 @@ CREATE TABLE IF NOT EXISTS release_issues (
 CREATE TABLE IF NOT EXISTS test_runs (
     run_id VARCHAR(255) PRIMARY KEY,
     project_id VARCHAR(255) NOT NULL,
-    tester_id VARCHAR(255) NOT NULL,
+    requested_by_id VARCHAR(255) DEFAULT NULL,
     name VARCHAR(255) NOT NULL,
     type VARCHAR(255) DEFAULT NULL,
     status VARCHAR(255) DEFAULT 'Draft',
@@ -220,7 +220,17 @@ CREATE TABLE IF NOT EXISTS test_runs (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     completed_at DATETIME,
     FOREIGN KEY (project_id) REFERENCES projects(project_id) ON DELETE CASCADE,
-    FOREIGN KEY (tester_id) REFERENCES users(user_id)
+    FOREIGN KEY (requested_by_id) REFERENCES users(user_id)
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- Junction: Test Runs to Testers (Assigned Team)
+CREATE TABLE IF NOT EXISTS test_run_assignments (
+    run_id VARCHAR(255) NOT NULL,
+    user_id VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (run_id, user_id),
+    FOREIGN KEY (run_id) REFERENCES test_runs(run_id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
 ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- Test Executions

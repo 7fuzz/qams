@@ -100,6 +100,8 @@ export default function TestRunsPage() {
         header: 'Run Name', 
         accessorKey: 'name',
         sortable: true,
+        width: 250,
+        minWidth: 150,
         cell: (item) => (
             <div className="flex flex-col gap-0.5 py-1">
                 <div className="font-bold text-primary-theme leading-tight">{item.name}</div>
@@ -111,6 +113,8 @@ export default function TestRunsPage() {
         header: 'Project', 
         accessorKey: 'project_name',
         sortable: true,
+        width: 200,
+        minWidth: 120,
         cell: (item) => (
             <div className="flex items-center gap-2 text-xs font-bold text-text-theme-muted uppercase tracking-tight">
                 <LayoutPanelTop size={14} className="text-text-theme-subtle" />
@@ -122,6 +126,8 @@ export default function TestRunsPage() {
         header: 'Status', 
         accessorKey: 'status',
         sortable: true,
+        width: 120,
+        minWidth: 100,
         cell: (item) => (
             <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
                 item.status === 'Completed' ? 'bg-success-theme/10 text-success-theme' :
@@ -134,6 +140,8 @@ export default function TestRunsPage() {
     },
     {
         header: 'Progress',
+        width: 150,
+        minWidth: 120,
         cell: (item) => {
             const total = item.total_cases || 0;
             const passed = item.passed_count || 0;
@@ -152,12 +160,33 @@ export default function TestRunsPage() {
         }
     },
     { 
-        header: 'Tester', 
-        accessorKey: 'tester_name',
-        sortable: true,
+        header: 'Testers', 
+        accessorKey: 'assigned_tester_names',
+        width: 200,
+        minWidth: 150,
         cell: (item) => (
-            <div className="flex items-center gap-2 text-[10px] font-bold text-text-theme-muted uppercase">
-                <User size={12} /> {item.tester_name}
+            <div className="flex flex-wrap gap-1 max-w-[200px]">
+                {item.assigned_tester_names && item.assigned_tester_names.length > 0 ? (
+                    item.assigned_tester_names.map(name => (
+                        <div key={name} className="flex items-center gap-1 text-[9px] font-bold text-primary-theme bg-primary-theme/5 px-1.5 py-0.5 rounded-full border border-primary-theme/10 uppercase">
+                            <User size={8} /> {name}
+                        </div>
+                    ))
+                ) : (
+                    <span className="text-[10px] text-text-theme-muted italic font-bold">Unassigned</span>
+                )}
+            </div>
+        )
+    },
+    { 
+        header: 'Requested By', 
+        accessorKey: 'requested_by_name',
+        sortable: true,
+        width: 150,
+        minWidth: 120,
+        cell: (item) => (
+            <div className="flex items-center gap-2 text-[10px] font-bold text-text-theme-subtle uppercase opacity-80 italic">
+                {item.requested_by_name || 'System'}
             </div>
         )
     },
@@ -165,11 +194,16 @@ export default function TestRunsPage() {
         header: 'Date', 
         accessorKey: 'created_at',
         sortable: true,
+        width: 120,
+        minWidth: 100,
         cell: (item) => <span className="text-[10px] font-bold text-text-theme-subtle uppercase">{new Date(item.created_at).toLocaleDateString()}</span>
     },
     { 
       header: 'Actions', 
       className: 'text-right',
+      width: 120,
+      minWidth: 120,
+      pin: 'right',
       cell: (item) => (
         <div className="flex gap-1 justify-end" onClick={e => e.stopPropagation()}>
           <IconButton 
@@ -241,8 +275,8 @@ export default function TestRunsPage() {
           </Link>
         }
         filters={filters}
-        data={runs as unknown as Record<string, unknown>[]}
-        columns={columns as unknown as Column<Record<string, unknown>>[]}
+        data={runs as object[]}
+        columns={columns as Column<object>[]}
         loading={loading}
         totalItems={total}
         currentPage={page}

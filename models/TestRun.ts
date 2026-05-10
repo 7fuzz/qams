@@ -38,7 +38,7 @@ export const TestRunModel = {
 
         const baseQuery = `
             FROM test_runs tr 
-            JOIN users u ON tr.tester_id = u.user_id
+            LEFT JOIN users rb ON tr.requested_by_id = rb.user_id
             JOIN projects p ON tr.project_id = p.project_id
             JOIN users po ON p.lead_developer_id = po.user_id
             ${whereClause}
@@ -50,7 +50,7 @@ export const TestRunModel = {
         const allowedSortColumns: Record<string, string> = {
             'name': 'tr.name',
             'project_name': 'p.name',
-            'tester_name': 'u.name',
+            'requested_by_name': 'rb.name',
             'status': 'tr.status',
             'created_at': 'tr.created_at'
         };
@@ -61,7 +61,7 @@ export const TestRunModel = {
         const [data] = await db.execute<TestRun[] & RowDataPacket[]>(`
             SELECT 
                 tr.*, 
-                u.name as tester_name, 
+                rb.name as requested_by_name,
                 p.name as project_name, 
                 po.name as project_owner,
                 (SELECT COUNT(*) FROM test_executions WHERE run_id = tr.run_id) as total_cases,
@@ -73,21 +73,41 @@ export const TestRunModel = {
             LIMIT ? OFFSET ?
         `, [...params, limit, offset]);
 
+        // Fetch assigned testers for each run
+        for (const run of data) {
+            const [assignments] = await db.execute<RowDataPacket[]>(`
+                SELECT u.user_id, u.name 
+                FROM test_run_assignments tra
+                JOIN users u ON tra.user_id = u.user_id
+                WHERE tra.run_id = ?
+            `, [run.run_id]);
+            run.assigned_tester_ids = assignments.map(a => a.user_id);
+            run.assigned_tester_names = assignments.map(a => a.name);
+        }
+
         return { data, total };
     },
 
-    async create(data: { project_id: string, name: string, type: string | null, tester_id: string, scenario_ids?: string[], module_ids?: string[] }) {
+    async create(data: { project_id: string, name: string, type: string | null, requested_by_id?: string, scenario_ids?: string[], module_ids?: string[], status?: string, assigned_tester_ids?: string[] }) {
         const runId = generateId();
         const connection = await db.getConnection();
         await connection.beginTransaction();
 
         try {
             await connection.execute(
-                'INSERT INTO test_runs (run_id, project_id, tester_id, name, type, status) VALUES (?, ?, ?, ?, ?, ?)',
-                [runId, data.project_id, data.tester_id, data.name, data.type || null, 'In Progress']
+                'INSERT INTO test_runs (run_id, project_id, requested_by_id, name, type, status) VALUES (?, ?, ?, ?, ?, ?)',
+                [runId, data.project_id, data.requested_by_id || null, data.name, data.type || null, data.status || 'In Progress']
             );
 
-            const finalScenarioIds = new Set<string>(data.scenario_ids || []);
+            // Handle multiple tester assignments
+            if (data.assigned_tester_ids && data.assigned_tester_ids.length > 0) {
+                for (const tId of data.assigned_tester_ids) {
+                    await connection.execute(
+                        'INSERT INTO test_run_assignments (run_id, user_id) VALUES (?, ?)',
+                        [runId, tId]
+                    );
+                }
+            }
 
             // If module_ids are provided, fetch all scenarios for those modules
             if (data.module_ids && data.module_ids.length > 0) {

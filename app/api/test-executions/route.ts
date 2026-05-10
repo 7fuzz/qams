@@ -4,8 +4,9 @@ import { cookies } from "next/headers";
 import { sessionOptions, SessionData } from "@/lib/session";
 import { TestRunModel } from '@/models/TestRun';
 import { logActivity } from '@/lib/logger';
-
 import { createPaginatedResponse } from '@/lib/pagination-utils';
+import db from '@/lib/db';
+import { RowDataPacket } from 'mysql2';
 
 export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
@@ -37,7 +38,22 @@ export async function PUT(request: Request) {
 
     try {
         const body = await request.json();
-        const { execution_id, status } = body;
+        const { execution_id } = body;
+
+        // Security Check: Is user assigned to this run?
+        const [assignments] = await db.execute<RowDataPacket[]>(`
+            SELECT tra.user_id 
+            FROM test_run_assignments tra
+            JOIN test_executions te ON tra.run_id = te.run_id
+            WHERE te.execution_id = ? AND tra.user_id = ?
+        `, [execution_id, session.user_id]);
+
+        const isAssigned = assignments.length > 0;
+        const canBypass = session.permissions.includes('tests:bypass_assignment');
+
+        if (!isAssigned && !canBypass) {
+            return NextResponse.json({ error: "You are not assigned to this test run" }, { status: 403 });
+        }
         
         await TestRunModel.updateExecution(execution_id, body);
 

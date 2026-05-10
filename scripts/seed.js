@@ -172,10 +172,15 @@ async function seed() {
         new: { id: randomUUID(), name: 'Sprint 13 Current', status: 'In Progress' }
     };
     
-    await connection.execute('INSERT INTO test_runs (run_id, project_id, tester_id, name, status, created_at) VALUES (?, ?, ?, ?, ?, ?)', 
-        [runs.old.id, projects.hr.id, users.qa1.id, runs.old.name, runs.old.status, '2024-04-15 10:00:00']);
-    await connection.execute('INSERT INTO test_runs (run_id, project_id, tester_id, name, status, created_at) VALUES (?, ?, ?, ?, ?, ?)', 
-        [runs.new.id, projects.hr.id, users.qa2.id, runs.new.name, runs.new.status, '2024-05-01 09:00:00']);
+    await connection.execute('INSERT INTO test_runs (run_id, project_id, requested_by_id, name, status, created_at) VALUES (?, ?, ?, ?, ?, ?)', 
+        [runs.old.id, projects.hr.id, users.lead1.id, runs.old.name, runs.old.status, '2024-04-15 10:00:00']);
+    await connection.execute('INSERT INTO test_runs (run_id, project_id, requested_by_id, name, status, created_at) VALUES (?, ?, ?, ?, ?, ?)', 
+        [runs.new.id, projects.hr.id, users.lead1.id, runs.new.name, runs.new.status, '2024-05-01 09:00:00']);
+
+    // 7b. Seed Assignments
+    console.log('Seeding assignments...');
+    await connection.execute('INSERT INTO test_run_assignments (run_id, user_id) VALUES (?, ?)', [runs.old.id, users.qa1.id]);
+    await connection.execute('INSERT INTO test_run_assignments (run_id, user_id) VALUES (?, ?)', [runs.new.id, users.qa2.id]);
 
     // 8. Seed Executions
     console.log('Seeding executions...');

@@ -54,8 +54,10 @@ export interface TestRun {
     passed_count: number;
     failed_count: number;
     pending_count: number;
-    tester_id: string;
-    tester_name: string;
+    assigned_tester_ids?: string[];
+    assigned_tester_names?: string[];
+    requested_by_id?: string;
+    requested_by_name?: string;
     created_at: string;
 }
 

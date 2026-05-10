@@ -151,9 +151,12 @@ async function seedLarge() {
         const runTypes = ['Regression', 'Internal Test', 'UAT', 'Smoke Test', 'Exploratory', 'Hotfix'];
         const runType = runTypes[rIdx % runTypes.length];
 
-        // FIX: Added type column
-        await connection.execute('INSERT INTO test_runs (run_id, project_id, tester_id, name, type, status, created_at, completed_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)', 
-            [runId, project, tester.id, `Regression Cycle #${100 + rIdx}`, runType, status, runDateStr, status === 'Completed' ? runDateStr : null]);
+        // FIX: Added type column and requested_by_id, removed tester_id
+        await connection.execute('INSERT INTO test_runs (run_id, project_id, requested_by_id, name, type, status, created_at, completed_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)', 
+            [runId, project, adminUser.id, `Regression Cycle #${100 + rIdx}`, runType, status, runDateStr, status === 'Completed' ? runDateStr : null]);
+
+        // Add assignment
+        await connection.execute('INSERT INTO test_run_assignments (run_id, user_id) VALUES (?, ?)', [runId, tester.id]);
 
         const runTCs = [...allTestCases].sort(() => 0.5 - Math.random()).slice(0, 25);
         for (const tc of runTCs) {

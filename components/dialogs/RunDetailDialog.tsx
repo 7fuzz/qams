@@ -73,7 +73,9 @@ export const RunDetailDialog = ({ run, isOpen, onClose }: RunDetailDialogProps) 
                 <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Timeline</span>
                 <div className="mt-2 space-y-1">
                     <p className="text-xs flex items-center gap-1.5 text-gray-600 dark:text-gray-400"><Calendar size={14} /> Started: {new Date(run.created_at).toLocaleDateString()}</p>
-                    <p className="text-xs flex items-center gap-1.5 text-gray-600 dark:text-gray-400"><User size={14} /> Tester: {run.tester_name}</p>
+                    {run.requested_by_name && (
+                        <p className="text-[10px] flex items-center gap-1.5 text-gray-500 dark:text-gray-500 italic"><Send size={12} /> Req. by: {run.requested_by_name}</p>
+                    )}
                 </div>
             </div>
         </div>

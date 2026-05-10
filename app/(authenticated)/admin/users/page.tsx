@@ -104,6 +104,8 @@ export default function UserManagementPage() {
     { 
         header: 'Full Name', 
         accessorKey: 'name',
+        width: 300,
+        minWidth: 200,
         cell: (user) => (
             <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-full bg-primary-theme/10 text-primary-theme flex items-center justify-center text-xs font-bold uppercase">
@@ -116,11 +118,15 @@ export default function UserManagementPage() {
     { 
         header: 'Email Address', 
         accessorKey: 'email',
+        width: 300,
+        minWidth: 200,
         cell: (user) => <span className="text-text-theme-muted">{user.email}</span>
     },
     { 
         header: 'System Role', 
         accessorKey: 'role_name',
+        width: 200,
+        minWidth: 150,
         cell: (user) => (
             <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase gap-1.5 ${
                 user.role_name === 'Admin' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' : 
@@ -135,6 +141,9 @@ export default function UserManagementPage() {
     { 
       header: 'Actions', 
       className: 'text-right',
+      width: 120,
+      minWidth: 100,
+      pin: 'right',
       cell: (user) => (
         <div className="flex gap-1 justify-end">
           <IconButton icon={Edit2} size="sm" variant="ghost" className="text-primary-theme" aria-label="Edit user" onClick={() => handleOpenEdit(user)} title="Edit" />

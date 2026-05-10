@@ -163,6 +163,8 @@ export default function ProjectManagementPage() {
       header: 'Project Name',
       accessorKey: 'name',
       sortable: true,
+      width: 300,
+      minWidth: 200,
       cell: (item: Project) => (
         <div className="flex flex-col">
           <span className="font-semibold text-text-theme-main">{item.name}</span>
@@ -174,10 +176,14 @@ export default function ProjectManagementPage() {
       header: 'Lead Developer',
       accessorKey: 'lead_developer_name',
       sortable: true,
+      width: 200,
+      minWidth: 150,
       cell: (item: Project) => <span className="text-text-theme-muted">{item.lead_developer_name}</span>
     },
     {
       header: 'Issues',
+      width: 120,
+      minWidth: 100,
       cell: (item: Project) => (
         <div className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase gap-1 ${item.open_issues_count > 0 ? "bg-danger-theme/10 text-danger-theme border border-danger-theme/20" : "bg-success-theme/10 text-success-theme border border-success-theme/20"}`}>
           <AlertCircle size={10} />
@@ -189,11 +195,16 @@ export default function ProjectManagementPage() {
       header: 'Created',
       accessorKey: 'created_at',
       sortable: true,
+      width: 150,
+      minWidth: 120,
       cell: (item: Project) => <span className="text-text-theme-subtle text-[10px] uppercase font-bold">{formatDate(item.created_at)}</span>
     },
     {
       header: 'Actions',
       className: 'text-right',
+      width: 100,
+      minWidth: 100,
+      pin: 'right',
       cell: (item: Project) => {
         return (
           <div className="flex gap-1 justify-end" onClick={e => e.stopPropagation()}>
@@ -242,8 +253,8 @@ export default function ProjectManagementPage() {
             <Plus size={18} className="mr-2" /> Add Project
           </Button>
         }
-        data={projects as unknown as Record<string, unknown>[]}
-        columns={columns as unknown as Column<Record<string, unknown>>[]}
+        data={projects as object[]}
+        columns={columns as Column<object>[]}
         loading={loading}
         totalItems={total}
         currentPage={page}

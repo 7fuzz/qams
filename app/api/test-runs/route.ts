@@ -39,15 +39,17 @@ export async function POST(request: Request) {
     }
 
     try {
-        const { project_id, name, type, scenario_ids, module_ids } = await request.json();
+        const { project_id, name, type, scenario_ids, module_ids, tester_id, status } = await request.json();
         
         const runId = await TestRunModel.create({
             project_id,
             name,
             type,
-            tester_id: session.user_id,
+            tester_id: tester_id || session.user_id,
+            requested_by_id: session.user_id,
             scenario_ids,
-            module_ids
+            module_ids,
+            status
         });
 
         await logActivity(session.user_id, 'CREATE', 'TEST_RUN', runId, { name, project_id });

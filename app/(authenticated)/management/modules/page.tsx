@@ -134,6 +134,8 @@ export default function ModuleManagementPage() {
         header: 'Module Name',
         accessorKey: 'name',
         sortable: true,
+        width: 300,
+        minWidth: 200,
         cell: (item) => (
             <div className="flex items-center gap-3">
                 <div className="p-2 bg-primary-theme/10 rounded-lg text-primary-theme shrink-0">
@@ -147,6 +149,8 @@ export default function ModuleManagementPage() {
         header: 'Project',
         accessorKey: 'project_name',
         sortable: true,
+        width: 200,
+        minWidth: 150,
         cell: (item) => (
             <div className="flex items-center gap-2 text-xs font-bold text-text-theme-muted uppercase tracking-tight">
                 <LayoutPanelTop size={14} className="text-text-theme-subtle" />
@@ -156,6 +160,8 @@ export default function ModuleManagementPage() {
     },
     {
         header: 'SLA / Actual',
+        width: 200,
+        minWidth: 180,
         cell: (item) => (
             <div className="flex flex-col gap-1" onClick={e => e.stopPropagation()}>
                 <div className="flex items-center gap-2">
@@ -185,6 +191,8 @@ export default function ModuleManagementPage() {
         header: 'Responsible Developer',
         accessorKey: 'responsible_name',
         sortable: true,
+        width: 250,
+        minWidth: 200,
         cell: (item) => (
             <div className="max-w-[200px]" onClick={e => e.stopPropagation()}>
                 <Combobox 
@@ -200,6 +208,9 @@ export default function ModuleManagementPage() {
     {
         header: 'Actions',
         className: 'text-right',
+        width: 80,
+        minWidth: 80,
+        pin: 'right',
         cell: (item) => (
             <IconButton 
                 icon={Trash2} 

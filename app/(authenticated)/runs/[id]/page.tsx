@@ -12,7 +12,7 @@ interface Run {
   name: string;
   type: string;
   status: string;
-  tester_name: string;
+  assigned_tester_names?: string[];
   project_name: string;
   created_at: string;
   completed_at: string | null;
@@ -91,8 +91,15 @@ export default function RunExecutionPage({ params }: { params: Promise<{ id: str
                     <Layout size={14} className="text-primary-theme" /> Project Context
                 </div>
                 <div className="text-sm font-bold truncate">{run.project_name}</div>
-                <div className="flex items-center gap-2 text-[10px] font-medium text-text-theme-muted uppercase">
-                    <User size={12} /> {run.tester_name}
+                <div className="flex flex-wrap gap-2 pt-1">
+                    {run.assigned_tester_names && run.assigned_tester_names.map(name => (
+                        <div key={name} className="flex items-center gap-1.5 text-[10px] font-bold text-primary-theme bg-primary-theme/5 px-2 py-0.5 rounded-full border border-primary-theme/10 uppercase">
+                            <User size={10} /> {name}
+                        </div>
+                    ))}
+                    {(!run.assigned_tester_names || run.assigned_tester_names.length === 0) && (
+                         <div className="text-[10px] text-text-theme-muted italic font-bold">Unassigned</div>
+                    )}
                 </div>
             </div>
 

@@ -151,7 +151,10 @@ export const TestExecutionTable = ({ runId }: { runId: string }) => {
     },
     {
         header: 'Actions',
-        className: 'text-right w-[150px]',
+        className: 'text-right',
+        width: 150,
+        minWidth: 150,
+        pin: 'right',
         cell: (item) => (
             <div className="flex justify-end gap-1" onClick={(e) => e.stopPropagation()}>
                 {item.status === TEST_STATUS.PENDING && (
@@ -184,8 +187,8 @@ export const TestExecutionTable = ({ runId }: { runId: string }) => {
   return (
     <div className="pt-4">
       <CRUDTable
-        data={executions as unknown as Record<string, unknown>[]}
-        columns={columns as unknown as Column<Record<string, unknown>>[]}
+        data={executions as object[]}
+        columns={columns as Column<object>[]}
         loading={loading}
         totalItems={total}
         currentPage={page}

@@ -5,10 +5,26 @@ import { sessionOptions, SessionData } from "@/lib/session";
 import { ProjectModel } from '@/models/Project';
 import { logActivity } from '@/lib/logger';
 
-export async function GET() {
+import { createPaginatedResponse } from '@/lib/pagination-utils';
+
+export async function GET(request: Request) {
+    const { searchParams } = new URL(request.url);
+    const search = searchParams.get('search') || undefined;
+    const sortBy = searchParams.get('sortBy') || undefined;
+    const sortOrder = (searchParams.get('sortOrder') as 'ASC' | 'DESC') || undefined;
+    
+    const page = parseInt(searchParams.get('page') || '1');
+    const limit = parseInt(searchParams.get('limit') || '20');
+    const offset = (page - 1) * limit;
+
     try {
-        const projects = await ProjectModel.findAll();
-        return NextResponse.json(projects);
+        const { data: projects, total } = await ProjectModel.findAll({
+            search,
+            sortBy,
+            sortOrder
+        }, limit, offset);
+
+        return NextResponse.json(createPaginatedResponse(projects, total, page, limit));
     } catch {
         return NextResponse.json({ error: 'Failed to fetch projects' }, { status: 500 });
     }

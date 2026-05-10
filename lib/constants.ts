@@ -58,10 +58,13 @@ export const TEST_CASE_TYPE = {
 
 export type TestCaseType = typeof TEST_CASE_TYPE[keyof typeof TEST_CASE_TYPE];
 
-export const TEST_CASE_TYPE_OPTIONS = Object.values(TEST_CASE_TYPE).map(val => ({
-  value: val,
-  label: val
-}));
+export const TEST_CASE_TYPE_OPTIONS = [
+  { value: '', label: 'None' },
+  ...Object.values(TEST_CASE_TYPE).map(val => ({
+    value: val,
+    label: val
+  }))
+];
 
 // Test Run Statuses
 export const TEST_RUN_STATUS = {
@@ -83,10 +86,13 @@ export const TEST_PRIORITY = {
 
 export type TestPriority = typeof TEST_PRIORITY[keyof typeof TEST_PRIORITY];
 
-export const TEST_PRIORITY_OPTIONS = Object.values(TEST_PRIORITY).map(val => ({
-  value: val,
-  label: val
-}));
+export const TEST_PRIORITY_OPTIONS = [
+  { value: '', label: 'None' },
+  ...Object.values(TEST_PRIORITY).map(val => ({
+    value: val,
+    label: val
+  }))
+];
 
 // Automation Status
 export const AUTOMATION_STATUS = {
@@ -98,7 +104,10 @@ export const AUTOMATION_STATUS = {
 
 export type AutomationStatus = typeof AUTOMATION_STATUS[keyof typeof AUTOMATION_STATUS];
 
-export const AUTOMATION_STATUS_OPTIONS = Object.values(AUTOMATION_STATUS).map(val => ({
-  value: val,
-  label: val
-}));
+export const AUTOMATION_STATUS_OPTIONS = [
+  { value: '', label: 'None' },
+  ...Object.values(AUTOMATION_STATUS).map(val => ({
+    value: val,
+    label: val
+  }))
+];

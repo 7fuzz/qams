@@ -25,7 +25,6 @@ interface User {
 
 interface Issue {
   issue_id: string;
-  test_case_id: string;
   title: string;
   description: string;
   severity: string;
@@ -38,6 +37,7 @@ interface Issue {
   project_name: string;
   estimated_date: string;
   updated_at: string;
+  test_case_titles?: string;
 }
 
 interface CurrentUser {
@@ -77,12 +77,12 @@ export default function IssueManagementPage() {
   const [totalPages, setTotalPages] = useState(0);
 
   // Modal
-  const [selectedTestCase, setSelectedTestCase] = useState<{ id: string, title: string } | null>(null);
+  const [selectedIssue, setSelectedIssue] = useState<{ id: string, title: string } | null>(null);
   const [isIssuesDialogOpen, setIsIssuesDialogOpen] = useState(false);
 
   const fetchBaseData = useCallback(async () => {
     const [pRes, uRes, userRes] = await Promise.all([
-      fetch('/api/projects'),
+      fetch('/api/projects?limit=1000'),
       fetch('/api/users?limit=1000'),
       fetch('/api/user')
     ]);
@@ -90,7 +90,7 @@ export default function IssueManagementPage() {
     const uData = await uRes.json();
     const userData = await userRes.json();
 
-    setProjects(pData);
+    setProjects(pData.data || []);
     setUsers(uData.data || []);
     setCurrentUser(userData);
   }, []);
@@ -100,7 +100,9 @@ export default function IssueManagementPage() {
       setModules([]);
       return;
     }
-    fetch(`/api/modules?projectId=${pid}`).then(res => res.json()).then(setModules);
+    fetch(`/api/modules?projectId=${pid}&limit=1000`)
+      .then(res => res.json())
+      .then(resData => setModules(resData.data || []));
   }, []);
 
   const fetchIssues = useCallback(() => {
@@ -146,7 +148,7 @@ export default function IssueManagementPage() {
   };
 
   const handleOpenIssue = (issue: Issue) => {
-    setSelectedTestCase({ id: issue.test_case_id, title: issue.title });
+    setSelectedIssue({ id: issue.issue_id, title: issue.title });
     setIsIssuesDialogOpen(true);
   };
 
@@ -292,6 +294,11 @@ export default function IssueManagementPage() {
                         <span className="font-bold text-sm text-text-theme-main line-clamp-1">{issue.title}</span>
                       </div>
                       <p className="text-xs text-text-theme-muted line-clamp-1 italic">Reported by: {issue.reporter_name}</p>
+                      {issue.test_case_titles && (
+                        <div className="flex items-center gap-1 mt-1 text-[10px] text-blue-500 font-medium bg-blue-50 dark:bg-blue-900/10 px-1.5 py-0.5 rounded-sm w-fit">
+                          <Layers size={10} /> {issue.test_case_titles}
+                        </div>
+                      )}
                     </div>
                   </TableCell>
                   <TableCell>
@@ -352,8 +359,9 @@ export default function IssueManagementPage() {
       </div>
 
       <IssuesListDialog
-        testCaseId={selectedTestCase?.id || null}
-        testCaseTitle={selectedTestCase?.title || ''}
+        testCaseId={null}
+        issueId={selectedIssue?.id || null}
+        testCaseTitle={selectedIssue?.title || ''}
         isOpen={isIssuesDialogOpen}
         onClose={() => setIsIssuesDialogOpen(false)}
         onRefresh={() => fetchIssues()}

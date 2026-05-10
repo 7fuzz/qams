@@ -9,6 +9,7 @@
     "lint": "eslint",
     "db:init": "node scripts/init-db.js",
     "db:seed": "node scripts/seed.js",
+    "db:seed:large": "node scripts/seed-large.js",
     "db:rebuild": "node scripts/rebuild-db.js",
     "db:reset": "node scripts/reset-db.js"
   },

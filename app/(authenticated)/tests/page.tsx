@@ -1,10 +1,9 @@
 "use client";
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Card, CardHeader, CardTitle, CardContent, Input, Button } from "@/components/ui";
-import { Combobox } from "@/components/ui/Combobox";
+import { Card, CardHeader, CardTitle, CardContent, Input, Button, ManagementTemplate, Combobox } from "@/components/ui";
 import { TestManagementGrid } from "@/components/grids/TestManagementGrid";
-import { Plus, FolderTree, Layers, ListChecks } from 'lucide-react';
+import { Plus, FolderTree, Layers, ListChecks, ClipboardList } from 'lucide-react';
 import { saveState, loadState } from '@/lib/persistence';
 
 interface Project {
@@ -27,10 +26,21 @@ export default function TestsPage() {
   const [newModuleName, setNewModuleName] = useState('');
   const [isInitialLoad, setIsInitialLoad] = useState(true);
 
-  const fetchProjects = useCallback(() => fetch('/api/projects').then(res => res.json()).then(setProjects), []);
+  const fetchProjects = useCallback(() => fetch('/api/projects?limit=1000').then(res => res.json()).then(data => {
+    if (data && data.data && Array.isArray(data.data)) setProjects(data.data);
+    else setProjects([]);
+  }).catch(() => setProjects([])), []);
+  
   const fetchModules = useCallback((id: string) => fetch(`/api/modules?projectId=${id}`).then(res => res.json()).then(data => {
-    setModules(data);
-    return data;
+    if (data && data.data && Array.isArray(data.data)) {
+        setModules(data.data);
+        return data.data;
+    }
+    setModules([]);
+    return [];
+  }).catch(() => {
+    setModules([]);
+    return [];
   }), []);
 
   // Use a ref to track if we're doing the initial load to avoid redundant saves
@@ -98,61 +108,59 @@ export default function TestsPage() {
 
   if (isInitialLoad) return <div className="p-8 text-center text-text-theme-muted font-medium uppercase tracking-widest text-[10px] animate-pulse">Restoring session...</div>;
 
-  return (
-    <div className="container mx-auto p-4 md:p-8 flex flex-col gap-6 max-w-full text-text-theme-main">
-      <div className="space-y-1">
-        <h1 className="text-3xl font-bold tracking-tight">Test Case Library</h1>
-        <p className="text-text-theme-muted text-[10px] italic uppercase tracking-wider font-medium">Select a project and module to manage its test cases.</p>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+  const filters = (
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Project Selection */}
-        <Card className={selectedProjectId ? "border-primary-theme/30" : "border-border-theme"}>
-          <CardHeader className="pb-3 flex flex-row items-center gap-2">
-            <FolderTree size={16} className="text-text-theme-muted" />
-            <CardTitle className="text-[10px] font-bold uppercase tracking-wider text-text-theme-muted">1. Select Project</CardTitle>
-          </CardHeader>
-          <CardContent>
+        <div className="space-y-2">
+            <Label className="text-[10px] font-bold uppercase tracking-widest text-text-theme-muted flex items-center gap-1">
+                <FolderTree size={12} /> 1. Select Project
+            </Label>
             <Combobox 
               options={projects.map(p => ({ value: p.project_id, label: p.name }))}
               value={selectedProjectId || undefined}
               onChange={(val) => handleProjectChange(val ? String(val) : null)}
               placeholder="Select Project..."
             />
-          </CardContent>
-        </Card>
+        </div>
 
         {/* Module Selection */}
-        <Card className={selectedModuleId ? "border-primary-theme/30" : "border-border-theme"}>
-          <CardHeader className="pb-3 flex flex-row items-center justify-between">
-            <div className="flex items-center gap-2">
-                <Layers size={16} className="text-text-theme-muted" />
-                <CardTitle className="text-[10px] font-bold uppercase tracking-wider text-text-theme-muted">2. Select Module</CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <Combobox 
-              options={modules.map(m => ({ value: m.module_id, label: m.name }))}
-              value={selectedModuleId || undefined}
-              onChange={(val) => handleModuleChange(val ? String(val) : null)}
-              placeholder="Select Module..."
-              className={!selectedProjectId ? "opacity-50 pointer-events-none" : ""}
-            />
-            {selectedProjectId && (
-                <div className="flex gap-2">
-                    <Input 
-                        placeholder="Add New Module..." 
-                        value={newModuleName}
-                        onChange={e => setNewModuleName(e.target.value)}
-                        className="h-8 text-xs"
+        <div className="space-y-2">
+            <Label className="text-[10px] font-bold uppercase tracking-widest text-text-theme-muted flex items-center gap-1">
+                <Layers size={12} /> 2. Select Module
+            </Label>
+            <div className="flex gap-2">
+                <div className="flex-1">
+                    <Combobox 
+                        options={modules.map(m => ({ value: m.module_id, label: m.name }))}
+                        value={selectedModuleId || undefined}
+                        onChange={(val) => handleModuleChange(val ? String(val) : null)}
+                        placeholder="Select Module..."
+                        className={!selectedProjectId ? "opacity-50 pointer-events-none" : ""}
                     />
-                    <Button size="sm" className="h-8 px-2" onClick={handleAddModule}><Plus size={14} /></Button>
                 </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+                {selectedProjectId && (
+                    <div className="flex gap-1">
+                        <Input 
+                            placeholder="New Module..." 
+                            value={newModuleName}
+                            onChange={e => setNewModuleName(e.target.value)}
+                            className="h-10 text-xs w-[120px]"
+                        />
+                        <Button className="h-10 px-3" onClick={handleAddModule}><Plus size={16} /></Button>
+                    </div>
+                )}
+            </div>
+        </div>
+    </div>
+  );
 
+  return (
+    <ManagementTemplate
+        title="Test Library"
+        description="Comprehensive repository of all test cases and scenarios."
+        icon={ClipboardList}
+        filters={filters}
+    >
       {selectedModuleId ? (
         <Card className="shadow-2xl border-border-theme overflow-hidden bg-surface">
           <TestManagementGrid moduleId={selectedModuleId} key={selectedModuleId} />
@@ -163,6 +171,13 @@ export default function TestsPage() {
           <p className="text-sm font-medium italic">Please select a project and a module to view and manage test cases.</p>
         </Card>
       )}
-    </div>
+    </ManagementTemplate>
   );
 }
+
+// Internal Label for simpler file
+const Label = ({ children, className = "" }: { children: React.ReactNode, className?: string }) => (
+    <label className={`text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 ${className}`}>
+        {children}
+    </label>
+);

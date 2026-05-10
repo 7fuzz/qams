@@ -5,13 +5,32 @@ import { sessionOptions, SessionData } from "@/lib/session";
 import { ProjectModel } from '@/models/Project';
 import { logActivity } from '@/lib/logger';
 
+import { createPaginatedResponse } from '@/lib/pagination-utils';
+
 export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
-    const projectId = searchParams.get('projectId');
+    const projectId = searchParams.get('projectId') || undefined;
+    const moduleIdsParam = searchParams.get('moduleIds');
+    const search = searchParams.get('search') || undefined;
+    const sortBy = searchParams.get('sortBy') || undefined;
+    const sortOrder = (searchParams.get('sortOrder') as 'ASC' | 'DESC') || undefined;
+
+    const page = parseInt(searchParams.get('page') || '1');
+    const limit = parseInt(searchParams.get('limit') || '20');
+    const offset = (page - 1) * limit;
+
+    const moduleIds = moduleIdsParam ? moduleIdsParam.split(',') : undefined;
 
     try {
-        const modules = await ProjectModel.findModules(projectId || undefined);
-        return NextResponse.json(modules);
+        const { data: modules, total } = await ProjectModel.findModules({
+            projectId,
+            moduleIds,
+            search,
+            sortBy,
+            sortOrder
+        }, limit, offset);
+
+        return NextResponse.json(createPaginatedResponse(modules, total, page, limit));
     } catch {
         return NextResponse.json({ error: 'Failed to fetch modules' }, { status: 500 });
     }

@@ -1,23 +1,18 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Button,
   IconButton,
   Input,
-  Table,
-  TableHeader,
-  TableRow,
-  TableHead,
-  TableBody,
-  TableCell,
   Textarea,
-  Combobox,
   AttachmentManager,
   Modal,
-  Label
+  Label,
+  ManagementPage,
+  Column,
 } from "@/components/ui";
-import { Trash2, Plus, FolderTree, Layers, ListChecks, AlertCircle, User, Save, FileText, Settings2 } from 'lucide-react';
+import { Trash2, Plus, FolderTree, AlertCircle, Save, FileText, Settings2 } from 'lucide-react';
 
 interface Project {
   project_id: string;
@@ -30,344 +25,263 @@ interface Project {
   updated_at: string;
 }
 
-interface Module {
-  module_id: string;
-  name: string;
-  description: string;
-  project_id: string;
-  responsible_id: string;
-  responsible_name: string;
-}
-
-interface Scenario {
-  scenario_id: string;
-  name: string;
-  module_id: string;
-}
-
-interface User {
-  user_id: string;
-  name: string;
-}
-
 interface EditData {
     project_desc?: string;
+    project_name?: string;
+    project_version?: string;
 }
 
-export default function ManagementPage() {
+export default function ProjectManagementPage() {
   const [projects, setProjects] = useState<Project[]>([]);
-  const [modules, setModules] = useState<Module[]>([]);
-  const [scenarios, setScenarios] = useState<Scenario[]>([]);
-  const [users, setUsers] = useState<User[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Pagination & Search
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(20);
+  const [total, setTotal] = useState(0);
+  const [search, setSearch] = useState('');
+  const [sortBy, setSortBy] = useState('created_at');
+  const [sortOrder, setSortOrder] = useState<'ASC' | 'DESC'>('DESC');
 
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
-  const [selectedModuleId, setSelectedModuleId] = useState<string | null>(null);
   const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
-  const [newName, setNewName] = useState({ project: '', module: '', scenario: '' });
+  const [newName, setNewName] = useState({ project: '', project_version: '1.0.0', project_desc: '' });
   const [editData, setEditData] = useState<EditData>({});
 
   const fetchProjects = useCallback(async () => {
-    const res = await fetch('/api/projects');
+    setLoading(true);
+    let url = `/api/projects?page=${page}&limit=${limit}&sortBy=${sortBy}&sortOrder=${sortOrder}`;
+    if (search) {
+      url += `&search=${encodeURIComponent(search)}`;
+    }
+    const res = await fetch(url);
     const data = await res.json();
-    setProjects(data);
-  }, []);
-
-  const fetchUsers = useCallback(async () => {
-    const res = await fetch('/api/users?limit=1000');
-    const resData = await res.json();
-    setUsers(resData.data || []);
-  }, []);
-
-  const fetchModules = useCallback(async (pid: string) => {
-    const res = await fetch(`/api/modules?projectId=${pid}`);
-    const data = await res.json();
-    setModules(data);
-  }, []);
-
-  const fetchScenarios = useCallback(async (mid: string) => {
-    const res = await fetch(`/api/scenarios?moduleId=${mid}`);
-    const data = await res.json();
-    setScenarios(data);
-  }, []);
+    setProjects(data.data || []);
+    setTotal(data.total || 0);
+    setLoading(false);
+  }, [page, limit, sortBy, sortOrder, search]);
 
   useEffect(() => { 
     queueMicrotask(() => {
       fetchProjects(); 
-      fetchUsers(); 
     });
-  }, [fetchProjects, fetchUsers]);
+  }, [fetchProjects]);
 
-  const handleProjectSelect = (projectId: string) => {
-      setSelectedProjectId(projectId);
-      fetchModules(projectId);
-      const proj = projects.find(p => p.project_id === projectId);
-      if (proj) {
-          setEditData({ project_desc: proj.description });
-      }
-      setSelectedModuleId(null);
-      setScenarios([]);
-  };
-
-  const handleModuleSelect = (moduleId: string) => {
-      setSelectedModuleId(moduleId);
-      fetchScenarios(moduleId);
-  };
-
-  const handleAdd = async (type: 'project' | 'module' | 'scenario') => {
-    const name = newName[type];
-    if (!name) return;
-
-    const url = `/api/${type}s`;
-    const body: { name: string; project_id?: string | null; module_id?: string | null } = { name };
-    if (type === 'module') body.project_id = selectedProjectId;
-    if (type === 'scenario') body.module_id = selectedModuleId;
-
-    await fetch(url, {
+  const handleAddProject = async () => {
+    if (!newName.project) return;
+    await fetch('/api/projects', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
+      body: JSON.stringify({ 
+        name: newName.project,
+        version: newName.project_version,
+        description: newName.project_desc
+      }),
     });
-
-    setNewName({ ...newName, [type]: '' });
-    if (type === 'project') fetchProjects();
-    if (type === 'module' && selectedProjectId) fetchModules(selectedProjectId);
-    if (type === 'scenario' && selectedModuleId) fetchScenarios(selectedModuleId);
+    setNewName({ project: '', project_desc: '', project_version: '1.0.0' });
+    setIsCreateModalOpen(false);
+    fetchProjects();
   };
 
-  const handleSaveProjectDesc = async () => {
-    const proj = projects.find(p => p.project_id === selectedProjectId);
-    if (!proj) return;
+  const handleSaveProjectDetails = async () => {
+    if (!selectedProjectId) return;
     await fetch('/api/projects', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...proj, description: editData.project_desc }),
+      body: JSON.stringify({ 
+        project_id: selectedProjectId,
+        name: editData.project_name,
+        version: editData.project_version,
+        description: editData.project_desc 
+      }),
     });
     fetchProjects();
     setIsProjectModalOpen(false);
   };
 
-  const handleUpdateModule = async (moduleId: string, data: Partial<Module>) => {
-    const mod = modules.find(m => m.module_id === moduleId);
-    if (!mod) return;
-    await fetch('/api/modules', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...mod, ...data }),
-    });
-    if (selectedProjectId) fetchModules(selectedProjectId);
-  };
-
-  const handleDelete = async (type: 'project' | 'module' | 'scenario', id: string) => {
-    if (!confirm(`Are you sure you want to delete this ${type}? This will delete all child items.`)) return;
-    await fetch(`/api/${type}s?id=${id}`, { method: 'DELETE' });
-    if (type === 'project') {
-      fetchProjects();
-      if (selectedProjectId === id) {
-          setSelectedProjectId(null);
-          setModules([]);
-          setSelectedModuleId(null);
-          setScenarios([]);
-      }
-    }
-    if (type === 'module') {
-      if (selectedProjectId) fetchModules(selectedProjectId);
-      if (selectedModuleId === id) {
-          setSelectedModuleId(null);
-          setScenarios([]);
-      }
-    }
-    if (type === 'scenario') {
-      if (selectedModuleId) fetchScenarios(selectedModuleId);
-    }
+  const handleDelete = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this project? This will delete all child items.')) return;
+    await fetch(`/api/projects?id=${id}`, { method: 'DELETE' });
+    fetchProjects();
   };
 
   const formatDate = (dateStr: string) => {
     return new Date(dateStr).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
   };
 
-  const userOptions = users.map(u => ({ value: u.user_id, label: u.name }));
-
   const currentProject = projects.find(p => p.project_id === selectedProjectId);
 
+  const columns: Column<Project>[] = [
+    {
+        header: 'Project Name',
+        accessorKey: 'name',
+        sortable: true,
+        cell: (item) => (
+            <div className="flex flex-col">
+                <span className="font-semibold text-text-theme-main">{item.name}</span>
+                <span className="text-[10px] text-text-theme-subtle font-bold uppercase tracking-tighter">v{item.version}</span>
+            </div>
+        )
+    },
+    {
+        header: 'Owner',
+        accessorKey: 'owner_name',
+        sortable: true,
+        cell: (item) => <span className="text-text-theme-muted">{item.owner_name}</span>
+    },
+    {
+        header: 'Issues',
+        cell: (item) => (
+            <div className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase gap-1 ${item.open_issues_count > 0 ? "bg-danger-theme/10 text-danger-theme border border-danger-theme/20" : "bg-success-theme/10 text-success-theme border border-success-theme/20"}`}>
+                <AlertCircle size={10} />
+                {item.open_issues_count} Open
+            </div>
+        )
+    },
+    {
+        header: 'Created',
+        accessorKey: 'created_at',
+        sortable: true,
+        cell: (item) => <span className="text-text-theme-subtle text-[10px] uppercase font-bold">{formatDate(item.created_at)}</span>
+    },
+    {
+        header: 'Actions',
+        className: 'text-right',
+        cell: (item) => (
+            <div className="flex gap-1 justify-end" onClick={e => e.stopPropagation()}>
+                <IconButton
+                    icon={Settings2}
+                    size="sm"
+                    variant="ghost"
+                    className="text-primary-theme"
+                    aria-label="Edit project"
+                    onClick={() => { 
+                        setSelectedProjectId(item.project_id); 
+                        setEditData({ 
+                            project_desc: item.description,
+                            project_name: item.name,
+                            project_version: item.version
+                        }); 
+                        setIsProjectModalOpen(true); 
+                    }}
+                    title="Edit"
+                />
+                <IconButton
+                    icon={Trash2}
+                    size="sm"
+                    variant="ghost"
+                    className="text-danger-theme"
+                    aria-label="Delete project"
+                    onClick={() => handleDelete(item.project_id)}
+                    title="Delete"
+                />
+            </div>
+        )
+    }
+  ];
+
   return (
-    <div className="container mx-auto p-8 max-w-full space-y-10">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border-theme pb-6 text-text-theme-main">
-          <div className="space-y-1">
-            <h1 className="text-3xl font-bold tracking-tight">System Configuration</h1>
-            <p className="text-text-theme-muted font-medium uppercase tracking-widest text-[10px]">Manage projects, define modules, and structure scenarios.</p>
-          </div>
+    <>
+      <ManagementPage
+        title="Project Management"
+        description="Manage projects, define modules, and structure scenarios."
+        icon={FolderTree}
+        primaryAction={
+            <Button onClick={() => setIsCreateModalOpen(true)} className="shadow-lg shadow-primary-theme/20">
+                <Plus size={18} className="mr-2" /> Add Project
+            </Button>
+        }
+        data={projects}
+        columns={columns}
+        loading={loading}
+        totalItems={total}
+        currentPage={page}
+        pageSize={limit}
+        onPageChange={setPage}
+        onPageSizeChange={(s) => { setLimit(s); setPage(1); }}
+        onSearch={(q) => { setSearch(q); setPage(1); }}
+        onSort={(key, order) => { setSortBy(key); setSortOrder(order); }}
+        sortBy={sortBy}
+        sortOrder={sortOrder}
+        searchPlaceholder="Search projects..."
+      />
 
-        <div className="flex gap-2">
-          <Input
-            placeholder="New Project Name"
-            value={newName.project}
-            onChange={e => setNewName({ ...newName, project: e.target.value })}
-            className="max-w-[240px]"
-          />
-          <Button onClick={() => handleAdd('project')} className="shadow-lg shadow-primary-theme/20">
-            <Plus size={18} className="mr-2" /> Add Project
-          </Button>
+      {/* Create Project Modal */}
+      <Modal
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        title="Add New Project"
+      >
+        <div className="space-y-6">
+            <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                        <Label className="text-[10px] font-bold uppercase">Project Name</Label>
+                        <Input 
+                            value={newName.project} 
+                            onChange={e => setNewName({...newName, project: e.target.value})} 
+                            placeholder="Project Alpha"
+                        />
+                    </div>
+                    <div className="space-y-1">
+                        <Label className="text-[10px] font-bold uppercase">Initial Version</Label>
+                        <Input 
+                            value={newName.project_version} 
+                            onChange={e => setNewName({...newName, project_version: e.target.value})} 
+                            placeholder="1.0.0"
+                        />
+                    </div>
+                </div>
+                <div className="space-y-1">
+                    <Label className="text-[10px] font-bold uppercase">Description</Label>
+                    <Textarea 
+                        value={newName.project_desc} 
+                        onChange={e => setNewName({...newName, project_desc: e.target.value})} 
+                        placeholder="Context about this project..."
+                        className="min-h-[100px]"
+                    />
+                </div>
+            </div>
+            <div className="flex justify-end gap-2 border-t pt-4">
+                <Button variant="outline" onClick={() => setIsCreateModalOpen(false)}>Cancel</Button>
+                <Button onClick={handleAddProject}>Create Project</Button>
+            </div>
         </div>
-      </div>
-
-      <div className="space-y-8">
-        <section className="space-y-4">
-          <div className="flex items-center gap-2 text-text-theme-muted">
-            <FolderTree size={18} />
-            <h2 className="font-bold uppercase tracking-widest text-[10px]">Projects Overview</h2>
-          </div>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-[300px]">Project Name</TableHead>
-                <TableHead>Owner</TableHead>
-                <TableHead>Issues</TableHead>
-                <TableHead>Created</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {projects.map((project) => (
-                <TableRow
-                  key={project.project_id}
-                  onClick={() => handleProjectSelect(project.project_id)}
-                  className={`cursor-pointer transition-colors ${selectedProjectId === project.project_id ? "bg-primary-theme/5 border-l-4 border-l-primary-theme" : ""}`}
-                >
-                  <TableCell className="font-semibold text-text-theme-main">{project.name}</TableCell>
-                  <TableCell className="text-text-theme-muted">{project.owner_name}</TableCell>
-                  <TableCell>
-                    <div className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase gap-1 ${project.open_issues_count > 0 ? "bg-danger-theme/10 text-danger-theme border border-danger-theme/20" : "bg-success-theme/10 text-success-theme border border-success-theme/20"}`}>
-                      <AlertCircle size={10} />
-                      {project.open_issues_count} Open
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-text-theme-subtle text-[10px] uppercase font-bold">{formatDate(project.created_at)}</TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex gap-1 justify-end">
-                      <IconButton
-                        icon={Settings2}
-                        size="sm"
-                        variant="ghost"
-                        className="text-primary-theme"
-                        aria-label="Edit project"
-                        onClick={(e) => { e.stopPropagation(); setSelectedProjectId(project.project_id); setEditData({ project_desc: project.description }); setIsProjectModalOpen(true); }}
-                        title="Edit"
-                      />
-                      <IconButton
-                        icon={Trash2}
-                        size="sm"
-                        variant="ghost"
-                        className="text-danger-theme"
-                        aria-label="Delete project"
-                        onClick={(e) => { e.stopPropagation(); handleDelete('project', project.project_id); }}
-                        title="Delete"
-                      />
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </section>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <section className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-text-theme-muted">
-                <Layers size={18} />
-                <h2 className="font-bold uppercase tracking-widest text-[10px]">Modules</h2>
-              </div>
-              <div className="flex gap-2">
-                <Input
-                  placeholder="New Module"
-                  disabled={!selectedProjectId}
-                  value={newName.module}
-                  onChange={e => setNewName({ ...newName, module: e.target.value })}
-                  className="h-8 text-xs w-[120px]"
-                />
-                <IconButton icon={Plus} size="sm" className="h-8" aria-label="Add module" onClick={() => handleAdd('module')} disabled={!selectedProjectId} />
-              </div>
-            </div>
-
-            <div className="min-h-[400px] rounded-lg border border-border-theme bg-surface-muted/50 p-2 space-y-2">
-              {!selectedProjectId ? (
-                <div className="flex items-center justify-center h-full p-8 text-text-theme-subtle text-[10px] uppercase tracking-widest font-bold italic">Select a project</div>
-              ) : (
-                modules.map(m => (
-                  <div
-                    key={m.module_id}
-                    onClick={() => handleModuleSelect(m.module_id)}
-                    className={`p-4 rounded-xl border transition-all ${selectedModuleId === m.module_id
-                        ? "bg-surface shadow-lg border-primary-theme/50"
-                        : "bg-surface/50 hover:bg-surface border-transparent"
-                      }`}
-                  >
-                    <div className="flex justify-between items-start mb-3">
-                      <span className="font-bold text-sm text-text-theme-main">{m.name}</span>
-                      <IconButton icon={Trash2} size="xs" variant="ghost" className="text-danger-theme" aria-label="Delete module" onClick={(e) => { e.stopPropagation(); handleDelete('module', m.module_id); }} title="Delete module" />
-                    </div>
-                    <div className="space-y-2" onClick={e => e.stopPropagation()}>
-                      <Label className="text-[10px] text-text-theme-subtle font-bold uppercase tracking-widest">Responsible Developer</Label>
-                      <Combobox
-                        options={userOptions}
-                        value={m.responsible_id}
-                        onChange={(val) => handleUpdateModule(m.module_id, { responsible_id: val as string })}
-                        placeholder="Assign Dev..."
-                        className="h-8 text-xs"
-                      />
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </section>
-
-          <section className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-text-theme-muted">
-                <ListChecks size={18} />
-                <h2 className="font-bold uppercase tracking-widest text-[10px]">Scenarios</h2>
-              </div>
-              <div className="flex gap-2">
-                <Input
-                  placeholder="New Scenario"
-                  disabled={!selectedModuleId}
-                  value={newName.scenario}
-                  onChange={e => setNewName({ ...newName, scenario: e.target.value })}
-                  className="h-8 text-xs w-[120px]"
-                />
-                <IconButton icon={Plus} size="sm" className="h-8" aria-label="Add scenario" onClick={() => handleAdd('scenario')} disabled={!selectedModuleId} />
-              </div>
-            </div>
-
-            <div className="min-h-[400px] rounded-lg border border-border-theme bg-surface-muted/50 p-2 space-y-2">
-              {!selectedModuleId ? (
-                <div className="flex items-center justify-center h-full p-8 text-text-theme-subtle text-[10px] uppercase tracking-widest font-bold italic">Select a module</div>
-              ) : (
-                scenarios.map(s => (
-                  <div key={s.scenario_id} className="flex items-center justify-between p-3 rounded-md bg-surface border border-border-theme shadow-sm text-sm text-text-theme-main">
-                    <span className="font-medium">{s.name}</span>
-                    <IconButton icon={Trash2} size="sm" variant="ghost" className="text-danger-theme" aria-label="Delete scenario" onClick={() => handleDelete('scenario', s.scenario_id)} title="Delete scenario" />
-                  </div>
-                ))
-              )}
-            </div>
-          </section>
-        </div>
-      </div>
+      </Modal>
 
       {/* Project Details Modal */}
       <Modal
         isOpen={isProjectModalOpen}
         onClose={() => setIsProjectModalOpen(false)}
-        title={`Project Details: ${currentProject?.name}`}
+        title={`Edit Project: ${currentProject?.name}`}
       >
         <div className="space-y-8">
           <div className="space-y-4">
             <div className="flex items-center gap-2 text-primary-theme font-bold text-xs uppercase tracking-widest">
-              <FileText size={18} /> Context & Description
+              <FileText size={18} /> Context & Details
             </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                    <Label className="text-[10px] font-bold text-text-theme-subtle uppercase tracking-wider">PROJECT NAME</Label>
+                    <Input
+                        value={editData.project_name || ''}
+                        onChange={e => setEditData({ ...editData, project_name: e.target.value })}
+                        className="bg-surface"
+                    />
+                </div>
+                <div className="space-y-1">
+                    <Label className="text-[10px] font-bold text-text-theme-subtle uppercase tracking-wider">VERSION</Label>
+                    <Input
+                        value={editData.project_version || ''}
+                        onChange={e => setEditData({ ...editData, project_version: e.target.value })}
+                        className="bg-surface"
+                    />
+                </div>
+            </div>
+
             <div className="space-y-2">
               <Label className="text-[10px] font-bold text-text-theme-subtle uppercase tracking-wider">PROJECT DESCRIPTION</Label>
               <Textarea
@@ -376,8 +290,8 @@ export default function ManagementPage() {
                 onChange={e => setEditData({ ...editData, project_desc: e.target.value })}
                 className="min-h-[150px] text-sm bg-surface"
               />
-              <Button onClick={handleSaveProjectDesc} className="w-full shadow-lg shadow-blue-500/20">
-                <Save size={16} className="mr-2" /> Save Project Context
+              <Button onClick={handleSaveProjectDetails} className="w-full shadow-lg shadow-blue-500/20">
+                <Save size={16} className="mr-2" /> Save Project Changes
               </Button>
             </div>
           </div>
@@ -391,6 +305,6 @@ export default function ManagementPage() {
           </div>
         </div>
       </Modal>
-    </div>
+    </>
   );
 }

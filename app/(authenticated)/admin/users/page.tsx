@@ -1,18 +1,8 @@
 "use client";
 
-import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import { Button, IconButton, Modal, Input, Label, Combobox, Pagination } from "@/components/ui";
-import { AgGridReact } from 'ag-grid-react';
-import { 
-  ColDef, 
-  AllCommunityModule,
-  ModuleRegistry,
-  ICellRendererParams,
-} from 'ag-grid-community';
-import { unifiedGridTheme } from '@/lib/theme';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { Button, IconButton, Modal, Input, Label, Combobox, ManagementPage, Column } from "@/components/ui";
 import { Plus, Edit2, Trash2, Shield, User as UserIcon, Mail, Key } from 'lucide-react';
-
-ModuleRegistry.registerModules([AllCommunityModule]);
 
 interface User {
     user_id: string;
@@ -28,17 +18,14 @@ interface Role {
 }
 
 export default function UserManagementPage() {
-  const gridRef = useRef<AgGridReact>(null);
   const [users, setUsers] = useState<User[]>([]);
   const [roles, setRoles] = useState<Role[]>([]);
-  const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
   
   // Pagination
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(20);
   const [total, setTotal] = useState(0);
-  const [totalPages, setTotalPages] = useState(0);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<Partial<User> | null>(null);
@@ -47,30 +34,14 @@ export default function UserManagementPage() {
   const fetchUsers = useCallback(() => {
     setLoading(true);
     fetch(`/api/users?page=${page}&limit=${limit}`)
-      .then(async res => {
-        if (!res.ok) {
-          const data = await res.json();
-          throw new Error(data.error || 'Unauthorized');
-        }
-        return res.json();
-      })
+      .then(res => res.json())
       .then(res => {
-        if (res.data) {
-            setUsers(res.data);
-            setTotal(res.total || 0);
-            setTotalPages(res.totalPages || 0);
-        } else {
-            setUsers([]);
-            setTotal(0);
-            setTotalPages(0);
-        }
+        setUsers(res.data || []);
+        setTotal(res.total || 0);
         setLoading(false);
       })
-      .catch(err => {
-        setError(err.message);
+      .catch(() => {
         setUsers([]);
-        setTotal(0);
-        setTotalPages(0);
         setLoading(false);
       });
   }, [page, limit]);
@@ -86,14 +57,6 @@ export default function UserManagementPage() {
       fetchUsers();
     });
   }, [fetchUsers]);
-
-  useEffect(() => {
-    const handleResize = () => {
-        gridRef.current?.api?.sizeColumnsToFit();
-    };
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
 
   useEffect(() => {
     queueMicrotask(() => {
@@ -128,110 +91,80 @@ export default function UserManagementPage() {
     if (res.ok) {
         setIsModalOpen(false);
         fetchUsers();
-    } else {
-        const data = await res.json();
-        alert(data.error || 'Operation failed');
     }
   };
 
   const handleDelete = useCallback(async (id: string) => {
     if (!confirm('Are you sure you want to delete this user?')) return;
     const res = await fetch(`/api/users?id=${id}`, { method: 'DELETE' });
-    if (res.ok) {
-        fetchUsers();
-    } else {
-        const data = await res.json();
-        alert(data.error || 'Delete failed');
-    }
+    if (res.ok) fetchUsers();
   }, [fetchUsers]);
 
-  const columnDefs = useMemo<ColDef<User>[]>(() => [
+  const columns: Column<User>[] = [
     { 
-        field: 'name', 
-        headerName: 'Full Name', 
-        flex: 1,
-        cellRenderer: (p: ICellRendererParams<User>) => (
-            <div className="flex items-center gap-2 h-full">
-                <div className="w-6 h-6 rounded-full bg-primary-theme/10 dark:bg-primary-theme/20 text-primary-theme flex items-center justify-center text-[10px] font-bold uppercase">
-                    {p.value?.charAt(0)}
+        header: 'Full Name', 
+        accessorKey: 'name',
+        cell: (user) => (
+            <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-full bg-primary-theme/10 text-primary-theme flex items-center justify-center text-xs font-bold uppercase">
+                    {user.name?.charAt(0)}
                 </div>
-                <span className="font-medium text-text-theme-main">{p.value}</span>
+                <span className="font-medium text-text-theme-main">{user.name}</span>
             </div>
         )
     },
     { 
-        field: 'email', 
-        headerName: 'Email Address', 
-        flex: 1,
-        cellRenderer: (p: ICellRendererParams<User>) => <span className="text-text-theme-muted">{p.value}</span>
+        header: 'Email Address', 
+        accessorKey: 'email',
+        cell: (user) => <span className="text-text-theme-muted">{user.email}</span>
     },
     { 
-        field: 'role_name', 
-        headerName: 'System Role', 
-        width: 140,
-        cellRenderer: (p: ICellRendererParams<User>) => (
-            <div className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase gap-1.5 ${
-                p.value === 'Admin' ? 'bg-red-100 text-red-700' : 
-                p.value === 'Developer' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'
+        header: 'System Role', 
+        accessorKey: 'role_name',
+        cell: (user) => (
+            <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase gap-1.5 ${
+                user.role_name === 'Admin' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' : 
+                user.role_name === 'Developer' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' : 
+                'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
             }`}>
-                <Shield size={14} />
-                {p.value}
+                <Shield size={12} />
+                {user.role_name}
             </div>
         )
     },
     { 
-      headerName: 'Actions', 
-      width: 100, 
-      pinned: 'right',
-      cellRenderer: (params: ICellRendererParams<User>) => (
-        <div className="flex gap-1 h-full items-center justify-center">
-          <IconButton icon={Edit2} size="sm" variant="ghost" className="text-primary-theme" aria-label="Edit user" onClick={() => params.data && handleOpenEdit(params.data)} title="Edit" />
-          <IconButton icon={Trash2} size="sm" variant="ghost" className="text-danger-theme" aria-label="Delete user" onClick={() => params.data && handleDelete(params.data.user_id)} title="Delete" />
+      header: 'Actions', 
+      className: 'text-right',
+      cell: (user) => (
+        <div className="flex gap-1 justify-end">
+          <IconButton icon={Edit2} size="sm" variant="ghost" className="text-primary-theme" aria-label="Edit user" onClick={() => handleOpenEdit(user)} title="Edit" />
+          <IconButton icon={Trash2} size="sm" variant="ghost" className="text-danger-theme" aria-label="Delete user" onClick={() => handleDelete(user.user_id)} title="Delete" />
         </div>
       )
     },
-  ], [handleDelete]);
-
-  if (loading && total === 0) return <div className="p-12 text-center text-text-theme-muted uppercase tracking-widest text-xs font-bold animate-pulse">Initializing User Matrix...</div>;
-  if (error) return <div className="p-12 text-center text-red-500 font-bold">FAILURE: {error}</div>;
+  ];
 
   return (
-    <div className="container mx-auto p-8 max-w-5xl space-y-8 text-text-theme-main">
-      <div className="flex justify-between items-center border-b border-border-theme pb-6">
-        <div className="space-y-1">
-          <h1 className="text-3xl font-bold tracking-tight flex items-center gap-3">
-            <UserIcon size={32} className="text-primary-theme" /> User Directory
-          </h1>
-          <p className="text-text-theme-muted font-medium uppercase tracking-wider text-[10px]">
-            Manage system access, roles, and contributor profiles.
-          </p>
-        </div>
-        <Button onClick={handleOpenCreate} className="shadow-lg shadow-primary-theme/20">
-          <Plus size={18} className="mr-2" /> Add Account
-        </Button>
-      </div>
-
-      <div className="w-full border border-border-theme rounded-lg overflow-hidden bg-surface shadow-sm">
-
-          <AgGridReact
-            ref={gridRef}
-            theme={unifiedGridTheme}
-            rowData={users}
-            columnDefs={columnDefs}
-            animateRows={true}
-            domLayout="autoHeight"
-            pagination={true}
-            paginationPageSize={20}
-          />
-          <Pagination 
-            currentPage={page}
-            totalPages={totalPages}
-            pageSize={limit}
-            totalItems={total}
-            onPageChange={setPage}
-            onPageSizeChange={(s) => { setLimit(s); setPage(1); }}
-          />
-      </div>
+    <>
+      <ManagementPage
+        title="User Administration"
+        description="Manage system access, roles, and contributor profiles."
+        icon={UserIcon}
+        primaryAction={
+            <Button onClick={handleOpenCreate} className="shadow-lg shadow-primary-theme/20">
+                <Plus size={18} className="mr-2" /> Add Account
+            </Button>
+        }
+        data={users}
+        columns={columns}
+        loading={loading}
+        totalItems={total}
+        currentPage={page}
+        pageSize={limit}
+        onPageChange={setPage}
+        onPageSizeChange={(s) => { setLimit(s); setPage(1); }}
+        searchPlaceholder="Search users..."
+      />
 
       <Modal 
         isOpen={isModalOpen} 
@@ -291,6 +224,6 @@ export default function UserManagementPage() {
             </div>
         </div>
       </Modal>
-    </div>
+    </>
   );
 }

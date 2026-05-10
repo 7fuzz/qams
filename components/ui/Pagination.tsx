@@ -61,7 +61,7 @@ export const Pagination = ({
               value={pageSize}
               onChange={(e) => onPageSizeChange(Number(e.target.value))}
             >
-              {[5, 50, 100].map(size => (
+              {[20, 50, 100].map(size => (
                 <option key={size} value={size}>{size}</option>
               ))}
             </select>
@@ -76,7 +76,7 @@ export const Pagination = ({
           </div>
 
           <div className="flex gap-1">
-              <IconButton
+            <IconButton
               icon={ChevronsLeft}
               variant="outline"
               size="sm"

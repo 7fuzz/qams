@@ -4,7 +4,13 @@ import { generateId } from '@/lib/id-utils';
 import { RowDataPacket, ResultSetHeader } from 'mysql2';
 
 export const TestCaseModel = {
-    async findAll(filters: { scenarioId?: string, projectId?: string, moduleId?: string }, limit: number, offset: number): Promise<{ data: TestCase[], total: number }> {
+    async findAll(filters: { 
+        scenarioId?: string, 
+        projectId?: string, 
+        moduleId?: string,
+        sortBy?: string,
+        sortOrder?: 'ASC' | 'DESC'
+    }, limit: number, offset: number): Promise<{ data: TestCase[], total: number }> {
         let whereClause = 'WHERE 1=1';
         const params: any[] = [];
 
@@ -30,6 +36,19 @@ export const TestCaseModel = {
         const [countRows] = await db.execute<(RowDataPacket & { total: number })[]>(countQuery, params);
         const total = countRows[0].total;
 
+        const allowedSortColumns: Record<string, string> = {
+            'custom_id': 'tc.custom_id',
+            'title': 'tc.title',
+            'type': 'tc.type',
+            'priority': 'tc.priority',
+            'automation_status': 'tc.automation_status',
+            'updated_at': 'tc.updated_at',
+            'last_executed_at': 'last_executed_at'
+        };
+
+        const sortColumn = allowedSortColumns[filters.sortBy || ''] || 'tc.test_case_id';
+        const sortOrder = filters.sortOrder === 'ASC' ? 'ASC' : 'DESC';
+
         const dataQuery = `
             SELECT 
                 tc.*, 
@@ -39,8 +58,8 @@ export const TestCaseModel = {
                 p.project_id,
                 m.module_id,
                 u.name as owner_name,
-                (SELECT COUNT(*) FROM issues i WHERE i.test_case_id = tc.test_case_id AND i.status != 'Closed') as open_issues_count,
-                (SELECT COUNT(*) FROM issues i WHERE i.test_case_id = tc.test_case_id AND i.status = 'Closed') as closed_issues_count,
+                (SELECT COUNT(*) FROM issue_test_cases itc JOIN issues i ON itc.issue_id = i.issue_id WHERE itc.test_case_id = tc.test_case_id AND i.status != 'Closed') as open_issues_count,
+                (SELECT COUNT(*) FROM issue_test_cases itc JOIN issues i ON itc.issue_id = i.issue_id WHERE itc.test_case_id = tc.test_case_id AND i.status = 'Closed') as closed_issues_count,
                 (SELECT MAX(executed_at) FROM test_executions te WHERE te.test_case_id = tc.test_case_id) as last_executed_at
             FROM test_cases tc
             JOIN scenarios s ON tc.scenario_id = s.scenario_id
@@ -48,7 +67,7 @@ export const TestCaseModel = {
             JOIN projects p ON m.project_id = p.project_id
             JOIN users u ON p.owner_id = u.user_id
             ${whereClause}
-            ORDER BY tc.test_case_id DESC
+            ORDER BY ${sortColumn} ${sortOrder}
             LIMIT ? OFFSET ?
         `;
         
@@ -58,7 +77,22 @@ export const TestCaseModel = {
     },
 
     async findById(id: string): Promise<TestCase | undefined> {
-        const [rows] = await db.query<TestCase[] & RowDataPacket[]>('SELECT * FROM test_cases WHERE test_case_id = ?', [id]);
+        const [rows] = await db.query<TestCase[] & RowDataPacket[]>(`
+            SELECT 
+                tc.*, 
+                s.name as scenario_name, 
+                m.name as module_name, 
+                p.name as project_name,
+                p.project_id,
+                m.module_id,
+                u.name as owner_name
+            FROM test_cases tc
+            JOIN scenarios s ON tc.scenario_id = s.scenario_id
+            JOIN modules m ON s.module_id = m.module_id
+            JOIN projects p ON m.project_id = p.project_id
+            JOIN users u ON p.owner_id = u.user_id
+            WHERE tc.test_case_id = ?
+        `, [id]);
         return rows[0];
     },
 
@@ -68,10 +102,10 @@ export const TestCaseModel = {
             INSERT INTO test_cases (test_case_id, custom_id, scenario_id, title, type, priority, automation_status, requirement_link, estimated_duration, precondition, steps, test_data, expected_result)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `, [
-            id, data.custom_id || null, data.scenario_id, data.title, data.type, 
+            id, data.custom_id || null, data.scenario_id, data.title, data.type || null, 
             data.priority || null, data.automation_status || null, 
             data.requirement_link || null, data.estimated_duration || null, 
-            data.precondition, data.steps, data.test_data, data.expected_result
+            data.precondition || null, data.steps || null, data.test_data || null, data.expected_result || null
         ]);
         return id;
     },
@@ -82,10 +116,10 @@ export const TestCaseModel = {
             SET custom_id = ?, title = ?, type = ?, priority = ?, automation_status = ?, requirement_link = ?, estimated_duration = ?, precondition = ?, steps = ?, test_data = ?, expected_result = ?, scenario_id = ?
             WHERE test_case_id = ?
         `, [
-            data.custom_id || null, data.title, data.type, data.priority || null, 
+            data.custom_id || null, data.title, data.type || null, data.priority || null, 
             data.automation_status || null, data.requirement_link || null, 
-            data.estimated_duration || null, data.precondition, data.steps, 
-            data.test_data, data.expected_result, data.scenario_id, id
+            data.estimated_duration || null, data.precondition || null, data.steps || null, 
+            data.test_data || null, data.expected_result || null, data.scenario_id, id
         ]);
     },
 
@@ -123,8 +157,10 @@ export const TestCaseModel = {
     async findScenarios(moduleId?: string): Promise<Scenario[]> {
         let query = `
             SELECT s.*, 
-                (SELECT COUNT(*) FROM issues i 
-                 JOIN test_cases tc ON i.test_case_id = tc.test_case_id 
+                (SELECT COUNT(*) 
+                 FROM issue_test_cases itc 
+                 JOIN issues i ON itc.issue_id = i.issue_id 
+                 JOIN test_cases tc ON itc.test_case_id = tc.test_case_id
                  WHERE tc.scenario_id = s.scenario_id AND i.status != 'Closed') as open_issues_count
             FROM scenarios s
         `;

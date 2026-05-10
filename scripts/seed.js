@@ -19,7 +19,7 @@ async function seed() {
     console.log('Cleaning existing data...');
     const tables = [
         'activity_log', 'issue_history', 'issue_notes', 'release_change_issues', 
-        'release_change_modules', 'release_changes', 'releases', 'issues', 
+        'release_change_modules', 'release_changes', 'release_issues', 'releases', 'issues', 
         'test_executions', 'test_runs', 'test_cases', 'scenarios', 
         'modules', 'projects', 'users', 'roles', 'permissions'
     ];
@@ -159,9 +159,9 @@ async function seed() {
     
     for (const tc of tcs) {
         await connection.execute(`
-            INSERT INTO test_cases (test_case_id, scenario_id, title, type, steps, expected_result)
-            VALUES (?, ?, ?, ?, ?, ?)
-        `, [tc.id, tc.sid, tc.title, tc.type, tc.steps, tc.expected]);
+            INSERT INTO test_cases (test_case_id, scenario_id, title, type, steps, expected_result, automation_status)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        `, [tc.id, tc.sid, tc.title, tc.type, tc.steps, tc.expected, 'Manual']);
     }
 
     // 7. Seed Test Runs
@@ -190,9 +190,15 @@ async function seed() {
     const taxTC = tcs.find(t => t.title.includes('Tax'));
     const issueId = randomUUID();
     await connection.execute(`
-        INSERT INTO issues (issue_id, test_case_id, reporter_id, title, description, severity, status)
+        INSERT INTO issues (issue_id, snapshot_execution_id, reporter_id, title, description, severity, status)
         VALUES (?, ?, ?, ?, ?, ?, ?)
-    `, [issueId, taxTC.id, users.qa2.id, 'Rounding error in tax', 'Discrepancy on boundaries.', 'Medium (P2)', 'Open']);
+    `, [issueId, null, users.qa2.id, 'Rounding error in tax', 'Discrepancy on boundaries.', 'Medium (P2)', 'Open']);
+
+    // Link issue to test case via junction table
+    await connection.execute(`
+        INSERT INTO issue_test_cases (issue_id, test_case_id)
+        VALUES (?, ?)
+    `, [issueId, taxTC.id]);
 
     // 10. Seed Releases & Changes
     console.log('Seeding releases...');

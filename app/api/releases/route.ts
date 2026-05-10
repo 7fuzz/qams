@@ -22,7 +22,10 @@ export async function POST(request: Request) {
 
     try {
         const body = await request.json();
-        const releaseId = await ReleaseModel.create(body);
+        const releaseId = await ReleaseModel.create({
+            ...body,
+            post_release_issue_ids: body.post_release_issue_ids || []
+        });
         return NextResponse.json({ release_id: releaseId, version_name: body.version_name });
     } catch {
         return NextResponse.json({ error: 'Failed to create release' }, { status: 500 });
@@ -35,7 +38,10 @@ export async function PUT(request: Request) {
 
     try {
         const body = await request.json();
-        await ReleaseModel.update(body.release_id, body);
+        await ReleaseModel.update(body.release_id, {
+            ...body,
+            post_release_issue_ids: body.post_release_issue_ids || []
+        });
         return NextResponse.json({ success: true });
     } catch {
         return NextResponse.json({ error: 'Failed to update release' }, { status: 500 });

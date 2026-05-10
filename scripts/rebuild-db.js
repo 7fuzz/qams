@@ -1,13 +1,10 @@
 /* eslint-disable @typescript-eslint/no-require-imports */
 require('dotenv').config();
 const mysql = require('mysql2/promise');
-const fs = require('fs');
-const path = require('path');
-
-const SCHEMA_PATH = path.join(process.cwd(), 'lib/db/schema.sql');
+const { initDb } = require('./init-db');
 
 async function rebuild() {
-    console.log('REBUILDING DATABASE...');
+    console.log('REBUILDING DATABASE (Consolidated)...');
     
     const dbName = process.env.MYSQL_DATABASE || 'test_management';
     const config = {
@@ -20,17 +17,11 @@ async function rebuild() {
     console.log('Connecting to MySQL at:', config.host);
     const connection = await mysql.createConnection(config);
 
-    console.log(`Dropping and recreating database: ${dbName}`);
+    console.log(`Wiping database: ${dbName}`);
     await connection.query(`DROP DATABASE IF EXISTS \`${dbName}\``);
-    await connection.query(`CREATE DATABASE \`${dbName}\``);
-    await connection.query(`USE \`${dbName}\``);
-
-    const schema = fs.readFileSync(SCHEMA_PATH, 'utf8');
     
-    console.log('Applying schema from:', SCHEMA_PATH);
-    await connection.query('SET FOREIGN_KEY_CHECKS = 0');
-    await connection.query(schema);
-    await connection.query('SET FOREIGN_KEY_CHECKS = 1');
+    // Use the shared init logic to recreate and seed
+    await initDb(connection);
     
     console.log('Database rebuilt successfully.');
     await connection.end();

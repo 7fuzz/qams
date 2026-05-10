@@ -10,6 +10,8 @@ export async function GET(request: Request) {
     const scenarioId = searchParams.get('scenarioId');
     const projectId = searchParams.get('projectId');
     const moduleId = searchParams.get('moduleId');
+    const sortBy = searchParams.get('sortBy') || undefined;
+    const sortOrder = (searchParams.get('sortOrder') as 'ASC' | 'DESC') || undefined;
     
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '50');
@@ -19,7 +21,9 @@ export async function GET(request: Request) {
         const { data: testCases, total } = await TestCaseModel.findAll({
             scenarioId: scenarioId || undefined,
             projectId: projectId || undefined,
-            moduleId: moduleId || undefined
+            moduleId: moduleId || undefined,
+            sortBy,
+            sortOrder
         }, limit, offset);
 
         return NextResponse.json({

@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   Card, CardHeader, CardTitle, CardContent, Button, IconButton, Modal, Input, Label, Textarea, Combobox
 } from "@/components/ui";
-import { Tag, Plus, Calendar, Clock, GitCommit, AlertCircle, Trash2, Edit2, Info, Link as LinkIcon, Layers } from 'lucide-react';
+import { Tag, Plus, Calendar, Clock, GitCommit, AlertCircle, Trash2, Edit2, Info, Link as LinkIcon, Layers, ShieldCheck, AlertTriangle } from 'lucide-react';
 import { Project, Module, Release, Issue, ReleaseChange } from '@/types/app';
 
 const RELEASE_STATUS_OPTIONS = [
@@ -33,10 +33,17 @@ export default function ReleasesPage() {
   const [isReleaseModalOpen, setIsReleaseModalOpen] = useState(false);
   const [isChangeModalOpen, setIsChangeModalOpen] = useState(false);
 
-  const [releaseForm, setReleaseForm] = useState<Partial<Release>>({ version_name: '', status: 'Planning', description: '' });
+  const [releaseForm, setReleaseForm] = useState<Partial<Release>>({ version_name: '', status: 'Planning', description: '', post_release_issue_ids: [] });
   const [changeForm, setChangeForm] = useState<Partial<ReleaseChange>>({ type: 'Feature', title: '', description: '', issue_ids: [], module_ids: [] });
 
-  const fetchProjects = useCallback(() => fetch('/api/projects').then(res => res.json()).then(setProjects), []);
+  const fetchProjects = useCallback(() => {
+    fetch('/api/projects?limit=1000')
+      .then(res => res.json())
+      .then(resData => {
+        setProjects(resData.data || []);
+      })
+      .catch(() => setProjects([]));
+  }, []);
 
   const fetchReleases = useCallback((pid: string) => {
     fetch(`/api/releases?projectId=${pid}`).then(res => res.json()).then(data => {
@@ -54,7 +61,11 @@ export default function ReleasesPage() {
   }, []);
 
   const fetchModules = useCallback((pid: string) => {
-    fetch(`/api/modules?projectId=${pid}`).then(res => res.json()).then(setProjectModules);
+    fetch(`/api/modules?projectId=${pid}&limit=1000`)
+      .then(res => res.json())
+      .then(resData => {
+        setProjectModules(resData.data || []);
+      });
   }, []);
 
   const fetchChanges = useCallback((rid: string) => {
@@ -63,6 +74,55 @@ export default function ReleasesPage() {
       .then(data => {
         if (Array.isArray(data)) {
           setChanges(data);
+          
+          // Collect all unique issue IDs and module IDs from changes
+          const allLinkedIssueIds = Array.from(new Set(data.flatMap(c => c.issue_ids || [])));
+          const allLinkedModuleIds = Array.from(new Set(data.flatMap(c => c.module_ids || [])));
+
+          // Sync Issues
+          if (allLinkedIssueIds.length > 0) {
+            setProjectIssues(prev => {
+                const existingIds = new Set(prev.map(i => i.issue_id));
+                const missingIds = allLinkedIssueIds.filter(id => !existingIds.has(id));
+                
+                if (missingIds.length > 0) {
+                    fetch(`/api/issues?issueIds=${missingIds.join(',')}&limit=1000`)
+                        .then(res => res.json())
+                        .then(resData => {
+                            if (resData.data) {
+                                setProjectIssues(current => {
+                                    const currentIds = new Set(current.map(i => i.issue_id));
+                                    const trulyNew = resData.data.filter((i: Issue) => !currentIds.has(i.issue_id));
+                                    return [...current, ...trulyNew];
+                                });                            }
+                        });
+                }
+                return prev;
+            });
+          }
+
+          // Sync Modules
+          if (allLinkedModuleIds.length > 0) {
+            setProjectModules(prev => {
+                const existingIds = new Set(prev.map(m => m.module_id));
+                const missingIds = allLinkedModuleIds.filter(id => !existingIds.has(id));
+
+                if (missingIds.length > 0) {
+                    fetch(`/api/modules?moduleIds=${missingIds.join(',')}&limit=1000`)
+                        .then(res => res.json())
+                        .then(resData => {
+                            if (resData.data) {
+                                setProjectModules(current => {
+                                    const currentIds = new Set(current.map(m => m.module_id));
+                                    const trulyNew = resData.data.filter((m: Module) => !currentIds.has(m.module_id));
+                                    return [...current, ...trulyNew];
+                                });
+                            }
+                        });
+                }
+                return prev;
+            });
+          }
         } else {
           setChanges([]);
         }
@@ -171,7 +231,7 @@ export default function ReleasesPage() {
           <aside className="xl:col-span-1 space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="text-xs font-bold uppercase tracking-widest text-text-theme-muted">Versions</h2>
-              <Button size="sm" variant="ghost" onClick={() => { setReleaseForm({ version_name: '', status: 'Planning' }); setIsReleaseModalOpen(true); }}>
+              <Button size="sm" variant="ghost" onClick={() => { setReleaseForm({ version_name: '', status: 'Planning', post_release_issue_ids: [] }); setIsReleaseModalOpen(true); }}>
                 <Plus size={16} />
               </Button>
             </div>
@@ -210,7 +270,7 @@ export default function ReleasesPage() {
                     <div className="space-y-1">
                       <CardTitle className="text-2xl font-bold flex items-center gap-2 text-text-theme-main">
                         Release {selectedRelease.version_name}
-                        <IconButton icon={Edit2} size="xs" variant="ghost" className="text-text-theme-main" aria-label="Edit release" onClick={() => { setReleaseForm(selectedRelease); setIsReleaseModalOpen(true); }} title="Edit release" />
+                        <IconButton icon={Edit2} size="xs" variant="ghost" className="text-text-theme-main" aria-label="Edit release" onClick={() => { setReleaseForm({ ...selectedRelease, post_release_issue_ids: selectedRelease.post_release_issue_ids || [] }); setIsReleaseModalOpen(true); }} title="Edit release" />
                       </CardTitle>
                       <div className="flex items-center gap-4 text-xs text-text-theme-muted">
                         <span className="flex items-center gap-1"><Clock size={12} /> Target: {selectedRelease.target_date || 'No date set'}</span>
@@ -219,8 +279,27 @@ export default function ReleasesPage() {
                     </div>
                     <Button variant="outline" size="sm" className="text-danger-theme" onClick={() => deleteRelease(selectedRelease.release_id)}><Trash2 size={16} className="mr-2" /> Delete Version</Button>
                   </CardHeader>
-                  <CardContent className="pt-6">
-                    <p className="text-sm text-text-theme-muted mb-8 italic">{selectedRelease.description || 'No description provided for this version.'}</p>
+                  <CardContent className="pt-6 space-y-8">
+                    <p className="text-sm text-text-theme-muted italic">{selectedRelease.description || 'No description provided for this version.'}</p>
+
+                    <div className="pb-8 border-b border-border-theme">
+                      <div className="space-y-4">
+                        <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-danger-theme flex items-center gap-2">
+                          <AlertTriangle size={14} /> Post-Release Issues ({selectedRelease.post_release_issue_titles?.length || 0})
+                        </h3>
+                        <div className="flex flex-wrap gap-2">
+                          {selectedRelease.post_release_issue_titles?.map((title, idx) => (
+                            <div key={idx} className="flex items-center gap-2 p-2 bg-danger-theme/5 rounded-lg border border-danger-theme/10 text-danger-theme">
+                              <AlertCircle size={10} />
+                              <span className="text-[10px] font-bold uppercase">{title}</span>
+                            </div>
+                          ))}
+                          {(!selectedRelease.post_release_issue_titles || selectedRelease.post_release_issue_titles.length === 0) && (
+                            <span className="text-xs text-text-theme-muted italic">No issues reported after release.</span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
 
                     <div className="space-y-4">
                       <div className="flex items-center justify-between border-b border-border-theme pb-2">
@@ -246,16 +325,16 @@ export default function ReleasesPage() {
                                     <span className="font-bold text-sm text-text-theme-main">{change.title}</span>
                                     {change.module_names?.map((mName, idx) => (
                                       <span key={idx} className="flex items-center gap-1 text-[9px] bg-primary-theme/10 text-primary-theme px-1.5 py-0.5 rounded-full font-bold uppercase">
-                                        <Layers size={10} /> {mName}
+                                        added: {mName}
                                       </span>
                                     ))}
                                   </div>
                                   <p className="text-xs text-text-theme-muted leading-relaxed">{change.description}</p>
                                   <div className="flex flex-wrap gap-2">
                                     {change.issue_titles?.map((iTitle, idx) => (
-                                      <div key={idx} className="mt-2 flex items-center gap-2 p-1.5 px-2 bg-danger-theme/10 rounded-md border border-danger-theme/20 w-fit">
-                                        <AlertCircle size={10} className="text-danger-theme" />
-                                        <span className="text-[9px] font-bold text-danger-theme uppercase tracking-wider">Issue: {iTitle}</span>
+                                      <div key={idx} className="mt-2 flex items-center gap-2 p-1.5 px-2 bg-success-theme/10 rounded-md border border-success-theme/20 w-fit">
+                                        <ShieldCheck size={10} className="text-success-theme" />
+                                        <span className="text-[9px] font-bold text-success-theme uppercase tracking-wider">fixed: {iTitle}</span>
                                       </div>
                                     ))}
                                   </div>
@@ -307,6 +386,20 @@ export default function ReleasesPage() {
             <Label className="text-text-theme-main">Description</Label>
             <Textarea value={releaseForm.description || ''} onChange={e => setReleaseForm({ ...releaseForm, description: e.target.value })} placeholder="Focus areas for this release..." className="bg-surface text-text-theme-main" />
           </div>
+
+          <div className="space-y-4 pt-4 border-t border-border-theme">
+            <div className="space-y-2">
+              <Label className="text-text-theme-main flex items-center gap-1.5"><AlertTriangle size={12} className="text-danger-theme" /> Post-Release Issues</Label>
+              <Combobox
+                multiSelect
+                options={projectIssues.map(i => ({ value: i.issue_id, label: i.title }))}
+                value={releaseForm.post_release_issue_ids || []}
+                onChange={val => setReleaseForm({ ...releaseForm, post_release_issue_ids: val as string[] })}
+                placeholder="Issues found after deployment..."
+              />
+            </div>
+          </div>
+
           <Button onClick={handleSaveRelease} className="w-full mt-4 shadow-lg shadow-indigo-500/20 py-6 font-bold">{releaseForm.release_id ? 'Update Release' : 'Create Release'}</Button>
         </div>
       </Modal>

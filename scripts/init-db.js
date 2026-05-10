@@ -8,7 +8,7 @@ const bcrypt = require('bcryptjs');
 
 const SCHEMA_PATH = path.join(process.cwd(), 'lib/db/schema.sql');
 
-async function initDb() {
+async function initDb(existingConnection = null) {
   const config = {
     host: process.env.MYSQL_HOST || 'localhost',
     user: process.env.MYSQL_USER || 'root',
@@ -16,8 +16,11 @@ async function initDb() {
     multipleStatements: true
   };
 
-  console.log('Connecting to MySQL at:', config.host);
-  const connection = await mysql.createConnection(config);
+  let connection = existingConnection;
+  if (!connection) {
+    console.log('Connecting to MySQL at:', config.host);
+    connection = await mysql.createConnection(config);
+  }
 
   const dbName = process.env.MYSQL_DATABASE || 'test_management';
   await connection.query(`CREATE DATABASE IF NOT EXISTS \`${dbName}\``);
@@ -33,7 +36,7 @@ async function initDb() {
   console.log('Database schema applied successfully.');
 
   // Seed Roles & Permissions
-  console.log('Seeding roles and permissions...');
+  console.log('Seeding base roles and permissions...');
   const adminRoleId = randomUUID();
   const devRoleId = randomUUID();
   const qaRoleId = randomUUID();
@@ -43,7 +46,6 @@ async function initDb() {
   await connection.query('INSERT IGNORE INTO roles (role_id, name) VALUES (?, ?)', [devRoleId, 'Developer']);
   await connection.query('INSERT IGNORE INTO roles (role_id, name) VALUES (?, ?)', [qaRoleId, 'QA']);
   await connection.query('INSERT IGNORE INTO roles (role_id, name) VALUES (?, ?)', [observerId, 'Observer']);
-
 
   const perms = [
     { name: 'users:manage', desc: 'Create, update, delete users' },
@@ -95,10 +97,19 @@ async function initDb() {
     [randomUUID(), 'Admin User', 'admin@example.com', hashed, adminRoleId]);
 
   console.log('Seed data added.');
-  await connection.end();
+  
+  // Close connection only if we created it here
+  if (!existingConnection) {
+    await connection.end();
+  }
 }
 
-initDb().catch(err => {
-  console.error('Error initializing database:', err);
-  process.exit(1);
-});
+module.exports = { initDb };
+
+// Execute if called directly
+if (require.main === module) {
+  initDb().catch(err => {
+    console.error('Error initializing database:', err);
+    process.exit(1);
+  });
+}

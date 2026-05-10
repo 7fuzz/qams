@@ -23,9 +23,9 @@ export interface TestCase {
     custom_id?: string;
     scenario_id: string;
     title: string;
-    type: string;
-    priority: string;
-    automation_status: string;
+    type?: string;
+    priority?: string;
+    automation_status?: string;
     requirement_link?: string;
     estimated_duration?: number;
     precondition: string;
@@ -62,6 +62,8 @@ export interface Release {
     status: string;
     target_date: string;
     description: string;
+    post_release_issue_ids?: string[];
+    post_release_issue_titles?: string[];
 }
 
 export interface ReleaseChange {

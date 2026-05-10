@@ -10,6 +10,9 @@ export * from './Modal';
 export * from './Textarea';
 export * from './AttachmentManager';
 export * from './Pagination';
+export * from './CRUDTable';
+export * from './ManagementTemplate';
+export * from './ManagementPage';
 
 
 

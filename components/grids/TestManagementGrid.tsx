@@ -12,7 +12,7 @@ import {
 } from 'ag-grid-community';
 import { Button, IconButton, Input, Pagination } from '../ui';
 import { Trash2, Plus, Copy, AlertCircle, Edit2, CheckCircle2, ExternalLink, Download, Upload } from 'lucide-react';
-import { TEST_CASE_TYPE, TEST_CASE_TYPE_OPTIONS, TEST_PRIORITY, TEST_PRIORITY_OPTIONS, AUTOMATION_STATUS, AUTOMATION_STATUS_OPTIONS } from '@/lib/constants';
+import { TEST_CASE_TYPE, TEST_CASE_TYPE_OPTIONS, TEST_PRIORITY, TEST_PRIORITY_OPTIONS, AUTOMATION_STATUS_OPTIONS } from '@/lib/constants';
 import { unifiedGridTheme } from '@/lib/theme';
 import { EditTestCaseDialog } from '../dialogs/EditTestCaseDialog';
 import { IssuesListDialog } from '../dialogs/IssuesListDialog';
@@ -114,7 +114,19 @@ export const TestManagementGrid = ({ moduleId }: TestManagementGridProps) => {
   
   const fetchTestCases = useCallback((silent = false) => {
     if (!silent) setLoading(true);
-    fetch(`/api/test-cases?moduleId=${moduleId}&page=${page}&limit=${limit}`)
+    
+    let url = `/api/test-cases?moduleId=${moduleId}&page=${page}&limit=${limit}`;
+    
+    // Add sorting from grid state if available
+    if (gridRef.current?.api) {
+        const columnState = gridRef.current.api.getColumnState();
+        const sortedColumn = columnState.find(s => s.sort !== null);
+        if (sortedColumn) {
+            url += `&sortBy=${sortedColumn.colId}&sortOrder=${sortedColumn.sort?.toUpperCase()}`;
+        }
+    }
+
+    fetch(url)
       .then(res => res.json())
       .then(res => {
         if (res.data) {
@@ -135,6 +147,10 @@ export const TestManagementGrid = ({ moduleId }: TestManagementGridProps) => {
         setLoading(false);
       });
   }, [moduleId, page, limit]);
+
+  const onSortChanged = useCallback(() => {
+    fetchTestCases(true);
+  }, [fetchTestCases]);
 
   useEffect(() => {
     fetchScenarios();
@@ -391,9 +407,9 @@ export const TestManagementGrid = ({ moduleId }: TestManagementGridProps) => {
     const newRow: Partial<TestCase> = {
       scenario_id: scenarios[0].scenario_id,
       title: 'New Test Case',
-      type: TEST_CASE_TYPE.POSITIVE,
-      priority: TEST_PRIORITY.P2,
-      automation_status: AUTOMATION_STATUS.MANUAL,
+      type: '',
+      priority: '',
+      automation_status: '',
       precondition: '',
       steps: '',
       test_data: '',
@@ -510,7 +526,10 @@ export const TestManagementGrid = ({ moduleId }: TestManagementGridProps) => {
           onFirstDataRendered={applySavedState}
           onColumnMoved={saveGridState}
           onColumnResized={saveGridState}
-          onSortChanged={saveGridState}
+          onSortChanged={(params) => {
+            saveGridState(params);
+            onSortChanged();
+          }}
           onColumnVisible={saveGridState}
           rowSelection="multiple"
           animateRows={true}

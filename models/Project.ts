@@ -4,20 +4,59 @@ import { generateId } from '@/lib/id-utils';
 import { RowDataPacket } from 'mysql2';
 
 export const ProjectModel = {
-    async findAll(): Promise<(Project & { owner_name: string, open_issues_count: number })[]> {
-        const [rows] = await db.execute<(Project & { owner_name: string, open_issues_count: number })[] & RowDataPacket[]>(`
+    async findAll(filters: { 
+        search?: string, 
+        sortBy?: string, 
+        sortOrder?: 'ASC' | 'DESC' 
+    } = {}, limit?: number, offset?: number): Promise<{ data: (Project & { owner_name: string, open_issues_count: number })[], total: number }> {
+        let whereClause = 'WHERE 1=1';
+        const params: any[] = [];
+
+        if (filters.search) {
+            whereClause += ' AND (p.name LIKE ? OR p.description LIKE ?)';
+            params.push(`%${filters.search}%`, `%${filters.search}%`);
+        }
+
+        const baseQuery = `
+            FROM projects p 
+            JOIN users u ON p.owner_id = u.user_id
+            ${whereClause}
+        `;
+
+        const [countRows] = await db.execute<(RowDataPacket & { total: number })[]>(`SELECT COUNT(*) as total ${baseQuery}`, params);
+        const total = countRows[0].total;
+
+        const allowedSortColumns: Record<string, string> = {
+            'name': 'p.name',
+            'created_at': 'p.created_at',
+            'updated_at': 'p.updated_at',
+            'owner_name': 'u.name'
+        };
+
+        const sortColumn = allowedSortColumns[filters.sortBy || ''] || 'p.created_at';
+        const sortOrder = filters.sortOrder === 'ASC' ? 'ASC' : 'DESC';
+
+        let query = `
             SELECT 
                 p.*, 
                 u.name as owner_name,
-                (SELECT COUNT(*) FROM issues i 
-                 JOIN test_cases tc ON i.test_case_id = tc.test_case_id
+                (SELECT COUNT(*) FROM issue_test_cases itc
+                 JOIN issues i ON itc.issue_id = i.issue_id
+                 JOIN test_cases tc ON itc.test_case_id = tc.test_case_id
                  JOIN scenarios s ON tc.scenario_id = s.scenario_id
                  JOIN modules m ON s.module_id = m.module_id
                  WHERE m.project_id = p.project_id AND i.status != 'Closed') as open_issues_count
-            FROM projects p 
-            JOIN users u ON p.owner_id = u.user_id
-        `);
-        return rows;
+            ${baseQuery}
+            ORDER BY ${sortColumn} ${sortOrder}
+        `;
+
+        if (limit !== undefined && offset !== undefined) {
+            query += ' LIMIT ? OFFSET ?';
+            params.push(limit, offset);
+        }
+
+        const [rows] = await db.execute<(Project & { owner_name: string, open_issues_count: number })[] & RowDataPacket[]>(query, params);
+        return { data: rows, total };
     },
 
     async create(data: { name: string, version?: string, description?: string, owner_id: string }): Promise<string> {
@@ -37,19 +76,63 @@ export const ProjectModel = {
     },
 
     // Module Logic
-    async findModules(projectId?: string): Promise<(Module & { responsible_name?: string })[]> {
-        let query = `
-            SELECT m.*, u.name as responsible_name 
+    async findModules(filters: { 
+        projectId?: string, 
+        moduleIds?: string[],
+        search?: string,
+        sortBy?: string,
+        sortOrder?: 'ASC' | 'DESC'
+    } = {}, limit?: number, offset?: number): Promise<{ data: (Module & { responsible_name?: string, project_name?: string })[], total: number }> {
+        let whereClause = 'WHERE 1=1';
+        const params: any[] = [];
+        
+        if (filters.projectId) {
+            whereClause += ' AND m.project_id = ?';
+            params.push(filters.projectId);
+        }
+
+        if (filters.moduleIds && filters.moduleIds.length > 0) {
+            whereClause += ` AND m.module_id IN (${filters.moduleIds.map(() => '?').join(',')})`;
+            params.push(...filters.moduleIds);
+        }
+
+        if (filters.search) {
+            whereClause += ' AND (m.name LIKE ? OR m.description LIKE ? OR p.name LIKE ?)';
+            params.push(`%${filters.search}%`, `%${filters.search}%`, `%${filters.search}%`);
+        }
+
+        const baseQuery = `
             FROM modules m 
             LEFT JOIN users u ON m.responsible_id = u.user_id
+            JOIN projects p ON m.project_id = p.project_id
+            ${whereClause}
         `;
-        const params: any[] = [];
-        if (projectId) {
-            query += ' WHERE m.project_id = ?';
-            params.push(projectId);
+
+        const [countRows] = await db.execute<(RowDataPacket & { total: number })[]>(`SELECT COUNT(*) as total ${baseQuery}`, params);
+        const total = countRows[0].total;
+
+        const allowedSortColumns: Record<string, string> = {
+            'name': 'm.name',
+            'project_name': 'p.name',
+            'responsible_name': 'u.name'
+        };
+
+        const sortColumn = allowedSortColumns[filters.sortBy || ''] || 'm.name';
+        const sortOrder = filters.sortOrder === 'DESC' ? 'DESC' : 'ASC';
+
+        let query = `
+            SELECT m.*, u.name as responsible_name, p.name as project_name
+            ${baseQuery}
+            ORDER BY ${sortColumn} ${sortOrder}
+        `;
+
+        if (limit !== undefined && offset !== undefined) {
+            query += ' LIMIT ? OFFSET ?';
+            params.push(limit, offset);
         }
-        const [rows] = await db.execute<(Module & { responsible_name?: string })[] & RowDataPacket[]>(query, params);
-        return rows;
+
+        const [rows] = await db.execute<(Module & { responsible_name?: string, project_name?: string })[] & RowDataPacket[]>(query, params);
+        return { data: rows, total };
     },
 
     async createModule(data: { project_id: string, name: string, description?: string, responsible_id?: string }): Promise<string> {

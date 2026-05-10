@@ -34,7 +34,9 @@ export default function NewRunPage() {
   const [searchTerm, setSearchTerm] = useState('');
 
   const fetchProjects = useCallback(() => {
-      fetch('/api/projects').then(res => res.json()).then(setProjects);
+      fetch('/api/projects?limit=1000')
+        .then(res => res.json())
+        .then(resData => setProjects(resData.data || []));
   }, []);
 
   useEffect(() => {
@@ -44,8 +46,9 @@ export default function NewRunPage() {
   const handleProjectChange = async (pid: string) => {
     setSelectedProjectId(pid);
     if (pid) {
-      const res = await fetch(`/api/modules?projectId=${pid}`);
-      const modules: Module[] = await res.json();
+      const res = await fetch(`/api/modules?projectId=${pid}&limit=1000`);
+      const resData = await res.json();
+      const modules: Module[] = resData.data || [];
       
       const allScenarios: Scenario[] = [];
       for (const mod of modules) {

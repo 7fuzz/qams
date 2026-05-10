@@ -80,7 +80,7 @@ CREATE TABLE IF NOT EXISTS test_cases (
     custom_id VARCHAR(255), -- Optional manual ID (e.g. TC-001)
     scenario_id VARCHAR(255) NOT NULL,
     title VARCHAR(255) NOT NULL,
-    type VARCHAR(255) NOT NULL,
+    type VARCHAR(255),
     priority VARCHAR(255),
     automation_status VARCHAR(255),
     requirement_link TEXT,
@@ -97,7 +97,6 @@ CREATE TABLE IF NOT EXISTS test_cases (
 -- Issues Table
 CREATE TABLE IF NOT EXISTS issues (
     issue_id VARCHAR(255) PRIMARY KEY,
-    test_case_id VARCHAR(255) NOT NULL,
     snapshot_execution_id VARCHAR(255),
     reporter_id VARCHAR(255) NOT NULL,
     developer_id VARCHAR(255),
@@ -109,10 +108,19 @@ CREATE TABLE IF NOT EXISTS issues (
     estimated_date DATETIME,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (test_case_id) REFERENCES test_cases(test_case_id) ON DELETE CASCADE,
     FOREIGN KEY (reporter_id) REFERENCES users(user_id),
     FOREIGN KEY (developer_id) REFERENCES users(user_id),
     FOREIGN KEY (solved_by_id) REFERENCES users(user_id)
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- Junction Table: Issues to Test Cases (Many-to-Many)
+CREATE TABLE IF NOT EXISTS issue_test_cases (
+    issue_id VARCHAR(255) NOT NULL,
+    test_case_id VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (issue_id, test_case_id),
+    FOREIGN KEY (issue_id) REFERENCES issues(issue_id) ON DELETE CASCADE,
+    FOREIGN KEY (test_case_id) REFERENCES test_cases(test_case_id) ON DELETE CASCADE
 ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- Issue Notes Table
@@ -171,6 +179,18 @@ CREATE TABLE IF NOT EXISTS release_change_issues (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (change_id, issue_id),
     FOREIGN KEY (change_id) REFERENCES release_changes(change_id) ON DELETE CASCADE,
+    FOREIGN KEY (issue_id) REFERENCES issues(issue_id) ON DELETE CASCADE
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- Junction: Releases to Issues (Fixed & Post-Release)
+CREATE TABLE IF NOT EXISTS release_issues (
+    release_id VARCHAR(255) NOT NULL,
+    issue_id VARCHAR(255) NOT NULL,
+    type VARCHAR(50) NOT NULL, -- 'FIXED', 'POST_RELEASE'
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (release_id, issue_id, type),
+    FOREIGN KEY (release_id) REFERENCES releases(release_id) ON DELETE CASCADE,
     FOREIGN KEY (issue_id) REFERENCES issues(issue_id) ON DELETE CASCADE
 ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 

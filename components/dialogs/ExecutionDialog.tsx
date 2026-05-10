@@ -65,6 +65,9 @@ export const ExecutionDialog = ({ execution, isOpen, onClose, onSave }: Executio
   const [expandedIssueId, setExpandedIssueId] = useState<string | null>(null);
   
   const [showNewIssueForm, setShowNewIssueForm] = useState(false);
+  const [showLinkExistingForm, setShowLinkExistingForm] = useState(false);
+  const [issueSearch, setIssueSearch] = useState('');
+  const [searchResults, setSearchResults] = useState<Issue[]>([]);
   const [newIssue, setNewIssue] = useState({ title: '', description: '', severity: ISSUE_SEVERITY.MEDIUM as string, developer_id: '' });
   const [loading, setLoading] = useState(false);
 
@@ -74,6 +77,51 @@ export const ExecutionDialog = ({ execution, isOpen, onClose, onSave }: Executio
     const resData = await res.json();
     setExistingIssues(resData.data || []);
   }, [execution]);
+
+  const searchIssues = useCallback(async (term: string) => {
+    if (!term || term.length < 2) {
+        setSearchResults([]);
+        return;
+    }
+    const res = await fetch(`/api/issues?search=${encodeURIComponent(term)}&limit=10`);
+    const resData = await res.json();
+    setSearchResults(resData.data || []);
+  }, []);
+
+  const handleLinkExistingIssue = async (issue: Issue) => {
+    if (!execution) return;
+    
+    // Get current test cases for this issue
+    const tcRes = await fetch(`/api/issues/test-cases?id=${issue.issue_id}`);
+    const tcData = await tcRes.json();
+    const currentTcs = Array.isArray(tcData) ? tcData.map((t: any) => t.test_case_id) : [];
+    
+    if (currentTcs.includes(execution.test_case_id)) {
+        alert('This issue is already linked to this test case.');
+        return;
+    }
+
+    await fetch('/api/issues', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        issue_id: issue.issue_id,
+        test_case_ids: [...currentTcs, execution.test_case_id],
+        execution_id: execution.execution_id,
+        // Keep other fields
+        status: issue.status,
+        severity: issue.severity,
+        title: issue.title,
+        description: issue.description,
+        developer_id: issue.developer_id
+      }),
+    });
+    
+    setIssueSearch('');
+    setSearchResults([]);
+    setShowLinkExistingForm(false);
+    fetchIssues();
+  };
 
   const fetchUsers = useCallback(async () => {
     const res = await fetch('/api/users?limit=1000');
@@ -265,10 +313,62 @@ export const ExecutionDialog = ({ execution, isOpen, onClose, onSave }: Executio
                     <AlertCircle size={18} />
                     <h4 className="font-bold text-xs uppercase tracking-widest text-black dark:text-white">Linked Issues ({existingIssues.length})</h4>
                 </div>
-                <Button variant="outline" size="sm" className="h-7 text-[10px] uppercase font-bold text-black dark:text-white" onClick={() => setShowNewIssueForm(!showNewIssueForm)}>
-                  <Plus size={14} className="mr-1" /> New Issue
-                </Button>
+                <div className="flex gap-2">
+                    <Button variant="outline" size="sm" className="h-7 text-[10px] uppercase font-bold text-black dark:text-white" onClick={() => { setShowLinkExistingForm(!showLinkExistingForm); setShowNewIssueForm(false); }}>
+                      <LinkIcon size={14} className="mr-1" /> Link Existing
+                    </Button>
+                    <Button variant="outline" size="sm" className="h-7 text-[10px] uppercase font-bold text-black dark:text-white" onClick={() => { setShowNewIssueForm(!showNewIssueForm); setShowLinkExistingForm(false); }}>
+                      <Plus size={14} className="mr-1" /> New Issue
+                    </Button>
+                </div>
             </div>
+
+            {showLinkExistingForm && (
+                <div className="p-4 border border-blue-100 dark:border-blue-900/20 bg-blue-50/20 dark:bg-blue-900/10 rounded-lg space-y-3 animate-in fade-in slide-in-from-top-2">
+                    <div className="relative">
+                        <Input 
+                            placeholder="Search issues by title or description..." 
+                            value={issueSearch} 
+                            onChange={e => {
+                                setIssueSearch(e.target.value);
+                                searchIssues(e.target.value);
+                            }} 
+                            className="text-black dark:text-white bg-white dark:bg-gray-950 pr-10" 
+                        />
+                        {issueSearch && (
+                             <IconButton 
+                                icon={History} 
+                                size="xs" 
+                                variant="ghost" 
+                                className="absolute right-2 top-1/2 -translate-y-1/2" 
+                                onClick={() => { setIssueSearch(''); setSearchResults([]); }}
+                             />
+                        )}
+                    </div>
+                    
+                    {searchResults.length > 0 && (
+                        <div className="max-h-48 overflow-y-auto border dark:border-gray-800 rounded-md bg-white dark:bg-gray-950 divide-y dark:divide-gray-800">
+                            {searchResults.map(result => (
+                                <div 
+                                    key={result.issue_id} 
+                                    className="p-3 hover:bg-gray-50 dark:hover:bg-gray-900 cursor-pointer flex items-center justify-between group"
+                                    onClick={() => handleLinkExistingIssue(result)}
+                                >
+                                    <div>
+                                        <div className="text-sm font-bold text-black dark:text-white">{result.title}</div>
+                                        <div className="text-[10px] text-gray-500 uppercase font-medium">{result.status} • {result.severity}</div>
+                                    </div>
+                                    <Plus size={14} className="text-blue-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                </div>
+                            ))}
+                        </div>
+                    )}
+
+                    {issueSearch.length >= 2 && searchResults.length === 0 && (
+                        <p className="text-center py-2 text-xs text-gray-500 italic">No issues found matches your search.</p>
+                    )}
+                </div>
+            )}
 
             {showNewIssueForm && (
                 <div className="p-4 border border-red-100 dark:border-red-900/20 bg-red-50/20 dark:bg-red-900/10 rounded-lg space-y-3 animate-in fade-in slide-in-from-top-2">

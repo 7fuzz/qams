@@ -8,27 +8,31 @@ import { TEST_CASE_TYPE, TEST_PRIORITY, AUTOMATION_STATUS } from '@/lib/constant
 
 function normalizeType(val: any): string {
     const s = String(val || '').toLowerCase().trim();
+    if (!s) return '';
     if (s.includes('pos')) return TEST_CASE_TYPE.POSITIVE;
     if (s.includes('neg')) return TEST_CASE_TYPE.NEGATIVE;
     if (s.includes('edge')) return TEST_CASE_TYPE.EDGE_CASE;
-    return TEST_CASE_TYPE.POSITIVE;
+    return '';
 }
 
 function normalizePriority(val: any): string {
     const s = String(val || '').toLowerCase().trim();
+    if (!s) return '';
     if (s === 'p0' || s.includes('crit')) return TEST_PRIORITY.P0;
     if (s === 'p1' || s === 'h' || s.includes('high')) return TEST_PRIORITY.P1;
     if (s === 'p2' || s === 'm' || s.includes('med')) return TEST_PRIORITY.P2;
     if (s === 'p3' || s === 'l' || s.includes('low')) return TEST_PRIORITY.P3;
-    return TEST_PRIORITY.P2;
+    return '';
 }
 
 function normalizeAutomation(val: any): string {
     const s = String(val || '').toLowerCase().trim();
+    if (!s) return '';
     if (s.includes('auto')) return AUTOMATION_STATUS.AUTOMATED;
     if (s.includes('cand') || s.includes('can')) return AUTOMATION_STATUS.CANDIDATE;
     if (s === 'na' || s === 'n/a') return AUTOMATION_STATUS.NOT_APPLICABLE;
-    return AUTOMATION_STATUS.MANUAL;
+    if (s.includes('man')) return AUTOMATION_STATUS.MANUAL;
+    return '';
 }
 
 export async function POST(request: Request) {

@@ -122,5 +122,24 @@ export const TestRunModel = {
             WHERE execution_id = ?
         `, [data.status, data.notes || null, data.proof_url || null, id]);
         return result;
+    },
+
+    async findExecutionHistory(testCaseId: string) {
+        const [rows] = await db.execute<RowDataPacket[]>(`
+            SELECT 
+                te.execution_id,
+                te.status,
+                te.executed_at,
+                te.notes,
+                tr.name as run_name,
+                tr.run_id,
+                u.name as tester_name
+            FROM test_executions te
+            JOIN test_runs tr ON te.run_id = tr.run_id
+            JOIN users u ON tr.tester_id = u.user_id
+            WHERE te.test_case_id = ?
+            ORDER BY te.executed_at DESC
+        `, [testCaseId]);
+        return rows;
     }
 };

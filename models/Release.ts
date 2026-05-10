@@ -1,36 +1,88 @@
 import db from '@/lib/db';
 import { Release, ReleaseChange } from '@/types/app';
 import { generateId } from '@/lib/id-utils';
-import { RowDataPacket, ResultSetHeader } from 'mysql2';
+import { RowDataPacket } from 'mysql2';
 
 export const ReleaseModel = {
     async findAll(projectId?: string): Promise<Release[]> {
-        let query = 'SELECT * FROM releases';
-        const params: any[] = [];
+        let where = '';
+        const params: unknown[] = [];
         if (projectId) {
-            query += ' WHERE project_id = ?';
+            where = ' WHERE project_id = ?';
             params.push(projectId);
         }
-        query += ' ORDER BY created_at DESC';
-        const [rows] = await db.execute<Release[] & RowDataPacket[]>(query, params);
-        return rows;
+
+        const query = `
+            SELECT 
+                r.*,
+                (SELECT GROUP_CONCAT(ri.issue_id SEPARATOR '||') FROM release_issues ri WHERE ri.release_id = r.release_id AND ri.type = 'POST_RELEASE') as post_release_issue_ids,
+                (SELECT GROUP_CONCAT(i.title SEPARATOR '||') FROM release_issues ri JOIN issues i ON ri.issue_id = i.issue_id WHERE ri.release_id = r.release_id AND ri.type = 'POST_RELEASE') as post_release_issue_titles
+            FROM releases r
+            ${where}
+            ORDER BY created_at DESC
+        `;
+        
+        const [rows] = await db.execute<RowDataPacket[]>(query, params);
+        return rows.map(r => ({
+            ...r,
+            post_release_issue_ids: r.post_release_issue_ids ? r.post_release_issue_ids.split('||') : [],
+            post_release_issue_titles: r.post_release_issue_titles ? r.post_release_issue_titles.split('||') : []
+        })) as Release[];
     },
 
     async create(data: Partial<Release>): Promise<string> {
         const id = generateId();
-        await db.query(`
-            INSERT INTO releases (release_id, project_id, version_name, status, target_date, description)
-            VALUES (?, ?, ?, ?, ?, ?)
-        `, [id, data.project_id, data.version_name, data.status || 'Planning', data.target_date || null, data.description || null]);
-        return id;
+        const connection = await db.getConnection();
+        await connection.beginTransaction();
+
+        try {
+            await connection.query(`
+                INSERT INTO releases (release_id, project_id, version_name, status, target_date, description)
+                VALUES (?, ?, ?, ?, ?, ?)
+            `, [id, data.project_id, data.version_name, data.status || 'Planning', data.target_date || null, data.description || null]);
+
+            if (data.post_release_issue_ids && Array.isArray(data.post_release_issue_ids)) {
+                for (const issueId of data.post_release_issue_ids) {
+                    await connection.query('INSERT INTO release_issues (release_id, issue_id, type) VALUES (?, ?, ?)', [id, issueId, 'POST_RELEASE']);
+                }
+            }
+
+            await connection.commit();
+            return id;
+        } catch (error) {
+            await connection.rollback();
+            throw error;
+        } finally {
+            connection.release();
+        }
     },
 
     async update(id: string, data: Partial<Release>): Promise<void> {
-        await db.query(`
-            UPDATE releases 
-            SET version_name = ?, status = ?, target_date = ?, description = ?
-            WHERE release_id = ?
-        `, [data.version_name, data.status, data.target_date || null, data.description || null, id]);
+        const connection = await db.getConnection();
+        await connection.beginTransaction();
+
+        try {
+            await connection.query(`
+                UPDATE releases 
+                SET version_name = ?, status = ?, target_date = ?, description = ?
+                WHERE release_id = ?
+            `, [data.version_name, data.status, data.target_date || null, data.description || null, id]);
+
+            await connection.query('DELETE FROM release_issues WHERE release_id = ? AND type = "POST_RELEASE"', [id]);
+
+            if (data.post_release_issue_ids && Array.isArray(data.post_release_issue_ids)) {
+                for (const issueId of data.post_release_issue_ids) {
+                    await connection.query('INSERT INTO release_issues (release_id, issue_id, type) VALUES (?, ?, ?)', [id, issueId, 'POST_RELEASE']);
+                }
+            }
+
+            await connection.commit();
+        } catch (error) {
+            await connection.rollback();
+            throw error;
+        } finally {
+            connection.release();
+        }
     },
 
     async delete(id: string): Promise<void> {
@@ -56,9 +108,9 @@ export const ReleaseModel = {
             SELECT 
                 rc.*,
                 (SELECT GROUP_CONCAT(m.name SEPARATOR '||') FROM release_change_modules rcm JOIN modules m ON rcm.module_id = m.module_id WHERE rcm.change_id = rc.change_id) as module_names,
-                (SELECT GROUP_CONCAT(m.module_id SEPARATOR '||') FROM release_change_modules rcm WHERE rcm.change_id = rc.change_id) as module_ids,
+                (SELECT GROUP_CONCAT(rcm.module_id SEPARATOR '||') FROM release_change_modules rcm WHERE rcm.change_id = rc.change_id) as module_ids,
                 (SELECT GROUP_CONCAT(i.title SEPARATOR '||') FROM release_change_issues rci JOIN issues i ON rci.issue_id = i.issue_id WHERE rci.change_id = rc.change_id) as issue_titles,
-                (SELECT GROUP_CONCAT(i.issue_id SEPARATOR '||') FROM release_change_issues rci WHERE rci.change_id = rc.change_id) as issue_ids
+                (SELECT GROUP_CONCAT(rci.issue_id SEPARATOR '||') FROM release_change_issues rci WHERE rci.change_id = rc.change_id) as issue_ids
             FROM release_changes rc
             WHERE rc.release_id = ?
             ORDER BY rc.created_at ASC

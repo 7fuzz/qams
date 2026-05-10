@@ -15,6 +15,7 @@ import {
   Tag,
   AlertTriangle,
   Lock,
+  Layers,
   LucideIcon
 } from "lucide-react";
 
@@ -48,7 +49,8 @@ export const Sidebar = ({ userPermissions = [] }: SidebarProps) => {
         label: "Workspace",
         items: [
             { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-            { name: "System Management", href: "/management", icon: FolderTree },
+            { name: "Project Management", href: "/management", icon: FolderTree },
+            { name: "Module Management", href: "/management/modules", icon: Layers },
         ]
     },
     {

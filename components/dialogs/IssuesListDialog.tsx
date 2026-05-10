@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { Modal, Button, Label, Input, Combobox, Textarea, AttachmentManager } from '../ui';
-import { AlertCircle, MessageSquare, Plus, ChevronDown, ChevronUp, CheckCircle2, History, UserCheck, ShieldCheck } from 'lucide-react';
+import { AlertCircle, MessageSquare, Plus, ChevronDown, ChevronUp, CheckCircle2, History, UserCheck, ShieldCheck, FileText, ExternalLink, LayoutPanelTop, Layers } from 'lucide-react';
+import Link from 'next/link';
 import { 
   ISSUE_SEVERITY_OPTIONS,
   ISSUE_STATUS_OPTIONS,
@@ -25,6 +26,15 @@ interface Issue {
   solver_name: string;
   estimated_date: string | null;
   created_at: string;
+  test_case_titles?: string;
+}
+
+interface TestCase {
+  test_case_id: string;
+  title: string;
+  project_name: string;
+  module_name: string;
+  scenario_name: string;
 }
 
 interface IssueNote {
@@ -36,6 +46,7 @@ interface IssueNote {
 
 interface IssueHistoryEntry {
     history_id: string;
+    run_id: string | null;
     run_name: string | null;
     status: string;
     user_name: string;
@@ -49,29 +60,61 @@ interface User {
 
 interface IssuesListDialogProps {
   testCaseId: string | null;
+  issueId?: string | null;
   testCaseTitle: string;
   isOpen: boolean;
   onClose: () => void;
   onRefresh: () => void;
 }
 
-export const IssuesListDialog = ({ testCaseId, testCaseTitle, isOpen, onClose, onRefresh }: IssuesListDialogProps) => {
+export const IssuesListDialog = ({ testCaseId, issueId, testCaseTitle, isOpen, onClose, onRefresh }: IssuesListDialogProps) => {
   const [issues, setIssues] = useState<Issue[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [expandedIssueId, setExpandedIssueId] = useState<string | null>(null);
+  const [expandedTestCaseId, setExpandedTestCaseId] = useState<string | null>(null);
   const [issueNotes, setIssueNotes] = useState<Record<string, IssueNote[]>>({});
   const [issueHistory, setIssueHistory] = useState<Record<string, IssueHistoryEntry[]>>({});
+  const [issueTestCases, setIssueTestCases] = useState<Record<string, TestCase[]>>({});
   
   const [showNewIssueForm, setShowNewIssueForm] = useState(false);
   const [newIssue, setNewIssue] = useState({ title: '', description: '', severity: ISSUE_SEVERITY.MEDIUM as string, developer_id: '', estimated_date: '' });
   const [newNoteContent, setNewNoteContent] = useState<Record<string, string>>({});
 
+  const fetchDataForIssue = useCallback(async (issueId: string) => {
+    const [notesRes, historyRes, tcRes] = await Promise.all([
+        fetch(`/api/issues/notes?issueId=${issueId}`),
+        fetch(`/api/issues/history?issueId=${issueId}`),
+        fetch(`/api/issues/test-cases?id=${issueId}`)
+    ]);
+    const notes = await notesRes.json();
+    const history = await historyRes.json();
+    const testCases = await tcRes.json();
+    setIssueNotes(prev => ({ ...prev, [issueId]: notes }));
+    setIssueHistory(prev => ({ ...prev, [issueId]: history }));
+    setIssueTestCases(prev => ({ ...prev, [issueId]: testCases }));
+  }, []);
+
   const fetchIssues = useCallback(async () => {
-    if (!testCaseId) return;
-    const res = await fetch(`/api/issues?testCaseId=${testCaseId}&limit=1000`);
+    let url = '';
+    if (testCaseId) {
+        url = `/api/issues?testCaseId=${testCaseId}&limit=1000`;
+    } else if (issueId) {
+        url = `/api/issues?issueId=${issueId}`;
+    } else {
+        return;
+    }
+    
+    const res = await fetch(url);
     const resData = await res.json();
-    setIssues(resData.data || []);
-  }, [testCaseId]);
+    const fetchedIssues = resData.data || [];
+    setIssues(fetchedIssues);
+    
+    // If we were looking for a specific issue, expand it automatically
+    if (issueId && fetchedIssues.length > 0) {
+        setExpandedIssueId(fetchedIssues[0].issue_id);
+        fetchDataForIssue(fetchedIssues[0].issue_id);
+    }
+  }, [testCaseId, issueId, fetchDataForIssue]);
 
   const fetchUsers = useCallback(async () => {
     const res = await fetch('/api/users?limit=1000');
@@ -79,27 +122,16 @@ export const IssuesListDialog = ({ testCaseId, testCaseTitle, isOpen, onClose, o
     setUsers(resData.data || []);
   }, []);
 
-  const fetchDataForIssue = useCallback(async (issueId: string) => {
-    const [notesRes, historyRes] = await Promise.all([
-        fetch(`/api/issues/notes?issueId=${issueId}`),
-        fetch(`/api/issues/history?issueId=${issueId}`)
-    ]);
-    const notes = await notesRes.json();
-    const history = await historyRes.json();
-    setIssueNotes(prev => ({ ...prev, [issueId]: notes }));
-    setIssueHistory(prev => ({ ...prev, [issueId]: history }));
-  }, []);
-
   useEffect(() => {
     queueMicrotask(() => {
-        if (testCaseId && isOpen) {
+        if ((testCaseId || issueId) && isOpen) {
             fetchIssues();
             fetchUsers();
             setShowNewIssueForm(false);
-            setExpandedIssueId(null);
+            if (!issueId) setExpandedIssueId(null);
         }
     });
-  }, [testCaseId, isOpen, fetchIssues, fetchUsers]);
+  }, [testCaseId, issueId, isOpen, fetchIssues, fetchUsers]);
 
   const handleCreateIssue = async () => {
     if (!newIssue.title || !testCaseId) return;
@@ -137,7 +169,7 @@ export const IssuesListDialog = ({ testCaseId, testCaseTitle, isOpen, onClose, o
     fetchDataForIssue(issueId);
   };
 
-  if (!testCaseId) return null;
+  if (!testCaseId && !issueId) return null;
 
   const userOptions = users.map(u => ({ value: u.user_id, label: u.name }));
 
@@ -252,6 +284,51 @@ export const IssuesListDialog = ({ testCaseId, testCaseTitle, isOpen, onClose, o
                             />
                         </div>
 
+                        {/* Associated Test Cases */}
+                        <div className="space-y-3">
+                            <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-1">
+                            <FileText size={12} /> Associated Test Cases
+                            </div>
+                            <div className="space-y-2">
+                                {(issueTestCases[issue.issue_id] || []).map(tc => (
+                                    <div key={tc.test_case_id} className="border dark:border-gray-800 rounded-md overflow-hidden bg-white dark:bg-gray-950/50">
+                                        <div 
+                                            className="flex items-center justify-between px-3 py-2 cursor-pointer hover:bg-blue-50/50 dark:hover:bg-blue-900/5 transition-colors"
+                                            onClick={() => setExpandedTestCaseId(expandedTestCaseId === tc.test_case_id ? null : tc.test_case_id)}
+                                        >
+                                            <div className="flex items-center gap-2 text-[11px] font-medium text-blue-700 dark:text-blue-400">
+                                                <FileText size={12} />
+                                                {tc.title}
+                                            </div>
+                                            {expandedTestCaseId === tc.test_case_id ? <ChevronUp size={14} className="text-gray-400" /> : <ChevronDown size={14} className="text-gray-400" />}
+                                        </div>
+                                        {expandedTestCaseId === tc.test_case_id && (
+                                            <div className="px-3 pb-3 pt-1 border-t dark:border-gray-800 space-y-2 bg-blue-50/20 dark:bg-blue-900/5">
+                                                <div className="grid grid-cols-1 gap-1.5">
+                                                    <div className="flex items-center gap-1.5 text-[10px] uppercase font-bold text-text-theme-muted">
+                                                        <LayoutPanelTop size={10} className="text-primary-theme" /> {tc.project_name}
+                                                    </div>
+                                                    <div className="flex items-center gap-1.5 text-[10px] uppercase font-bold text-text-theme-muted">
+                                                        <Layers size={10} className="text-primary-theme" /> {tc.module_name} › {tc.scenario_name}
+                                                    </div>
+                                                </div>
+                                                <Link 
+                                                    href={`/tests/${tc.test_case_id}`}
+                                                    className="inline-flex items-center gap-1 text-[10px] font-bold text-primary-theme hover:underline uppercase"
+                                                    onClick={onClose}
+                                                >
+                                                    <ExternalLink size={10} /> View Details
+                                                </Link>
+                                            </div>
+                                        )}
+                                    </div>
+                                ))}
+                                {(issueTestCases[issue.issue_id] || []).length === 0 && (
+                                    <span className="text-[11px] text-gray-400 italic">No linked test cases</span>
+                                )}
+                            </div>
+                        </div>
+
                         {/* Run History */}
                         <div className="space-y-3">
                             <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-1">
@@ -261,7 +338,17 @@ export const IssuesListDialog = ({ testCaseId, testCaseTitle, isOpen, onClose, o
                                 {(issueHistory[issue.issue_id] || []).map(entry => (
                                     <div key={entry.history_id} className="flex items-center justify-between text-[11px] p-2 bg-white dark:bg-gray-900 border dark:border-gray-800 rounded">
                                         <div className="flex items-center gap-2">
-                                            <span className="font-bold text-blue-500">{entry.run_name || 'System'}</span>
+                                            {entry.run_id ? (
+                                                <Link 
+                                                    href={`/runs/${entry.run_id}`} 
+                                                    className="font-bold text-blue-500 hover:underline inline-flex items-center gap-1"
+                                                    onClick={onClose}
+                                                >
+                                                    {entry.run_name} <ExternalLink size={10} />
+                                                </Link>
+                                            ) : (
+                                                <span className="font-bold text-gray-500">{entry.run_name || 'System'}</span>
+                                            )}
                                             <span className="text-gray-400">➔</span>
                                             <span className="font-bold">{entry.status}</span>
                                         </div>

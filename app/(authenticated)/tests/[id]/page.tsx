@@ -89,12 +89,12 @@ export default function TestCaseDetailPage({ params }: { params: Promise<{ id: s
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                         <div className="space-y-1">
                             <Label className="text-[10px] font-bold text-text-theme-muted uppercase flex items-center gap-1"><Tag size={10} /> Type</Label>
-                            <div className="text-sm font-bold">{testCase.type}</div>
+                            <div className="text-sm font-bold">{testCase.type || 'N/A'}</div>
                         </div>
                         <div className="space-y-1">
                             <Label className="text-[10px] font-bold text-text-theme-muted uppercase flex items-center gap-1"><AlertCircle size={10} /> Priority</Label>
                             <div className={`text-sm font-bold ${testCase.priority === 'High' ? 'text-danger-theme' : testCase.priority === 'Medium' ? 'text-warning-theme' : 'text-primary-theme'}`}>
-                                {testCase.priority}
+                                {testCase.priority || 'N/A'}
                             </div>
                         </div>
                         <div className="space-y-1">
@@ -193,7 +193,7 @@ export default function TestCaseDetailPage({ params }: { params: Promise<{ id: s
                     <div className="space-y-4">
                         <div className="flex justify-between items-center text-xs">
                             <span className="text-text-theme-muted font-bold uppercase">Automation:</span>
-                            <span className="font-bold bg-surface-muted px-2 py-0.5 rounded border border-border-theme text-[10px] uppercase">{testCase.automation_status || 'Manual'}</span>
+                            <span className="font-bold bg-surface-muted px-2 py-0.5 rounded border border-border-theme text-[10px] uppercase">{testCase.automation_status || 'N/A'}</span>
                         </div>
                         <div className="flex justify-between items-center text-xs">
                             <span className="text-text-theme-muted font-bold uppercase">Requirement:</span>

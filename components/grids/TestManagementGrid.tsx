@@ -284,11 +284,12 @@ const onGridReady = () => {
         width: 100,
         cellEditor: 'agSelectCellEditor',
         cellEditorParams: { values: TEST_PRIORITY_OPTIONS.map(o => o.value) },
+        valueFormatter: (params) => params.value || 'N/A',
         cellClassRules: {
             'text-red-500 font-bold': params => params.value === TEST_PRIORITY.P0,
             'text-orange-500 font-bold': params => params.value === TEST_PRIORITY.P1,
             'text-blue-500': params => params.value === TEST_PRIORITY.P2,
-            'text-gray-400': params => params.value === TEST_PRIORITY.P3,
+            'text-gray-400': params => params.value === TEST_PRIORITY.P3 || !params.value,
         }
     },
     { field: 'title', headerName: 'Case Title', width: 250, filter: true },
@@ -298,6 +299,7 @@ const onGridReady = () => {
         width: 130,
         cellEditor: 'agSelectCellEditor',
         cellEditorParams: { values: AUTOMATION_STATUS_OPTIONS.map(o => o.value) },
+        valueFormatter: (params) => params.value || 'N/A',
     },
     { 
       field: 'type', 
@@ -307,6 +309,7 @@ const onGridReady = () => {
       cellEditorParams: {
         values: TEST_CASE_TYPE_OPTIONS.map(o => o.value),
       },
+      valueFormatter: (params) => params.value || 'N/A',
       cellClassRules: {
         'text-blue-600 font-medium': params => params.value === TEST_CASE_TYPE.POSITIVE,
         'text-red-600 font-medium': params => params.value === TEST_CASE_TYPE.NEGATIVE,

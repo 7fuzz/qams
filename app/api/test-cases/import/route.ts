@@ -30,7 +30,7 @@ function normalizeAutomation(val: unknown): string {
     if (!s) return '';
     if (s.includes('auto')) return AUTOMATION_STATUS.AUTOMATED;
     if (s.includes('cand') || s.includes('can')) return AUTOMATION_STATUS.CANDIDATE;
-    if (s === 'na' || s === 'n/a') return AUTOMATION_STATUS.NOT_APPLICABLE;
+    if (s === 'na' || s === 'n/a') return '';
     if (s.includes('man')) return AUTOMATION_STATUS.MANUAL;
     return '';
 }

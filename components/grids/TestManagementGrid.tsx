@@ -2,8 +2,8 @@
 
 import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { AgGridReact } from 'ag-grid-react';
-import { 
-  ColDef, 
+import {
+  ColDef,
   CellValueChangedEvent,
   AllCommunityModule,
   ModuleRegistry,
@@ -26,19 +26,19 @@ interface TestManagementGridProps {
 }
 
 interface ExcelRow {
-    scenario?: string;
-    title?: string;
-    case?: string;
-    type?: string;
-    priority?: string;
-    automation_status?: string;
-    requirement_link?: string;
-    estimated_duration?: string | number;
-    precondition?: string;
-    steps?: string;
-    test_data?: string;
-    expected_result?: string;
-    [key: string]: string | number | undefined;
+  scenario?: string;
+  title?: string;
+  case?: string;
+  type?: string;
+  priority?: string;
+  automation_status?: string;
+  requirement_link?: string;
+  estimated_duration?: string | number;
+  precondition?: string;
+  steps?: string;
+  test_data?: string;
+  expected_result?: string;
+  [key: string]: string | number | undefined;
 }
 
 export const TestManagementGrid = ({ moduleId }: TestManagementGridProps) => {
@@ -49,7 +49,7 @@ export const TestManagementGrid = ({ moduleId }: TestManagementGridProps) => {
   const [scenarios, setScenarios] = useState<Scenario[]>([]);
   const [loading, setLoading] = useState(true);
   const [newScenarioName, setNewScenarioName] = useState('');
-  
+
   // Pagination State
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(50);
@@ -65,74 +65,74 @@ export const TestManagementGrid = ({ moduleId }: TestManagementGridProps) => {
 
   const saveGridState = useCallback((params: { source?: string }) => {
     if (isApplyingStateRef.current) return;
-    
+
     // Only save if the change was initiated by the user
     const source = params?.source;
     const isUserAction = !source || source.startsWith('ui') || ['sort', 'filter', 'columnMenu'].includes(source);
-    
+
     if (isUserAction && gridRef.current?.api) {
       const state = gridRef.current.api.getColumnState();
       saveState(STORAGE_KEY, state);
     }
   }, [STORAGE_KEY]);
-const applySavedState = useCallback(() => {
-  const savedState = loadState<Record<string, unknown>[]>(STORAGE_KEY);
-  if (savedState && gridRef.current?.api) {
-    try {
-      isApplyingStateRef.current = true;
-      gridRef.current.api.applyColumnState({
-        state: savedState as any[],
-        applyOrder: true,
-      });
-      // Release the lock after a short delay to ensure events have fired
-      setTimeout(() => { isApplyingStateRef.current = false; }, 200);
-    } catch (e) {
-      console.error('Failed to restore grid state', e);
-      isApplyingStateRef.current = false;
+  const applySavedState = useCallback(() => {
+    const savedState = loadState<Record<string, unknown>[]>(STORAGE_KEY);
+    if (savedState && gridRef.current?.api) {
+      try {
+        isApplyingStateRef.current = true;
+        gridRef.current.api.applyColumnState({
+          state: savedState as any[],
+          applyOrder: true,
+        });
+        // Release the lock after a short delay to ensure events have fired
+        setTimeout(() => { isApplyingStateRef.current = false; }, 200);
+      } catch (e) {
+        console.error('Failed to restore grid state', e);
+        isApplyingStateRef.current = false;
+      }
     }
-  }
-}, [STORAGE_KEY]);
+  }, [STORAGE_KEY]);
 
-const onGridReady = () => {
-  applySavedState();
-};
+  const onGridReady = () => {
+    applySavedState();
+  };
 
   useEffect(() => {
     if (scenarios.length > 0) {
-        // Ensure state is applied after column definitions are updated
-        const timer = setTimeout(applySavedState, 200);
-        return () => clearTimeout(timer);
+      // Ensure state is applied after column definitions are updated
+      const timer = setTimeout(applySavedState, 200);
+      return () => clearTimeout(timer);
     }
   }, [scenarios, applySavedState]);
 
 
   const fetchScenarios = useCallback(() => fetch(`/api/scenarios?moduleId=${moduleId}`).then(res => res.json()).then(setScenarios), [moduleId]);
-  
+
   const fetchTestCases = useCallback((silent = false) => {
     if (!silent) setLoading(true);
-    
+
     let url = `/api/test-cases?moduleId=${moduleId}&page=${page}&limit=${limit}`;
-    
+
     // Add sorting from grid state if available
     if (gridRef.current?.api) {
-        const columnState = gridRef.current.api.getColumnState();
-        const sortedColumn = columnState.find(s => s.sort !== null);
-        if (sortedColumn) {
-            url += `&sortBy=${sortedColumn.colId}&sortOrder=${sortedColumn.sort?.toUpperCase()}`;
-        }
+      const columnState = gridRef.current.api.getColumnState();
+      const sortedColumn = columnState.find(s => s.sort !== null);
+      if (sortedColumn) {
+        url += `&sortBy=${sortedColumn.colId}&sortOrder=${sortedColumn.sort?.toUpperCase()}`;
+      }
     }
 
     fetch(url)
       .then(res => res.json())
       .then(res => {
         if (res.data) {
-            setRowData(res.data);
-            setTotalItems(res.total || 0);
-            setTotalPages(res.totalPages || 0);
+          setRowData(res.data);
+          setTotalItems(res.total || 0);
+          setTotalPages(res.totalPages || 0);
         } else {
-            setRowData([]);
-            setTotalItems(0);
-            setTotalPages(0);
+          setRowData([]);
+          setTotalItems(0);
+          setTotalPages(0);
         }
         setLoading(false);
       })
@@ -154,16 +154,16 @@ const onGridReady = () => {
 
   useEffect(() => {
     queueMicrotask(() => {
-        fetchTestCases();
+      fetchTestCases();
     });
   }, [fetchTestCases]);
 
   const handleAddScenario = async () => {
     if (!newScenarioName) return;
     await fetch('/api/scenarios', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: newScenarioName, module_id: moduleId }),
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: newScenarioName, module_id: moduleId }),
     });
     setNewScenarioName('');
     fetchScenarios();
@@ -184,45 +184,45 @@ const onGridReady = () => {
 
     const reader = new FileReader();
     reader.onload = async (e) => {
-        const data = new Uint8Array(e.target?.result as ArrayBuffer);
-        const workbook = XLSX.read(data, { type: 'array' });
-        const sheetName = workbook.SheetNames[0];
-        const worksheet = workbook.Sheets[sheetName];
-        const json: ExcelRow[] = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
+      const data = new Uint8Array(e.target?.result as ArrayBuffer);
+      const workbook = XLSX.read(data, { type: 'array' });
+      const sheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[sheetName];
+      const json: ExcelRow[] = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
 
-        let lastScenario = '';
-        const testCases = json.map(row => {
-            const obj: ExcelRow = {};
-            Object.keys(row).forEach(key => {
-                obj[key.trim().toLowerCase()] = row[key];
-            });
+      let lastScenario = '';
+      const testCases = json.map(row => {
+        const obj: ExcelRow = {};
+        Object.keys(row).forEach(key => {
+          obj[key.trim().toLowerCase()] = row[key];
+        });
 
-            if (obj.scenario && typeof obj.scenario === 'string' && obj.scenario.trim() !== "") {
-                lastScenario = obj.scenario.trim();
-            } else {
-                obj.scenario = lastScenario;
-            }
-
-            return obj;
-        }).filter(tc => tc.title || tc.case);
-
-        if (testCases.length > 0) {
-            setLoading(true);
-            const res = await fetch('/api/test-cases/import', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ moduleId, testCases }),
-            });
-            const result = await res.json();
-            if (res.ok) {
-                fetchScenarios();
-                fetchTestCases();
-                alert(`Import Complete:\n- ${result.count} cases imported\n- ${result.skipped} cases skipped (invalid type/priority)`);
-            } else {
-                alert('Import failed. Please check your data.');
-            }
-            setLoading(false);
+        if (obj.scenario && typeof obj.scenario === 'string' && obj.scenario.trim() !== "") {
+          lastScenario = obj.scenario.trim();
+        } else {
+          obj.scenario = lastScenario;
         }
+
+        return obj;
+      }).filter(tc => tc.title || tc.case);
+
+      if (testCases.length > 0) {
+        setLoading(true);
+        const res = await fetch('/api/test-cases/import', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ moduleId, testCases }),
+        });
+        const result = await res.json();
+        if (res.ok) {
+          fetchScenarios();
+          fetchTestCases();
+          alert(`Import Complete:\n- ${result.count} cases imported\n- ${result.skipped} cases skipped (invalid type/priority)`);
+        } else {
+          alert('Import failed. Please check your data.');
+        }
+        setLoading(false);
+      }
     };
     reader.readAsArrayBuffer(file);
     if (fileInputRef.current) fileInputRef.current.value = '';
@@ -230,160 +230,163 @@ const onGridReady = () => {
 
   const columnDefs = useMemo<ColDef<TestCase>[]>(() => {
     const cols: ColDef<TestCase>[] = [
-    { 
-        field: 'custom_id', 
-        headerName: 'Case ID', 
+      {
+        field: 'custom_id',
+        headerName: 'Case ID',
         width: 120,
         filter: true,
         pinned: 'left',
-        checkboxSelection: true, 
+        checkboxSelection: true,
         headerCheckboxSelection: true,
+        wrapText: false,
+        autoHeight: false,
         cellRenderer: (params: ICellRendererParams<TestCase>) => {
-            return (
-                <div className="flex items-center justify-between w-full h-full gap-2">
-                    <span className="truncate font-bold">{params.value || <span className="text-gray-400 italic text-[10px]">No ID</span>}</span>
-                    <IconButton 
-                        icon={Edit2} 
-                        size="sm" 
-                        className="bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-800/50 border border-blue-200 dark:border-blue-800 shadow-sm shrink-0"
-                        aria-label="Edit test case"
-                        title="Edit"
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            if (params.data) {
-                                setSelectedTestCase(params.data);
-                                setIsEditDialogOpen(true);
-                            }
-                        }}
-                    />
-                </div>
-            );
+          return (
+            <div className="flex items-center justify-between w-full h-full gap-2">
+              <span className="truncate font-bold">{params.value || <span className="text-gray-400 italic text-[10px]">No ID</span>}</span>
+              <IconButton
+                icon={Edit2}
+                size="sm"
+                className="bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-800/50 border border-blue-200 dark:border-blue-800 shadow-sm shrink-0"
+                aria-label="Edit test case"
+                title="Edit"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (params.data) {
+                    setSelectedTestCase(params.data);
+                    setIsEditDialogOpen(true);
+                  }
+                }}
+              />
+            </div>
+          );
         },
-    },
-    { 
-        field: 'scenario_id', 
-        headerName: 'Scenario', 
+      },
+      {
+        field: 'scenario_id',
+        headerName: 'Scenario',
         width: 180,
         cellRenderer: (params: ICellRendererParams<TestCase>) => {
-            const scenarioName = scenarios.find(s => s.scenario_id === params.value)?.name || params.value;
-            return <span className="truncate font-medium">{scenarioName}</span>;
+          const scenarioName = scenarios.find(s => s.scenario_id === params.value)?.name || params.value;
+          return <span className="truncate font-medium">{scenarioName}</span>;
         },
         cellEditor: 'agSelectCellEditor',
         cellEditorParams: {
-            values: scenarios.map(s => s.scenario_id),
-            valueListGap: 0,
-            valueListMaxWidth: 200,
-            formatValue: (id: string) => scenarios.find(s => s.scenario_id === id)?.name || id,
+          values: scenarios.map(s => s.scenario_id),
+          valueListGap: 0,
+          valueListMaxWidth: 200,
+          formatValue: (id: string) => scenarios.find(s => s.scenario_id === id)?.name || id,
         },
         valueFormatter: (params) => scenarios.find(s => s.scenario_id === params.value)?.name || params.value,
         filter: true,
-    },
-    { 
-        field: 'priority', 
-        headerName: 'Prio', 
+      },
+      {
+        field: 'priority',
+        headerName: 'Prio',
         width: 100,
         cellEditor: 'agSelectCellEditor',
         cellEditorParams: { values: TEST_PRIORITY_OPTIONS.map(o => o.value) },
         valueFormatter: (params) => params.value || 'N/A',
         cellClassRules: {
-            'text-red-500 font-bold': params => params.value === TEST_PRIORITY.P0,
-            'text-orange-500 font-bold': params => params.value === TEST_PRIORITY.P1,
-            'text-blue-500': params => params.value === TEST_PRIORITY.P2,
-            'text-gray-400': params => params.value === TEST_PRIORITY.P3 || !params.value,
+          'text-red-500 font-bold': params => params.value === TEST_PRIORITY.P0,
+          'text-orange-500 font-bold': params => params.value === TEST_PRIORITY.P1,
+          'text-blue-500': params => params.value === TEST_PRIORITY.P2,
+          'text-gray-400': params => params.value === TEST_PRIORITY.P3 || !params.value,
         }
-    },
-    { field: 'title', headerName: 'Case Title', width: 250, filter: true },
-    { 
-        field: 'automation_status', 
-        headerName: 'Automation', 
+      },
+      { field: 'title', headerName: 'Case Title', width: 250, filter: true },
+      {
+        field: 'automation_status',
+        headerName: 'Automation',
         width: 130,
         cellEditor: 'agSelectCellEditor',
         cellEditorParams: { values: AUTOMATION_STATUS_OPTIONS.map(o => o.value) },
         valueFormatter: (params) => params.value || 'N/A',
-    },
-    { 
-      field: 'type', 
-      headerName: 'Type', 
-      width: 120,
-      cellEditor: 'agSelectCellEditor',
-      cellEditorParams: {
-        values: TEST_CASE_TYPE_OPTIONS.map(o => o.value),
       },
-      valueFormatter: (params) => params.value || 'N/A',
-      cellClassRules: {
-        'text-blue-600 font-medium': params => params.value === TEST_CASE_TYPE.POSITIVE,
-        'text-red-600 font-medium': params => params.value === TEST_CASE_TYPE.NEGATIVE,
-        'text-orange-600 font-medium': params => params.value === TEST_CASE_TYPE.EDGE_CASE,
-      }
-    },
-    { 
-        headerName: 'Issues', 
+      {
+        field: 'type',
+        headerName: 'Type',
+        width: 120,
+        cellEditor: 'agSelectCellEditor',
+        cellEditorParams: {
+          values: TEST_CASE_TYPE_OPTIONS.map(o => o.value),
+        },
+        valueFormatter: (params) => params.value || 'N/A',
+        cellClassRules: {
+          'text-blue-600 font-medium': params => params.value === TEST_CASE_TYPE.POSITIVE,
+          'text-red-600 font-medium': params => params.value === TEST_CASE_TYPE.NEGATIVE,
+          'text-orange-600 font-medium': params => params.value === TEST_CASE_TYPE.EDGE_CASE,
+          'text-red-800 font-medium': params => params.value === TEST_CASE_TYPE.VULNERABILITY
+        }
+      },
+      {
+        headerName: 'Issues',
         width: 120,
         editable: false,
         cellRenderer: (params: ICellRendererParams<TestCase>) => {
-            const open = params.data?.open_issues_count || 0;
-            const closed = params.data?.closed_issues_count || 0;
-            if (open === 0 && closed === 0) return null;
-            return (
-                <div 
-                    className="flex items-center gap-2 cursor-pointer hover:underline"
-                    onClick={() => {
-                        if (params.data) {
-                            setSelectedTestCase(params.data);
-                            setIsIssuesDialogOpen(true);
-                        }
-                    }}
-                >
-                    {open > 0 && <span className="flex items-center gap-0.5 text-red-500 font-bold"><AlertCircle size={12} />{open}</span>}
-                    {closed > 0 && <span className="flex items-center gap-0.5 text-green-500 font-bold"><CheckCircle2 size={12} />{closed}</span>}
-                </div>
-            );
+          const open = params.data?.open_issues_count || 0;
+          const closed = params.data?.closed_issues_count || 0;
+          if (open === 0 && closed === 0) return null;
+          return (
+            <div
+              className="flex items-center gap-2 cursor-pointer hover:underline"
+              onClick={() => {
+                if (params.data) {
+                  setSelectedTestCase(params.data);
+                  setIsIssuesDialogOpen(true);
+                }
+              }}
+            >
+              {open > 0 && <span className="flex items-center gap-0.5 text-red-500 font-bold"><AlertCircle size={12} />{open}</span>}
+              {closed > 0 && <span className="flex items-center gap-0.5 text-green-500 font-bold"><CheckCircle2 size={12} />{closed}</span>}
+            </div>
+          );
         }
-    },
-    { 
-        field: 'requirement_link', 
-        headerName: 'Link', 
+      },
+      {
+        field: 'requirement_link',
+        headerName: 'Link',
         width: 100,
         cellRenderer: (params: ICellRendererParams<TestCase>) => {
-            if (!params.value) return null;
-            return <a href={params.value} target="_blank" className="text-blue-500 hover:text-blue-600"><ExternalLink size={14} /></a>
+          if (!params.value) return null;
+          return <a href={params.value} target="_blank" className="text-blue-500 hover:text-blue-600"><ExternalLink size={14} /></a>
         }
-    },
-    { field: 'precondition', headerName: 'Precondition', width: 200 },
-    { 
-        field: 'steps', 
-        headerName: 'Test Steps', 
-        width: 300, 
+      },
+      { field: 'precondition', headerName: 'Precondition', width: 200 },
+      {
+        field: 'steps',
+        headerName: 'Test Steps',
+        width: 300,
         cellEditor: 'agLargeTextCellEditor',
         cellEditorParams: {
-            cols: 50,
-            rows: 6
+          cols: 50,
+          rows: 6
         }
-    },
-    { field: 'expected_result', headerName: 'Expected Result', width: 250 },
-    { field: 'test_data', headerName: 'Test Data', width: 150 },
-    { 
-        field: 'updated_at', 
-        headerName: 'Updated At', 
-        width: 140, 
+      },
+      { field: 'expected_result', headerName: 'Expected Result', width: 250 },
+      { field: 'test_data', headerName: 'Test Data', width: 150 },
+      {
+        field: 'updated_at',
+        headerName: 'Updated At',
+        width: 140,
         editable: false,
         cellRenderer: (params: ICellRendererParams<TestCase>) => {
-            if (!params.value) return null;
-            return <span className="text-gray-400 text-xs font-medium uppercase">{new Date(params.value).toLocaleDateString()}</span>;
+          if (!params.value) return null;
+          return <span className="text-gray-400 text-xs font-medium uppercase">{new Date(params.value).toLocaleDateString()}</span>;
         }
-    },
-    { 
-        field: 'last_executed_at', 
-        headerName: 'Completed At', 
-        width: 140, 
+      },
+      {
+        field: 'last_executed_at',
+        headerName: 'Completed At',
+        width: 140,
         editable: false,
         cellRenderer: (params: ICellRendererParams<TestCase>) => {
-            if (!params.value) return <span className="text-gray-400 text-[10px] italic">Never</span>;
-            return <span className="text-gray-400 text-xs font-medium uppercase">{new Date(params.value).toLocaleDateString()}</span>;
+          if (!params.value) return <span className="text-gray-400 text-[10px] italic">Never</span>;
+          return <span className="text-gray-400 text-xs font-medium uppercase">{new Date(params.value).toLocaleDateString()}</span>;
         }
-    },
-  ];
-  return cols;
+      },
+    ];
+    return cols;
   }, [scenarios, setSelectedTestCase, setIsEditDialogOpen, setIsIssuesDialogOpen]);
 
   const defaultColDef = useMemo<ColDef<TestCase>>(() => ({
@@ -393,13 +396,15 @@ const onGridReady = () => {
     filter: true,
     suppressHeaderMenuButton: true,
     minWidth: 100,
-    cellClass: 'border-r dark:border-gray-800',
+    wrapText: true,
+    autoHeight: true,
+    cellClass: 'border-r dark:border-gray-800 py-2',
   }), []);
 
   const addRow = () => {
     if (scenarios.length === 0) {
-        alert("Please create at least one Scenario first.");
-        return;
+      alert("Please create at least one Scenario first.");
+      return;
     }
     const newRow: Partial<TestCase> = {
       scenario_id: scenarios[0].scenario_id,
@@ -418,7 +423,7 @@ const onGridReady = () => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(newRow),
     })
-    .then(() => fetchTestCases(true));
+      .then(() => fetchTestCases(true));
   };
 
   const deleteSelected = () => {
@@ -432,11 +437,11 @@ const onGridReady = () => {
   const duplicateSelected = () => {
     const selectedNodes = gridRef.current?.api.getSelectedNodes();
     if (!selectedNodes || selectedNodes.length === 0) return;
-    Promise.all(selectedNodes.map(node => fetch(`/api/test-cases`, { 
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ test_case_id: node.data.test_case_id })
-      })))
+    Promise.all(selectedNodes.map(node => fetch(`/api/test-cases`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ test_case_id: node.data.test_case_id })
+    })))
       .then(() => fetchTestCases(true));
   };
 
@@ -452,7 +457,7 @@ const onGridReady = () => {
 
   useEffect(() => {
     const handleResize = () => {
-        gridRef.current?.api?.sizeColumnsToFit();
+      gridRef.current?.api?.sizeColumnsToFit();
     };
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
@@ -464,18 +469,18 @@ const onGridReady = () => {
     <div className="flex flex-col w-full overflow-hidden">
       <div className="flex justify-between items-center px-6 py-3 border-b dark:border-gray-800 bg-gray-50/50 dark:bg-gray-900/50">
         <div className="flex items-center gap-6 text-black dark:text-white">
-            <h3 className="text-sm font-bold text-gray-500 uppercase tracking-widest flex items-center gap-2">
-                Cases <span className="bg-blue-100 dark:bg-blue-900/30 text-blue-600 px-2 py-0.5 rounded-full text-[10px]">{totalItems}</span>
-            </h3>
-            <div className="flex items-center gap-2 border-l dark:border-gray-800 pl-6">
-                <Input 
-                    placeholder="New Scenario..." 
-                    value={newScenarioName}
-                    onChange={e => setNewScenarioName(e.target.value)}
-                    className="h-7 text-[10px] w-[140px] bg-white dark:bg-gray-950"
-                />
-                <IconButton icon={Plus} size="sm" variant="outline" className="h-7 px-2" aria-label="Add scenario" onClick={handleAddScenario} />
-            </div>
+          <h3 className="text-sm font-bold text-gray-500 uppercase tracking-widest flex items-center gap-2">
+            Cases <span className="bg-blue-100 dark:bg-blue-900/30 text-blue-600 px-2 py-0.5 rounded-full text-[10px]">{totalItems}</span>
+          </h3>
+          <div className="flex items-center gap-2 border-l dark:border-gray-800 pl-6">
+            <Input
+              placeholder="New Scenario..."
+              value={newScenarioName}
+              onChange={e => setNewScenarioName(e.target.value)}
+              className="h-7 text-[10px] w-[140px] bg-white dark:bg-gray-950"
+            />
+            <IconButton icon={Plus} size="sm" variant="outline" className="h-7 px-2" aria-label="Add scenario" onClick={handleAddScenario} />
+          </div>
         </div>
         <div className="flex gap-2">
           <Button onClick={handleDownloadTemplate} variant="ghost" size="sm" className="h-8 text-gray-600 hover:bg-gray-50">
@@ -484,12 +489,12 @@ const onGridReady = () => {
           <Button onClick={() => fileInputRef.current?.click()} variant="ghost" size="sm" className="h-8 text-gray-600 hover:bg-gray-50">
             <Upload size={16} className="mr-2" /> Import
           </Button>
-          <input 
-            type="file" 
-            ref={fileInputRef} 
-            onChange={handleImportExcel} 
-            accept=".xlsx, .xls" 
-            className="hidden" 
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleImportExcel}
+            accept=".xlsx, .xls"
+            className="hidden"
           />
 
           <div className="w-px h-6 bg-gray-200 dark:border-gray-800 mx-2 self-center" />
@@ -505,12 +510,12 @@ const onGridReady = () => {
           </Button>
         </div>
       </div>
-      
+
       <div className="w-full border dark:border-gray-800 overflow-hidden bg-white dark:bg-gray-950 shadow-sm relative">
         {loading && (
-            <div className="absolute inset-0 z-50 bg-white/50 dark:bg-black/50 flex items-center justify-center backdrop-blur-[1px]">
-                <div className="text-[10px] font-bold uppercase tracking-widest text-primary-theme animate-pulse">Refreshing...</div>
-            </div>
+          <div className="absolute inset-0 z-50 bg-white/50 dark:bg-black/50 flex items-center justify-center backdrop-blur-[1px]">
+            <div className="text-[10px] font-bold uppercase tracking-widest text-primary-theme animate-pulse">Refreshing...</div>
+          </div>
         )}
         <AgGridReact
           ref={gridRef}
@@ -538,7 +543,7 @@ const onGridReady = () => {
         />
       </div>
 
-      <Pagination 
+      <Pagination
         currentPage={page}
         totalPages={totalPages}
         pageSize={limit}
@@ -547,7 +552,7 @@ const onGridReady = () => {
         onPageSizeChange={(s) => { setLimit(s); setPage(1); }}
       />
 
-      <EditTestCaseDialog 
+      <EditTestCaseDialog
         testCase={selectedTestCase}
         scenarios={scenarios}
         isOpen={isEditDialogOpen}
@@ -555,7 +560,7 @@ const onGridReady = () => {
         onSave={() => fetchTestCases(true)}
       />
 
-      <IssuesListDialog 
+      <IssuesListDialog
         testCaseId={selectedTestCase?.test_case_id || null}
         testCaseTitle={selectedTestCase?.title || ''}
         isOpen={isIssuesDialogOpen}

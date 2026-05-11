@@ -2,10 +2,10 @@
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import Link from 'next/link';
-import { 
-  Button, 
-  IconButton, 
-  ManagementPage, 
+import {
+  Button,
+  IconButton,
+  ManagementPage,
   Column,
   Combobox,
   Label
@@ -72,7 +72,7 @@ export default function TestRunsPage() {
     if (search) {
       url += `&search=${encodeURIComponent(search)}`;
     }
-    
+
     fetch(url)
       .then(res => res.json())
       .then(res => {
@@ -89,8 +89,8 @@ export default function TestRunsPage() {
 
   useEffect(() => {
     queueMicrotask(() => {
-        fetchProjects();
-        fetchRuns();
+      fetchProjects();
+      fetchRuns();
     });
   }, [fetchProjects, fetchRuns]);
 
@@ -101,126 +101,125 @@ export default function TestRunsPage() {
   }, [fetchRuns]);
 
   const columns: Column<TestRun>[] = useMemo(() => [
-    { 
-        header: 'Run Name', 
-        accessorKey: 'name',
-        sortable: true,
-        width: 250,
-        minWidth: 150,
-        cell: (item) => (
-            <div className="flex flex-col gap-0.5 py-1">
-                <div className="font-bold text-primary-theme leading-tight">{item.name}</div>
-                {item.type && <div className="text-[9px] font-black uppercase tracking-widest text-text-theme-subtle opacity-70 leading-none">{item.type}</div>}
-            </div>
-        )
-    },
-    { 
-        header: 'Project', 
-        accessorKey: 'project_name',
-        sortable: true,
-        width: 200,
-        minWidth: 120,
-        cell: (item) => (
-            <div className="flex items-center gap-2 text-xs font-bold text-text-theme-muted uppercase tracking-tight">
-                <LayoutPanelTop size={14} className="text-text-theme-subtle" />
-                {item.project_name}
-            </div>
-        )
-    },
-    { 
-        header: 'Status', 
-        accessorKey: 'status',
-        sortable: true,
-        width: 120,
-        minWidth: 100,
-        cell: (item) => (
-            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
-                item.status === 'Completed' ? 'bg-success-theme/10 text-success-theme' :
-                item.status === 'In Progress' ? 'bg-primary-theme/10 text-primary-theme' :
-                'bg-surface-accent text-text-theme-muted'
-            }`}>
-                {item.status}
-            </span>
-        )
+    {
+      header: 'Run Name',
+      accessorKey: 'name',
+      sortable: true,
+      width: 250,
+      minWidth: 150,
+      cell: (item) => (
+        <div className="flex flex-col gap-0.5 py-1">
+          <div className="font-bold text-primary-theme leading-tight">{item.name}</div>
+          {item.type && <div className="text-[9px] font-black uppercase tracking-widest text-text-theme-subtle opacity-70 leading-none">{item.type}</div>}
+        </div>
+      )
     },
     {
-        header: 'Progress',
-        width: 150,
-        minWidth: 120,
-        cell: (item) => {
-            const total = item.total_cases || 0;
-            const passed = item.passed_count || 0;
-            const percent = total > 0 ? Math.round((passed / total) * 100) : 0;
-            return (
-                <div className="flex flex-col gap-1.5 min-w-[100px]">
-                    <div className="flex justify-between items-center text-[9px] font-bold uppercase tracking-tighter">
-                        <span className="text-text-theme-muted">{passed} / {total} Passed</span>
-                        <span className="text-primary-theme">{percent}%</span>
-                    </div>
-                    <div className="w-full bg-surface-muted h-1 rounded-full overflow-hidden">
-                        <div className="bg-primary-theme h-full transition-all duration-500" style={{ width: `${percent}%` }} />
-                    </div>
-                </div>
-            );
-        }
+      header: 'Project',
+      accessorKey: 'project_name',
+      sortable: true,
+      width: 200,
+      minWidth: 120,
+      cell: (item) => (
+        <div className="flex items-center gap-2 text-xs font-bold text-text-theme-muted uppercase tracking-tight">
+          <LayoutPanelTop size={14} className="text-text-theme-subtle" />
+          {item.project_name}
+        </div>
+      )
     },
-    { 
-        header: 'Testers', 
-        accessorKey: 'assigned_tester_names',
-        width: 200,
-        minWidth: 150,
-        cell: (item) => (
-            <div className="flex flex-wrap gap-1 max-w-[200px]">
-                {item.assigned_tester_names && item.assigned_tester_names.length > 0 ? (
-                    item.assigned_tester_names.map(name => (
-                        <div key={name} className="flex items-center gap-1 text-[9px] font-bold text-primary-theme bg-primary-theme/5 px-1.5 py-0.5 rounded-full border border-primary-theme/10 uppercase">
-                            <User size={8} /> {name}
-                        </div>
-                    ))
-                ) : (
-                    <span className="text-[10px] text-text-theme-muted italic font-bold">Unassigned</span>
-                )}
+    {
+      header: 'Status',
+      accessorKey: 'status',
+      sortable: true,
+      width: 120,
+      minWidth: 100,
+      cell: (item) => (
+        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${item.status === 'Completed' ? 'bg-success-theme/10 text-success-theme' :
+            item.status === 'In Progress' ? 'bg-primary-theme/10 text-primary-theme' :
+              'bg-surface-accent text-text-theme-muted'
+          }`}>
+          {item.status}
+        </span>
+      )
+    },
+    {
+      header: 'Progress',
+      width: 150,
+      minWidth: 120,
+      cell: (item) => {
+        const total = item.total_cases || 0;
+        const passed = item.passed_count || 0;
+        const percent = total > 0 ? Math.round((passed / total) * 100) : 0;
+        return (
+          <div className="flex flex-col gap-1.5 min-w-25">
+            <div className="flex justify-between items-center text-[9px] font-bold uppercase tracking-tighter">
+              <span className="text-text-theme-muted">{passed} / {total} Passed</span>
+              <span className="text-primary-theme">{percent}%</span>
             </div>
-        )
-    },
-    { 
-        header: 'Requested By', 
-        accessorKey: 'requested_by_name',
-        sortable: true,
-        width: 150,
-        minWidth: 120,
-        cell: (item) => (
-            <div className="flex items-center gap-2 text-[10px] font-bold text-text-theme-subtle uppercase opacity-80 italic">
-                {item.requested_by_name || 'System'}
+            <div className="w-full bg-surface-muted h-1 rounded-full overflow-hidden">
+              <div className="bg-primary-theme h-full transition-all duration-500" style={{ width: `${percent}%` }} />
             </div>
-        )
+          </div>
+        );
+      }
     },
-    { 
-        header: 'Date', 
-        accessorKey: 'created_at',
-        sortable: true,
-        width: 120,
-        minWidth: 100,
-        cell: (item) => <span className="text-[10px] font-bold text-text-theme-subtle uppercase">{new Date(item.created_at).toLocaleDateString()}</span>
+    {
+      header: 'Testers',
+      accessorKey: 'assigned_tester_names',
+      width: 200,
+      minWidth: 150,
+      cell: (item) => (
+        <div className="flex flex-wrap gap-1 max-w-50">
+          {item.assigned_tester_names && item.assigned_tester_names.length > 0 ? (
+            item.assigned_tester_names.map(name => (
+              <div key={name} className="flex items-center gap-1 text-[9px] font-bold text-primary-theme bg-primary-theme/5 px-1.5 py-0.5 rounded-full border border-primary-theme/10 uppercase">
+                <User size={8} /> {name}
+              </div>
+            ))
+          ) : (
+            <span className="text-[10px] text-text-theme-muted italic font-bold">Unassigned</span>
+          )}
+        </div>
+      )
     },
-    { 
-      header: 'Actions', 
+    {
+      header: 'Requested By',
+      accessorKey: 'requested_by_name',
+      sortable: true,
+      width: 150,
+      minWidth: 120,
+      cell: (item) => (
+        <div className="flex items-center gap-2 text-[10px] font-bold text-text-theme-subtle uppercase opacity-80 italic">
+          {item.requested_by_name || 'System'}
+        </div>
+      )
+    },
+    {
+      header: 'Date',
+      accessorKey: 'created_at',
+      sortable: true,
+      width: 120,
+      minWidth: 100,
+      cell: (item) => <span className="text-[10px] font-bold text-text-theme-subtle uppercase">{new Date(item.created_at).toLocaleDateString()}</span>
+    },
+    {
+      header: 'Actions',
       className: 'text-right',
       width: 120,
       minWidth: 120,
       pin: 'right',
       cell: (item) => (
         <div className="flex gap-1 justify-end" onClick={e => e.stopPropagation()}>
-          <IconButton 
-            icon={Info} 
-            size="sm" 
-            variant="ghost" 
-            className="text-text-theme-muted hover:bg-surface-accent" 
+          <IconButton
+            icon={Info}
+            size="sm"
+            variant="ghost"
+            className="text-text-theme-muted hover:bg-surface-accent"
             title="View Summary"
             aria-label="View summary"
             onClick={() => {
-                setSelectedRun(item);
-                setIsDetailOpen(true);
+              setSelectedRun(item);
+              setIsDetailOpen(true);
             }}
           />
           <Link href={`/runs/${item.run_id}`}>
@@ -234,35 +233,35 @@ export default function TestRunsPage() {
 
   const filters = (
     <div className="flex flex-wrap items-center gap-6">
-        <div className="flex items-center gap-2 min-w-[240px]">
-            <Filter size={16} className="text-text-theme-muted" />
-            <Label className="text-[10px] font-black uppercase tracking-widest text-text-theme-subtle mr-2 whitespace-nowrap">Project</Label>
-            <div className="flex-1">
-                <Combobox 
-                    options={[{ value: 'all', label: 'All Projects' }, ...projects.map(p => ({ value: p.project_id, label: p.name }))]}
-                    value={selectedProjectId}
-                    onChange={val => { 
-                        setSelectedProjectId(val as string); 
-                        setSelectedModuleId('all');
-                        fetchModules(val as string);
-                        setPage(1); 
-                    }}
-                />
-            </div>
+      <div className="flex items-center gap-2 min-w-60">
+        <Filter size={16} className="text-text-theme-muted" />
+        <Label className="text-[10px] font-black uppercase tracking-widest text-text-theme-subtle mr-2 whitespace-nowrap">Project</Label>
+        <div className="flex-1">
+          <Combobox
+            options={[{ value: 'all', label: 'All Projects' }, ...projects.map(p => ({ value: p.project_id, label: p.name }))]}
+            value={selectedProjectId}
+            onChange={val => {
+              setSelectedProjectId(val as string);
+              setSelectedModuleId('all');
+              fetchModules(val as string);
+              setPage(1);
+            }}
+          />
         </div>
+      </div>
 
-        <div className="flex items-center gap-2 min-w-[240px]">
-            <Layers size={16} className="text-text-theme-muted" />
-            <Label className="text-[10px] font-black uppercase tracking-widest text-text-theme-subtle mr-2 whitespace-nowrap">Module</Label>
-            <div className="flex-1">
-                <Combobox 
-                    options={[{ value: 'all', label: 'All Modules' }, ...modules.map(m => ({ value: m.module_id, label: m.name }))]}
-                    value={selectedModuleId}
-                    onChange={val => { setSelectedModuleId(val as string); setPage(1); }}
-                    disabled={selectedProjectId === 'all'}
-                />
-            </div>
+      <div className="flex items-center gap-2 min-w-60">
+        <Layers size={16} className="text-text-theme-muted" />
+        <Label className="text-[10px] font-black uppercase tracking-widest text-text-theme-subtle mr-2 whitespace-nowrap">Module</Label>
+        <div className="flex-1">
+          <Combobox
+            options={[{ value: 'all', label: 'All Modules' }, ...modules.map(m => ({ value: m.module_id, label: m.name }))]}
+            value={selectedModuleId}
+            onChange={val => { setSelectedModuleId(val as string); setPage(1); }}
+            disabled={selectedProjectId === 'all'}
+          />
         </div>
+      </div>
     </div>
   );
 
@@ -295,7 +294,7 @@ export default function TestRunsPage() {
         searchPlaceholder="Search runs or projects..."
       />
 
-      <RunDetailDialog 
+      <RunDetailDialog
         run={selectedRun}
         isOpen={isDetailOpen}
         onClose={() => setIsDetailOpen(false)}

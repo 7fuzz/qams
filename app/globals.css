@@ -87,3 +87,17 @@ body {
   color: var(--foreground);
   font-family: var(--font-sans);
 }
+
+/* AG Grid Multi-line Support */
+.ag-cell-wrap-text {
+  white-space: pre-wrap !important;
+  word-break: break-word;
+}
+
+.ag-large-text-input {
+  white-space: pre-wrap !important;
+}
+
+.whitespace-pre-wrap {
+  white-space: pre-wrap !important;
+}

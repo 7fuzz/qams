@@ -152,26 +152,26 @@ export default function IssueManagementPage() {
         <div className="space-y-1.5 py-1">
           <div className="flex items-center gap-2">
             <span className={`text-[9px] font-black uppercase px-1.5 py-0.5 rounded shrink-0 ${issue.severity.includes('High') ? 'bg-danger-theme text-white' :
-                issue.severity.includes('Medium') ? 'bg-warning-theme text-white' : 'bg-primary-theme text-white'
+              issue.severity.includes('Medium') ? 'bg-warning-theme text-white' : 'bg-primary-theme text-white'
               }`}>{issue.severity.split(' ')[0]}</span>
             <span className="font-bold text-sm text-text-theme-main line-clamp-1">{issue.title}</span>
           </div>
-          
+
           <div className="flex flex-wrap items-center gap-2">
-              <p className="text-[10px] text-text-theme-muted font-bold uppercase tracking-tighter shrink-0 italic">Reported by: {issue.reporter_name}</p>
-              {issue.tags && issue.tags.length > 0 && (
-                  <div className="flex gap-1 overflow-hidden">
-                      {issue.tags.map(t => (
-                          <span 
-                              key={t.tag_id} 
-                              className="text-[8px] font-black uppercase px-1.5 py-0.5 rounded-full border shadow-sm text-white shrink-0"
-                              style={{ backgroundColor: t.color, borderColor: t.color + '40' }}
-                          >
-                              {t.name}
-                          </span>
-                      ))}
-                  </div>
-              )}
+            <p className="text-[10px] text-text-theme-muted font-bold uppercase tracking-tighter shrink-0 italic">Reported by: {issue.reporter_name}</p>
+            {issue.tags && issue.tags.length > 0 && (
+              <div className="flex gap-1 overflow-hidden">
+                {issue.tags.map(t => (
+                  <span
+                    key={t.tag_id}
+                    className="text-[8px] font-black uppercase px-1.5 py-0.5 rounded-full border shadow-sm text-white shrink-0"
+                    style={{ backgroundColor: t.color, borderColor: t.color + '40' }}
+                  >
+                    {t.name}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
 
           {issue.test_case_titles && (
@@ -191,12 +191,12 @@ export default function IssueManagementPage() {
       cell: (issue) => (
         <div className="space-y-1 py-1">
           <div className="text-[10px] font-bold text-primary-theme flex items-center gap-1.5 uppercase">
-              <LayoutPanelTop size={14} className="shrink-0 opacity-70" /> 
-              <span className="truncate">{issue.project_name || 'Global / Unlinked'}</span>
+            <LayoutPanelTop size={14} className="shrink-0 opacity-70" />
+            <span className="truncate">{issue.project_name || 'Global / Unlinked'}</span>
           </div>
           <div className="text-[10px] font-medium text-text-theme-muted flex items-center gap-1.5 uppercase">
-              <Layers size={14} className="shrink-0 opacity-50" /> 
-              <span className="truncate">{issue.module_name || 'No Module Context'}</span>
+            <Layers size={14} className="shrink-0 opacity-50" />
+            <span className="truncate">{issue.module_name || 'No Module Context'}</span>
           </div>
         </div>
       )
@@ -253,38 +253,38 @@ export default function IssueManagementPage() {
       )
     },
     {
-        header: 'Last Update',
-        accessorKey: 'updated_at',
-        sortable: true,
-        width: 120,
-        minWidth: 100,
-        cell: (issue) => <span className="text-[10px] text-text-theme-muted uppercase font-medium">{issue.updated_at ? new Date(issue.updated_at).toLocaleDateString() : 'Never'}</span>
+      header: 'Last Update',
+      accessorKey: 'updated_at',
+      sortable: true,
+      width: 120,
+      minWidth: 100,
+      cell: (issue) => <span className="text-[10px] text-text-theme-muted uppercase font-medium">{issue.updated_at ? new Date(issue.updated_at).toLocaleDateString() : 'Never'}</span>
     },
     {
-        header: 'Action',
-        className: 'text-right',
-        width: 80,
-        minWidth: 80,
-        pin: 'right',
-        cell: (issue) => (        <IconButton
-          icon={ExternalLink}
-          size="sm"
-          variant="ghost"
-          className="text-blue-600"
-          aria-label="View details and manage issue"
-          title="View Details & Manage"
-          onClick={(e) => {
-            e.stopPropagation();
-            handleOpenIssue(issue);
-          }}
-        />
+      header: 'Action',
+      className: 'text-right',
+      width: 80,
+      minWidth: 80,
+      pin: 'right',
+      cell: (issue) => (<IconButton
+        icon={ExternalLink}
+        size="sm"
+        variant="ghost"
+        className="text-blue-600"
+        aria-label="View details and manage issue"
+        title="View Details & Manage"
+        onClick={(e) => {
+          e.stopPropagation();
+          handleOpenIssue(issue);
+        }}
+      />
       )
     }
   ], []);
 
   const filters = (
     <div className="flex flex-wrap items-center gap-4">
-      <div className="min-w-[200px] flex-1 lg:flex-none">
+      <div className="min-w-50 flex-1 lg:flex-none">
         <Combobox
           options={[{ value: 'all', label: 'All Projects' }, ...projects.map(p => ({ value: p.project_id, label: p.name }))]}
           value={selectedProjectId}
@@ -292,7 +292,7 @@ export default function IssueManagementPage() {
           placeholder="Project..."
         />
       </div>
-      <div className="min-w-[200px] flex-1 lg:flex-none">
+      <div className="min-w-50 flex-1 lg:flex-none">
         <Combobox
           options={[{ value: 'all', label: 'All Modules' }, ...modules.map(m => ({ value: m.module_id, label: m.name }))]}
           value={selectedModuleId}
@@ -301,7 +301,7 @@ export default function IssueManagementPage() {
           placeholder="Module..."
         />
       </div>
-      <div className="min-w-[180px] flex-1 lg:flex-none">
+      <div className="min-w-45 flex-1 lg:flex-none">
         <Combobox
           options={[{ value: 'all', label: 'All Statuses' }, ...ISSUE_STATUS_OPTIONS]}
           value={selectedStatus}
@@ -309,7 +309,7 @@ export default function IssueManagementPage() {
           placeholder="Status..."
         />
       </div>
-      <div className="min-w-[180px] flex-1 lg:flex-none">
+      <div className="min-w-45 flex-1 lg:flex-none">
         <Combobox
           options={[{ value: 'all', label: 'All Developers' }, ...users.map(u => ({ value: u.user_id, label: u.name }))]}
           value={selectedDevId}

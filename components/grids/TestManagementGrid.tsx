@@ -7,7 +7,8 @@ import {
   CellValueChangedEvent,
   AllCommunityModule,
   ModuleRegistry,
-  ICellRendererParams
+  ICellRendererParams,
+  ColumnState
 } from 'ag-grid-community';
 import { Button, IconButton, Input, Pagination } from '../ui';
 import { Trash2, Plus, Copy, AlertCircle, Edit2, CheckCircle2, ExternalLink, Download, Upload } from 'lucide-react';
@@ -76,12 +77,12 @@ export const TestManagementGrid = ({ moduleId }: TestManagementGridProps) => {
     }
   }, [STORAGE_KEY]);
   const applySavedState = useCallback(() => {
-    const savedState = loadState<Record<string, unknown>[]>(STORAGE_KEY);
+    const savedState = loadState<ColumnState[]>(STORAGE_KEY);
     if (savedState && gridRef.current?.api) {
       try {
         isApplyingStateRef.current = true;
         gridRef.current.api.applyColumnState({
-          state: savedState as any[],
+          state: savedState,
           applyOrder: true,
         });
         // Release the lock after a short delay to ensure events have fired
@@ -240,6 +241,8 @@ export const TestManagementGrid = ({ moduleId }: TestManagementGridProps) => {
         headerCheckboxSelection: true,
         wrapText: false,
         autoHeight: false,
+        cellEditor: 'agLargeTextCellEditor',
+        cellEditorParams: { cols: 30, rows: 1 },
         cellRenderer: (params: ICellRendererParams<TestCase>) => {
           return (
             <div className="flex items-center justify-between w-full h-full gap-2">
@@ -294,7 +297,14 @@ export const TestManagementGrid = ({ moduleId }: TestManagementGridProps) => {
           'text-gray-400': params => params.value === TEST_PRIORITY.P3 || !params.value,
         }
       },
-      { field: 'title', headerName: 'Case Title', width: 250, filter: true },
+      { 
+        field: 'title', 
+        headerName: 'Case Title', 
+        width: 250, 
+        filter: true,
+        cellEditor: 'agLargeTextCellEditor',
+        cellEditorParams: { cols: 50, rows: 3 }
+      },
       {
         field: 'automation_status',
         headerName: 'Automation',
@@ -352,19 +362,38 @@ export const TestManagementGrid = ({ moduleId }: TestManagementGridProps) => {
           return <a href={params.value} target="_blank" className="text-blue-500 hover:text-blue-600"><ExternalLink size={14} /></a>
         }
       },
-      { field: 'precondition', headerName: 'Precondition', width: 200 },
+      { 
+        field: 'precondition', 
+        headerName: 'Precondition', 
+        width: 200,
+        cellEditor: 'agLargeTextCellEditor',
+        cellEditorParams: { cols: 50, rows: 3 }
+      },
       {
         field: 'steps',
         headerName: 'Test Steps',
         width: 300,
+        cellClass: 'whitespace-pre-wrap py-2 border-r dark:border-gray-800',
         cellEditor: 'agLargeTextCellEditor',
         cellEditorParams: {
           cols: 50,
           rows: 6
         }
       },
-      { field: 'expected_result', headerName: 'Expected Result', width: 250 },
-      { field: 'test_data', headerName: 'Test Data', width: 150 },
+      { 
+        field: 'expected_result', 
+        headerName: 'Expected Result', 
+        width: 250,
+        cellClass: 'whitespace-pre-wrap py-2 border-r dark:border-gray-800',
+        cellEditor: 'agLargeTextCellEditor',
+        cellEditorParams: { cols: 50, rows: 6 }
+      },      { 
+        field: 'test_data', 
+        headerName: 'Test Data', 
+        width: 150,
+        cellEditor: 'agLargeTextCellEditor',
+        cellEditorParams: { cols: 50, rows: 6 }
+      },
       {
         field: 'updated_at',
         headerName: 'Updated At',

@@ -241,13 +241,13 @@ export const ExecutionDialog = ({ execution, isOpen, onClose, onSave }: Executio
                 </div>
                 <div>
                     <Label className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Expected Result</Label>
-                    <p className="mt-1 text-gray-900 dark:text-gray-100">{execution.expected_result}</p>
+                    <p className="mt-1 whitespace-pre-wrap text-gray-900 dark:text-gray-100">{execution.expected_result}</p>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                     {execution.precondition && (
                         <div>
                             <Label className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Precondition</Label>
-                            <p className="mt-1 text-gray-900 dark:text-gray-100 italic text-xs">{execution.precondition}</p>
+                            <p className="mt-1 whitespace-pre-wrap text-gray-900 dark:text-gray-100 italic text-xs">{execution.precondition}</p>
                         </div>
                     )}
                     {execution.requirement_link && (

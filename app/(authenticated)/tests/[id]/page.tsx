@@ -205,9 +205,8 @@ export default function TestCaseDetailPage({ params }: { params: Promise<{ id: s
                         </div>
                         <div className="flex justify-between items-center text-xs">
                             <span className="text-text-theme-muted font-bold uppercase">Created At:</span>
-                            <span className="font-medium text-text-theme-muted">{new Date(testCase.created_at).toLocaleDateString()}</span>
-                        </div>
-                    </div>
+                            <span className="font-medium text-text-theme-muted">{testCase.created_at ? new Date(testCase.created_at).toLocaleDateString() : 'Initial Seed'}</span>
+                        </div>                    </div>
                 </CardContent>
             </Card>
 

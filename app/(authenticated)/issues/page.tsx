@@ -146,20 +146,37 @@ export default function IssueManagementPage() {
       header: 'Issue Details',
       accessorKey: 'title',
       sortable: true,
-      width: 350,
-      minWidth: 250,
+      width: 400,
+      minWidth: 300,
       cell: (issue) => (
-        <div className="space-y-1">
+        <div className="space-y-1.5 py-1">
           <div className="flex items-center gap-2">
-            <span className={`text-[9px] font-black uppercase px-1.5 py-0.5 rounded ${issue.severity.includes('High') ? 'bg-danger-theme text-white' :
+            <span className={`text-[9px] font-black uppercase px-1.5 py-0.5 rounded shrink-0 ${issue.severity.includes('High') ? 'bg-danger-theme text-white' :
                 issue.severity.includes('Medium') ? 'bg-warning-theme text-white' : 'bg-primary-theme text-white'
               }`}>{issue.severity.split(' ')[0]}</span>
             <span className="font-bold text-sm text-text-theme-main line-clamp-1">{issue.title}</span>
           </div>
-          <p className="text-xs text-text-theme-muted line-clamp-1 italic">Reported by: {issue.reporter_name}</p>
+          
+          <div className="flex flex-wrap items-center gap-2">
+              <p className="text-[10px] text-text-theme-muted font-bold uppercase tracking-tighter shrink-0 italic">Reported by: {issue.reporter_name}</p>
+              {issue.tags && issue.tags.length > 0 && (
+                  <div className="flex gap-1 overflow-hidden">
+                      {issue.tags.map(t => (
+                          <span 
+                              key={t.tag_id} 
+                              className="text-[8px] font-black uppercase px-1.5 py-0.5 rounded-full border shadow-sm text-white shrink-0"
+                              style={{ backgroundColor: t.color, borderColor: t.color + '40' }}
+                          >
+                              {t.name}
+                          </span>
+                      ))}
+                  </div>
+              )}
+          </div>
+
           {issue.test_case_titles && (
-            <div className="flex items-center gap-1 mt-1 text-[10px] text-blue-500 font-medium bg-blue-50 dark:bg-blue-900/10 px-1.5 py-0.5 rounded-sm w-fit">
-              <Layers size={10} /> {issue.test_case_titles}
+            <div className="flex items-center gap-1 mt-1 text-[10px] text-blue-500 font-medium bg-blue-50 dark:bg-blue-900/10 px-1.5 py-0.5 rounded-sm w-fit max-w-full">
+              <Layers size={10} className="shrink-0" /> <span className="truncate">{issue.test_case_titles}</span>
             </div>
           )}
         </div>
@@ -169,12 +186,18 @@ export default function IssueManagementPage() {
       header: 'Location',
       accessorKey: 'project_name',
       sortable: true,
-      width: 200,
-      minWidth: 150,
+      width: 220,
+      minWidth: 180,
       cell: (issue) => (
-        <div className="space-y-0.5">
-          <div className="text-[10px] font-bold text-primary-theme flex items-center gap-1 uppercase"><LayoutPanelTop size={14} /> {issue.project_name}</div>
-          <div className="text-[10px] font-medium text-text-theme-muted flex items-center gap-1 uppercase"><Layers size={14} /> {issue.module_name}</div>
+        <div className="space-y-1 py-1">
+          <div className="text-[10px] font-bold text-primary-theme flex items-center gap-1.5 uppercase">
+              <LayoutPanelTop size={14} className="shrink-0 opacity-70" /> 
+              <span className="truncate">{issue.project_name || 'Global / Unlinked'}</span>
+          </div>
+          <div className="text-[10px] font-medium text-text-theme-muted flex items-center gap-1.5 uppercase">
+              <Layers size={14} className="shrink-0 opacity-50" /> 
+              <span className="truncate">{issue.module_name || 'No Module Context'}</span>
+          </div>
         </div>
       )
     },
@@ -199,12 +222,12 @@ export default function IssueManagementPage() {
       cell: (issue) => (
         <div className="flex flex-col gap-1.5 text-[10px] font-medium uppercase text-gray-500">
           <div className="flex items-center gap-1">
-            <Calendar size={12} className="text-text-theme-muted" />
+            <Calendar size={12} className="text-text-theme-muted shrink-0" />
             <span className="w-8 text-text-theme-muted font-bold">SLA:</span>
             {issue.sla_date ? new Date(issue.sla_date).toLocaleDateString() : 'None'}
           </div>
           <div className="flex items-center gap-1">
-            <CheckCircle2 size={12} className="text-success-theme" />
+            <CheckCircle2 size={12} className="text-success-theme shrink-0" />
             <span className="w-8 text-text-theme-muted font-bold">ACT:</span>
             {issue.actual_date ? new Date(issue.actual_date).toLocaleDateString() : 'None'}
           </div>
@@ -220,22 +243,22 @@ export default function IssueManagementPage() {
       cell: (issue) => (
         issue.status === ISSUE_STATUS.CLOSED ? (
           <div className="flex items-center gap-1.5 text-success-theme text-[10px] font-bold uppercase">
-            <ShieldCheck size={14} /> {issue.developer_name || 'Unassigned'}
+            <ShieldCheck size={14} className="shrink-0" /> {issue.developer_name || 'Unassigned'}
           </div>
         ) : (
           <div className="flex items-center gap-1.5 text-text-theme-muted text-[10px] font-bold uppercase">
-            <UserCheck size={14} /> {issue.developer_name || 'Unassigned'}
+            <UserCheck size={14} className="shrink-0" /> {issue.developer_name || 'Unassigned'}
           </div>
         )
       )
     },
     {
-      header: 'Last Update',
-      accessorKey: 'updated_at',
-      sortable: true,
-      width: 120,
-      minWidth: 100,
-      cell: (issue) => <span className="text-[10px] text-text-theme-muted uppercase font-medium">{new Date(issue.updated_at).toLocaleDateString()}</span>
+        header: 'Last Update',
+        accessorKey: 'updated_at',
+        sortable: true,
+        width: 120,
+        minWidth: 100,
+        cell: (issue) => <span className="text-[10px] text-text-theme-muted uppercase font-medium">{issue.updated_at ? new Date(issue.updated_at).toLocaleDateString() : 'Never'}</span>
     },
     {
         header: 'Action',

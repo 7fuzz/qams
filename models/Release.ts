@@ -6,7 +6,7 @@ import { RowDataPacket } from 'mysql2';
 export const ReleaseModel = {
     async findAll(projectId?: string): Promise<Release[]> {
         let where = '';
-        const params: unknown[] = [];
+        const params: any[] = [];
         if (projectId) {
             where = ' WHERE project_id = ?';
             params.push(projectId);

@@ -12,7 +12,7 @@ export const TestRunModel = {
         sortOrder?: 'ASC' | 'DESC' 
     } = {}, limit: number, offset: number) {
         let whereClause = 'WHERE 1=1';
-        const params: unknown[] = [];
+        const params: any[] = [];
         
         if (filters.projectId) {
             whereClause += ' AND tr.project_id = ?';
@@ -109,6 +109,8 @@ export const TestRunModel = {
                 }
             }
 
+            const finalScenarioIds = new Set<string>(data.scenario_ids || []);
+
             // If module_ids are provided, fetch all scenarios for those modules
             if (data.module_ids && data.module_ids.length > 0) {
                 const placeholders = data.module_ids.map(() => '?').join(',');
@@ -116,7 +118,7 @@ export const TestRunModel = {
                     `SELECT scenario_id FROM scenarios WHERE module_id IN (${placeholders})`,
                     data.module_ids
                 );
-                rows.forEach(r => finalScenarioIds.add(r.scenario_id));
+                rows.forEach((r: any) => finalScenarioIds.add(r.scenario_id));
             }
 
             if (finalScenarioIds.size > 0) {
@@ -147,7 +149,7 @@ export const TestRunModel = {
 
     async updateStatus(id: string, status: string) {
         let updateQuery = 'UPDATE test_runs SET status = ?';
-        const params: unknown[] = [status];
+        const params: any[] = [status];
 
         if (status === 'Completed') {
             updateQuery += ', completed_at = CURRENT_TIMESTAMP';
@@ -168,7 +170,7 @@ export const TestRunModel = {
     // Execution Logic
     async findExecutions(runId: string, sortBy?: string, sortOrder?: 'ASC' | 'DESC', search?: string, limit?: number, offset?: number) {
         let whereClause = 'WHERE te.run_id = ?';
-        const params: unknown[] = [runId];
+        const params: any[] = [runId];
 
         if (search) {
             whereClause += ' AND (tc.title LIKE ? OR te.status LIKE ? OR te.notes LIKE ?)';
@@ -222,39 +224,27 @@ export const TestRunModel = {
             JOIN test_cases tc ON te.test_case_id = tc.test_case_id
             WHERE te.execution_id = ?
         `, [id]);
-        return rows[0] as { execution_id: string, run_id: string, test_case_id: string, title: string } | undefined;
+        return rows[0];
     },
 
     async updateExecution(id: string, data: { status?: string, notes?: string, proof_url?: string }) {
-        const [result] = await db.execute<ResultSetHeader>(`
+        await db.execute(`
             UPDATE test_executions 
             SET status = COALESCE(?, status), 
                 notes = COALESCE(?, notes), 
-                proof_url = COALESCE(?, proof_url), 
-                executed_at = CURRENT_TIMESTAMP 
+                proof_url = COALESCE(?, proof_url),
+                executed_at = CURRENT_TIMESTAMP
             WHERE execution_id = ?
-        `, [
-            data.status ?? null, 
-            data.notes ?? null, 
-            data.proof_url ?? null, 
-            id
-        ]);
-        return result;
+        `, [data.status || null, data.notes || null, data.proof_url || null, id]);
     },
 
     async findExecutionHistory(testCaseId: string) {
         const [rows] = await db.execute<RowDataPacket[]>(`
-            SELECT 
-                te.execution_id,
-                te.status,
-                te.executed_at,
-                te.notes,
-                tr.name as run_name,
-                tr.run_id,
-                u.name as tester_name
+            SELECT te.*, tr.name as run_name, u.name as tester_name, tr.created_at as run_date
             FROM test_executions te
             JOIN test_runs tr ON te.run_id = tr.run_id
-            JOIN users u ON tr.tester_id = u.user_id
+            JOIN test_run_assignments tra ON tr.run_id = tra.run_id
+            JOIN users u ON tra.user_id = u.user_id
             WHERE te.test_case_id = ?
             ORDER BY te.executed_at DESC
         `, [testCaseId]);

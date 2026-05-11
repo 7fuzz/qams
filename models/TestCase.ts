@@ -12,7 +12,7 @@ export const TestCaseModel = {
         sortOrder?: 'ASC' | 'DESC'
     }, limit: number, offset: number): Promise<{ data: TestCase[], total: number }> {
         let whereClause = 'WHERE 1=1';
-        const params: unknown[] = [];
+        const params: any[] = [];
 
         if (filters.scenarioId) {
             whereClause += ' AND tc.scenario_id = ?';
@@ -98,15 +98,16 @@ export const TestCaseModel = {
 
     async create(data: Partial<TestCase>): Promise<string> {
         const id = generateId();
+        const params: any[] = [
+            id, data.custom_id ?? null, data.scenario_id, data.title, data.type ?? null, 
+            data.priority ?? null, data.automation_status ?? null, 
+            data.requirement_link ?? null, data.estimated_duration ?? null, 
+            data.precondition ?? null, data.steps ?? null, data.test_data ?? null, data.expected_result ?? null
+        ];
         await db.execute(`
             INSERT INTO test_cases (test_case_id, custom_id, scenario_id, title, type, priority, automation_status, requirement_link, estimated_duration, precondition, steps, test_data, expected_result)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `, [
-            id, data.custom_id || null, data.scenario_id, data.title, data.type || null, 
-            data.priority || null, data.automation_status || null, 
-            data.requirement_link || null, data.estimated_duration || null, 
-            data.precondition || null, data.steps || null, data.test_data || null, data.expected_result || null
-        ]);
+        `, params);
         return id;
     },
 
@@ -184,7 +185,7 @@ export const TestCaseModel = {
                  WHERE tc.scenario_id = s.scenario_id AND i.status != 'Closed') as open_issues_count
             FROM scenarios s
         `;
-        const params: unknown[] = [];
+        const params: any[] = [];
         if (moduleId) {
             query += ' WHERE module_id = ?';
             params.push(moduleId);
@@ -283,13 +284,7 @@ export const TestCaseModel = {
                         existingId
                     ]);
                 } else {
-                    await connection.execute(`
-                        INSERT INTO test_cases (
-                            test_case_id, custom_id, scenario_id, title, type, priority, 
-                            automation_status, requirement_link, estimated_duration, 
-                            precondition, steps, test_data, expected_result
-                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                    `, [
+                    const insertParams: any[] = [
                         generateId(), customId, scenarioId, title, type, priority,
                         normalizers.automation(tc.automation_status),
                         tc.requirement_link || null,
@@ -298,7 +293,14 @@ export const TestCaseModel = {
                         tc.steps || '',
                         tc.test_data || '',
                         tc.expected_result || ''
-                    ]);
+                    ];
+                    await connection.execute(`
+                        INSERT INTO test_cases (
+                            test_case_id, custom_id, scenario_id, title, type, priority, 
+                            automation_status, requirement_link, estimated_duration, 
+                            precondition, steps, test_data, expected_result
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    `, insertParams);
                 }
                 importedCount++;
             }

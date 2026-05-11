@@ -221,6 +221,12 @@ async function seed() {
         VALUES (?, ?)
     `, [issueId, taxTC.id]);
 
+    // Link issue to tags
+    const [tagRows] = await connection.execute('SELECT tag_id FROM tags WHERE name IN ("Software Bug", "Performance")');
+    for (const tag of tagRows) {
+        await connection.execute('INSERT INTO issue_tags (issue_id, tag_id) VALUES (?, ?)', [issueId, tag.tag_id]);
+    }
+
     // 10. Seed Releases & Changes
     console.log('Seeding releases...');
     const releaseId = randomUUID();

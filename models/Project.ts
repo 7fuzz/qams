@@ -11,7 +11,7 @@ export const ProjectModel = {
         assignedUserId?: string
     } = {}, limit?: number, offset?: number): Promise<{ data: (Project & { lead_developer_name: string, open_issues_count: number })[], total: number }> {
         let whereClause = 'WHERE 1=1';
-        const params: unknown[] = [];
+        const params: any[] = [];
 
         if (filters.search) {
             whereClause += ' AND (p.name LIKE ? OR p.description LIKE ?)';
@@ -102,7 +102,7 @@ export const ProjectModel = {
         sortOrder?: 'ASC' | 'DESC'
     } = {}, limit?: number, offset?: number): Promise<{ data: (Module & { responsible_name?: string, project_name?: string })[], total: number }> {
         let whereClause = 'WHERE 1=1';
-        const params: unknown[] = [];
+        const params: any[] = [];
         
         if (filters.projectId) {
             whereClause += ' AND m.project_id = ?';

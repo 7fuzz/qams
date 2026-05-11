@@ -35,10 +35,14 @@ export interface TestCase {
     steps: string;
     test_data: string;
     expected_result: string;
+    project_name?: string;
+    module_name?: string;
     scenario_name?: string;
+    owner_name?: string;
     open_issues_count?: number;
     closed_issues_count?: number;
     updated_at?: string;
+    created_at?: string;
     last_executed_at?: string;
 }
 
@@ -102,8 +106,10 @@ export interface Issue {
     reporter_name?: string;
     developer_id?: string;
     developer_name?: string;
+    solver_name?: string;
     sla_date?: string | null;
     actual_date?: string | null;
+    updated_at?: string;
     created_at: string;
     tag_ids?: string[];
     tags?: { tag_id: string, name: string, color: string }[];

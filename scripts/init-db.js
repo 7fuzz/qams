@@ -58,7 +58,10 @@ async function initDb(existingConnection = null) {
     { name: 'projects:read', desc: 'View projects' },
     { name: 'tests:write', desc: 'Create and update test cases' },
     { name: 'tests:run', desc: 'Execute test runs' },
+    { name: 'tests:bypass_assignment', desc: 'Bypass tester assignment security for any run' },
     { name: 'issues:manage', desc: 'Update/close any issue' },
+    { name: 'tags:manage', desc: 'Manage issue tags (Master Data)' },
+    { name: 'releases:manage', desc: 'Create, update, delete releases' },
     { name: 'logs:read', desc: 'View system activity logs' }
   ];
 
@@ -91,6 +94,20 @@ async function initDb(existingConnection = null) {
   const obsPerms = ['projects:read'];
   for (const name of obsPerms) {
     if (permIds[name]) await connection.query('INSERT IGNORE INTO role_permissions (role_id, permission_id) VALUES (?, ?)', [observerId, permIds[name]]);
+  }
+
+  // 1b. Seed Initial Tags
+  console.log('Seeding initial tags...');
+  const initialTags = [
+    { id: randomUUID(), name: 'Vulnerability', color: '#ef4444' },
+    { id: randomUUID(), name: 'Software Bug', color: '#f97316' },
+    { id: randomUUID(), name: 'UI/UX', color: '#8b5cf6' },
+    { id: randomUUID(), name: 'Performance', color: '#10b981' },
+    { id: randomUUID(), name: 'Enhancement', color: '#3b82f6' }
+  ];
+
+  for (const tag of initialTags) {
+    await connection.query('INSERT IGNORE INTO tags (tag_id, name, color) VALUES (?, ?, ?)', [tag.id, tag.name, tag.color]);
   }
 
   // 2. Seed Admin User (password: 123)

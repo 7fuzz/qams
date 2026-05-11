@@ -19,6 +19,11 @@ interface Project {
   name: string;
 }
 
+interface Module {
+  module_id: string;
+  name: string;
+}
+
 export default function TestRunsPage() {
   const [runs, setRuns] = useState<TestRun[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);

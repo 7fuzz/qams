@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { Modal, Button, Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '../ui';
-import { AlertCircle, User, LayoutPanelTop, Calendar } from 'lucide-react';
+import { AlertCircle, User, LayoutPanelTop, Calendar, Send } from 'lucide-react';
 import { ISSUE_STATUS } from '@/lib/constants';
 import { TestRun as Run } from '@/types/app';
 

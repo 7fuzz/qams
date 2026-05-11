@@ -20,7 +20,7 @@ export const IssueModel = {
     }, limit: number, offset: number): Promise<{ data: Issue[], total: number }> {
         
         let whereClause = 'WHERE 1=1';
-        const params: unknown[] = [];
+        const params: any[] = [];
 
         if (filters.issueId) {
             whereClause += ' AND i.issue_id = ?';
@@ -113,11 +113,26 @@ export const IssueModel = {
                 u.name as reporter_name, 
                 d.name as developer_name, 
                 s.name as solver_name,
+                context.project_name,
+                context.module_name,
                 (SELECT GROUP_CONCAT(tc.title SEPARATOR ', ') 
                  FROM issue_test_cases itc 
                  JOIN test_cases tc ON itc.test_case_id = tc.test_case_id 
                  WHERE itc.issue_id = i.issue_id) as test_case_titles
-            ${baseQuery}
+            FROM issues i 
+            JOIN users u ON i.reporter_id = u.user_id
+            LEFT JOIN users d ON i.developer_id = d.user_id
+            LEFT JOIN users s ON i.solved_by_id = s.user_id
+            LEFT JOIN (
+                SELECT itc2.issue_id, m2.name as module_name, p2.name as project_name
+                FROM issue_test_cases itc2
+                JOIN test_cases tc2 ON itc2.test_case_id = tc2.test_case_id
+                JOIN scenarios s2 ON tc2.scenario_id = s2.scenario_id
+                JOIN modules m2 ON s2.module_id = m2.module_id
+                JOIN projects p2 ON m2.project_id = p2.project_id
+                GROUP BY itc2.issue_id
+            ) context ON i.issue_id = context.issue_id
+            ${whereClause}
             ORDER BY ${sortColumn} ${sortOrder}
             LIMIT ? OFFSET ?
         `, [...params, limit, offset]);

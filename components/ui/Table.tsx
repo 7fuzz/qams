@@ -4,13 +4,11 @@ import React from 'react';
 
 export const Table = React.forwardRef<HTMLTableElement, React.HTMLAttributes<HTMLTableElement>>(
   ({ className = '', ...props }, ref) => (
-    <div className="relative w-full overflow-auto border border-border-theme rounded-lg shadow-sm">
       <table
         ref={ref}
         className={`w-full caption-bottom text-sm bg-surface text-text-theme-main ${className}`}
         {...props}
       />
-    </div>
   )
 );
 Table.displayName = 'Table';

@@ -138,6 +138,20 @@ async function seedLarge() {
     // 4. Historical Test Runs & Executions
     console.log('Seeding 50+ Test Runs across 6-month timeline...');
     const [allTestCases] = await connection.execute('SELECT test_case_id, title FROM test_cases');
+
+    // 4b. Seed Initial Tags
+    console.log('Seeding Master Tags...');
+    const initialTags = [
+        { id: randomUUID(), name: 'Vulnerability', color: '#ef4444' },
+        { id: randomUUID(), name: 'Software Bug', color: '#f97316' },
+        { id: randomUUID(), name: 'UI/UX', color: '#8b5cf6' },
+        { id: randomUUID(), name: 'Performance', color: '#10b981' },
+        { id: randomUUID(), name: 'Enhancement', color: '#3b82f6' }
+    ];
+
+    for (const tag of initialTags) {
+        await connection.execute('INSERT INTO tags (tag_id, name, color) VALUES (?, ?, ?)', [tag.id, tag.name, tag.color]);
+    }
     
     for (let rIdx = 0; rIdx < 60; rIdx++) {
         const runId = randomUUID();
@@ -179,6 +193,13 @@ async function seedLarge() {
                 
                 await connection.execute('INSERT INTO issue_test_cases (issue_id, test_case_id) VALUES (?, ?)', [issueId, tc.test_case_id]);
                 
+                // Link to 1-2 random tags
+                const numTags = Math.floor(Math.random() * 2) + 1;
+                const linkedTags = [...initialTags].sort(() => 0.5 - Math.random()).slice(0, numTags);
+                for (const tag of linkedTags) {
+                    await connection.execute('INSERT INTO issue_tags (issue_id, tag_id) VALUES (?, ?)', [issueId, tag.id]);
+                }
+
                 await connection.execute('INSERT INTO issue_notes (note_id, issue_id, user_id, content) VALUES (?, ?, ?, ?)',
                     [randomUUID(), issueId, devUsers[0].id, 'Investigating the trace logs now.']);
             }

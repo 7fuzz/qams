@@ -2,7 +2,7 @@ import db from './db';
 import { generateId } from './id-utils';
 
 export type Action = 'CREATE' | 'UPDATE' | 'DELETE';
-export type EntityType = 'PROJECT' | 'MODULE' | 'SCENARIO' | 'TEST_CASE' | 'TEST_RUN';
+export type EntityType = 'PROJECT' | 'MODULE' | 'SCENARIO' | 'TEST_CASE' | 'TEST_RUN' | 'TAG';
 
 export async function logActivity(
     userId: string,

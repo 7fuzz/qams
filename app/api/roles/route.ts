@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import { sessionOptions, SessionData } from "@/lib/session";
 import { RoleModel } from '@/models/Role';
 import { Role } from '@/types/app';
+import { logActivity } from '@/lib/logger';
 
 export async function GET() {
     const session = await getIronSession<SessionData>(await cookies(), sessionOptions);
@@ -32,6 +33,7 @@ export async function POST(request: Request) {
     try {
         const { name, permissionIds } = await request.json();
         const roleId = await RoleModel.create(name, permissionIds);
+        await logActivity(session.user_id, 'CREATE', 'ROLE', roleId, { name });
         return NextResponse.json({ role_id: roleId, name });
     } catch {
         return NextResponse.json({ error: 'Failed to create role' }, { status: 500 });
@@ -47,6 +49,7 @@ export async function PUT(request: Request) {
     try {
         const { role_id, name, permissionIds } = await request.json();
         await RoleModel.update(role_id, name, permissionIds);
+        await logActivity(session.user_id, 'UPDATE', 'ROLE', role_id, { name });
         return NextResponse.json({ success: true });
     } catch {
         return NextResponse.json({ error: 'Failed to update role' }, { status: 500 });
@@ -65,6 +68,7 @@ export async function DELETE(request: Request) {
     try {
         if (!id) return NextResponse.json({ error: 'Missing ID' }, { status: 400 });
         await RoleModel.delete(id);
+        await logActivity(session.user_id, 'DELETE', 'ROLE', id);
         return NextResponse.json({ success: true });
     } catch {
         return NextResponse.json({ error: 'Failed to delete role' }, { status: 500 });

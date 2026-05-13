@@ -18,6 +18,11 @@ export const AttachmentModel = {
         return { attachment_id: id, ...data, name };
     },
 
+    async findById(id: string): Promise<Attachment | null> {
+        const [rows] = await db.execute<Attachment[] & RowDataPacket[]>('SELECT * FROM attachments WHERE attachment_id = ?', [id]);
+        return rows.length > 0 ? rows[0] : null;
+    },
+
     async delete(id: string): Promise<void> {
         await db.execute('DELETE FROM attachments WHERE attachment_id = ?', [id]);
     }

@@ -3,6 +3,7 @@ import { getIronSession } from "iron-session";
 import { cookies } from "next/headers";
 import { sessionOptions, SessionData } from "@/lib/session";
 import { UserModel } from '@/models/User';
+import { logActivity } from '@/lib/logger';
 
 export async function GET(request: Request) {
     const session = await getIronSession<SessionData>(await cookies(), sessionOptions);
@@ -36,6 +37,7 @@ export async function POST(request: Request) {
         const { name, email, password, role_id } = await request.json();
         const userId = await UserModel.create({ name, email, password, role_id });
         
+        await logActivity(session.user_id, 'CREATE', 'USER', userId, { name, email });
         return NextResponse.json({ user_id: userId, name, email });
     } catch (error) {
         if (error && typeof error === 'object' && 'code' in error && error.code === 'ER_DUP_ENTRY') {
@@ -53,6 +55,7 @@ export async function PUT(request: Request) {
         const { user_id, name, email, password, role_id } = await request.json();
         await UserModel.update(user_id, { name, email, password, role_id });
         
+        await logActivity(session.user_id, 'UPDATE', 'USER', user_id, { name, email });
         return NextResponse.json({ success: true });
     } catch {
         return NextResponse.json({ error: 'Failed to update user' }, { status: 500 });
@@ -70,6 +73,7 @@ export async function DELETE(request: Request) {
         if (!id) return NextResponse.json({ error: 'Missing ID' }, { status: 400 });
         if (id === session.user_id) return NextResponse.json({ error: "Cannot delete yourself" }, { status: 400 });
         await UserModel.delete(id);
+        await logActivity(session.user_id, 'DELETE', 'USER', id);
         return NextResponse.json({ success: true });
     } catch {
         return NextResponse.json({ error: 'Failed to delete user' }, { status: 500 });

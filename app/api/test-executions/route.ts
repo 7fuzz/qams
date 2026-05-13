@@ -38,7 +38,7 @@ export async function PUT(request: Request) {
 
     try {
         const body = await request.json();
-        const { execution_id } = body;
+        const { execution_id, status } = body;
 
         // Security Check: Is user assigned to this run?
         const [assignments] = await db.execute<RowDataPacket[]>(`

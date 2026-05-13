@@ -5,6 +5,7 @@ import { sessionOptions, SessionData } from "@/lib/session";
 import { comparePassword } from "@/lib/crypto-utils";
 import { UserModel } from "@/models/User";
 import { RoleModel } from "@/models/Role";
+import { logActivity } from "@/lib/logger";
 
 export async function POST(request: Request) {
   const session = await getIronSession<SessionData>(await cookies(), sessionOptions);
@@ -31,6 +32,8 @@ export async function POST(request: Request) {
     session.permissions = permissions.map(p => p.name);
     session.isLoggedIn = true;
     await session.save();
+
+    await logActivity(user.user_id, 'LOGIN', 'AUTH', user.user_id, { email: user.email });
 
     return NextResponse.json(session);
   } catch (error) {

@@ -87,9 +87,7 @@ export async function POST(request: Request) {
         tag_ids
     });
 
-    if (finalTestCaseIds.length > 0) {
-        await logActivity(session.user_id, 'CREATE', 'TEST_CASE', finalTestCaseIds[0], { issue_id: id, title, all_test_cases: finalTestCaseIds });
-    }
+    await logActivity(session.user_id, 'CREATE', 'ISSUE', id, { title, severity });
 
     return NextResponse.json({ issue_id: id, title, status: ISSUE_STATUS.OPEN });
   } catch (error) {
@@ -135,6 +133,8 @@ export async function PUT(request: Request) {
         tag_ids
     });
 
+    await logActivity(session.user_id, 'UPDATE', 'ISSUE', issue_id, { title, status, severity });
+
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Update Issue Error:', error);
@@ -168,6 +168,7 @@ export async function DELETE(request: Request) {
         if (!allowed) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
         await IssueModel.delete(id);
+        await logActivity(session.user_id, 'DELETE', 'ISSUE', id);
         return NextResponse.json({ success: true });
     } catch {
         return NextResponse.json({ error: 'Failed to delete issue' }, { status: 500 });

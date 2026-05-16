@@ -23,6 +23,11 @@ export default function MailCredentialManagementPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   
+  // Pagination
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(20);
+  const [total, setTotal] = useState(0);
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
   const [selectedCred, setSelectedCred] = useState<MailCredential | null>(null);
@@ -39,20 +44,21 @@ export default function MailCredentialManagementPage() {
 
   const fetchCredentials = useCallback(() => {
     setLoading(true);
-    fetch('/api/mail/credentials')
+    fetch(`/api/mail/credentials?page=${page}&limit=${limit}`)
       .then(res => res.json())
       .then(res => {
-        setCredentials(Array.isArray(res) ? res : []);
+        setCredentials(res.data || []);
+        setTotal(res.total || 0);
         setLoading(false);
       })
       .catch(() => {
         setCredentials([]);
         setLoading(false);
       });
-  }, []);
+  }, [page, limit]);
 
   const fetchProjects = useCallback(() => {
-    fetch('/api/projects')
+    fetch('/api/projects?limit=1000')
         .then(res => res.json())
         .then(res => setProjects(res.data || []));
   }, []);
@@ -202,6 +208,11 @@ export default function MailCredentialManagementPage() {
         data={credentials}
         columns={columns}
         loading={loading}
+        totalItems={total}
+        currentPage={page}
+        pageSize={limit}
+        onPageChange={setPage}
+        onPageSizeChange={(s) => { setLimit(s); setPage(1); }}
         searchPlaceholder="Search credentials..."
       />
 

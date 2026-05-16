@@ -25,9 +25,15 @@ export interface CaughtEmail {
 }
 
 export class MailModel {
-  static async getAllCredentials(): Promise<MailCredential[]> {
-    const [rows] = await db.execute('SELECT * FROM mail_credentials ORDER BY created_at DESC');
-    return rows as MailCredential[];
+  static async getAllCredentials(limit: number = 20, offset: number = 0): Promise<{ data: MailCredential[], total: number }> {
+    const [countRows] = await db.execute('SELECT COUNT(*) as total FROM mail_credentials');
+    const total = (countRows as any)[0].total;
+
+    const [rows] = await db.execute(
+      'SELECT * FROM mail_credentials ORDER BY created_at DESC LIMIT ? OFFSET ?',
+      [limit, offset]
+    );
+    return { data: rows as MailCredential[], total };
   }
 
   static async createCredential(data: Omit<MailCredential, 'credential_id'>): Promise<string> {

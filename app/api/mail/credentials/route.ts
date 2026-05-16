@@ -5,13 +5,18 @@ import { sessionOptions, SessionData } from "@/lib/session";
 import { MailModel } from '@/models/Mail';
 import { logActivity } from '@/lib/logger';
 
-export async function GET() {
+export async function GET(request: Request) {
     const session = await getIronSession<SessionData>(await cookies(), sessionOptions);
     if (!session.isLoggedIn) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+    const { searchParams } = new URL(request.url);
+    const page = parseInt(searchParams.get('page') || '1');
+    const limit = parseInt(searchParams.get('limit') || '20');
+    const offset = (page - 1) * limit;
+
     try {
-        const credentials = await MailModel.getAllCredentials();
-        return NextResponse.json(credentials);
+        const result = await MailModel.getAllCredentials(limit, offset);
+        return NextResponse.json(result);
     } catch {
         return NextResponse.json({ error: 'Failed to fetch credentials' }, { status: 500 });
     }

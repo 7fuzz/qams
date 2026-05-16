@@ -58,19 +58,37 @@ if (!fs.existsSync(UPLOAD_DIR)) {
   fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 }
 
+function formatAddress(parsedAddr, envelopeAddr) {
+  // If we have parsed headers, use the first one (most common case)
+  if (parsedAddr && parsedAddr.value && parsedAddr.value.length > 0) {
+    const first = parsedAddr.value[0];
+    // Only return "Name <email>" if there is actually a name
+    if (first.name && first.name.trim()) {
+      return `${first.name.trim()} <${first.address}>`;
+    }
+    return first.address;
+  }
+  // Fallback to protocol envelope
+  return envelopeAddr || "(Unknown)";
+}
+
 async function saveEmail(credential, parsed, envelope) {
   const credentialId = credential.credential_id;
   const emailId = uuidv4();
   
-  // Prioritize Header From, but fallback to Protocol Envelope From
-  const headerFrom = parsed.from ? parsed.from.text : "";
-  const protocolFrom = envelope.mailFrom ? envelope.mailFrom.address : "";
-  const sender = headerFrom || protocolFrom || "(Unknown Sender)";
-
-  // Similarly for recipients
-  const headerTo = parsed.to ? parsed.to.text : "";
-  const protocolTo = envelope.rcptTo ? envelope.rcptTo.map(r => r.address).join(", ") : "";
-  const recipient = headerTo || protocolTo || "(Unknown Recipient)";
+  // Use custom formatter to get clean strings
+  const sender = formatAddress(parsed.from, envelope.mailFrom ? envelope.mailFrom.address : null);
+  
+  // For recipients, we handle potential multiple addresses
+  let recipient = "";
+  if (parsed.to && parsed.to.value && parsed.to.value.length > 0) {
+    recipient = parsed.to.value.map(addr => {
+        if (addr.name && addr.name.trim()) return `${addr.name.trim()} <${addr.address}>`;
+        return addr.address;
+    }).join(", ");
+  } else {
+    recipient = envelope.rcptTo ? envelope.rcptTo.map(r => r.address).join(", ") : "(Unknown Recipient)";
+  }
   
   await pool.execute(
     "INSERT INTO caught_emails (email_id, credential_id, sender, recipient, subject, body_text, body_html) VALUES (?, ?, ?, ?, ?, ?, ?)",

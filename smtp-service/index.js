@@ -32,7 +32,7 @@ const server = new SMTPServer({
   onData(stream, session, callback) {
     simpleParser(stream)
       .then((parsed) => {
-        return saveEmail(session.user.credential_id, parsed);
+        return saveEmail(session.user, parsed);
       })
       .then(() => callback())
       .catch((err) => {
@@ -44,7 +44,7 @@ const server = new SMTPServer({
 
 async function authenticate(username, password) {
   const [rows] = await pool.execute(
-    "SELECT credential_id FROM mail_credentials WHERE smtp_user = ? AND smtp_password = ?",
+    "SELECT credential_id, max_emails, max_size_mb FROM mail_credentials WHERE smtp_user = ? AND smtp_password = ?",
     [username, password]
   );
   return rows.length > 0 ? rows[0] : null;
@@ -58,7 +58,8 @@ if (!fs.existsSync(UPLOAD_DIR)) {
   fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 }
 
-async function saveEmail(credentialId, parsed) {
+async function saveEmail(credential, parsed) {
+  const credentialId = credential.credential_id;
   const emailId = uuidv4();
   const recipient = parsed.to ? parsed.to.text : "";
   const sender = parsed.from ? parsed.from.text : "";
@@ -85,8 +86,6 @@ async function saveEmail(credentialId, parsed) {
       
       fs.writeFileSync(filePath, attachment.content);
       
-      // Use the existing attachments table
-      // url will be the relative path for the web app to serve
       const publicUrl = `/uploads/mail/${fileName}`;
       
       await pool.execute(
@@ -96,7 +95,103 @@ async function saveEmail(credentialId, parsed) {
     }
   }
   
-  console.log(`[${new Date().toISOString()}] Caught email for cred ${credentialId}: ${parsed.subject} (${parsed.attachments?.length || 0} attachments)`);
+  console.log(`[${new Date().toISOString()}] Caught email for cred ${credentialId}: ${parsed.subject}`);
+
+  // Auto-Rotation Logic
+  try {
+    await rotateEmails(credential);
+  } catch (err) {
+    console.error("Rotation Error:", err);
+  }
+}
+
+async function rotateEmails(credential) {
+  const { credential_id, max_emails, max_size_mb } = credential;
+
+  // 1. Check Count Limit
+  const [countRows] = await pool.execute(
+    "SELECT email_id FROM caught_emails WHERE credential_id = ? ORDER BY created_at DESC",
+    [credential_id]
+  );
+
+  if (countRows.length > max_emails) {
+    const toDelete = countRows.slice(max_emails);
+    for (const row of toDelete) {
+      await deleteEmailFull(row.email_id);
+    }
+    console.log(`Rotated ${toDelete.length} emails (count limit reached)`);
+  }
+
+  // 2. Check Size Limit (Very rough estimate based on attachments + some overhead)
+  // Real size would require summing up file sizes on disk
+  const [attRows] = await pool.execute(
+    `SELECT a.attachment_id, a.url, ce.email_id 
+     FROM attachments a
+     JOIN caught_emails ce ON a.entity_id = ce.email_id
+     WHERE ce.credential_id = ? AND a.entity_type = 'EMAIL'
+     ORDER BY ce.created_at ASC`,
+    [credential_id]
+  );
+
+  let totalBytes = 0;
+  const files = [];
+  for (const att of attRows) {
+    const fileName = path.basename(att.url);
+    const filePath = path.join(UPLOAD_DIR, fileName);
+    if (fs.existsSync(filePath)) {
+      const stats = fs.statSync(filePath);
+      totalBytes += stats.size;
+      files.push({ email_id: att.email_id, size: stats.size });
+    }
+  }
+
+  const maxBytes = max_size_mb * 1024 * 1024;
+  if (totalBytes > maxBytes) {
+    console.log(`Size limit exceeded: ${(totalBytes / 1024 / 1024).toFixed(2)}MB / ${max_size_mb}MB. Pruning...`);
+    // Delete oldest emails until size is under limit
+    // Note: This is simplified. We delete the whole email if any of its attachments push it over.
+    const [allEmailsOldest] = await pool.execute(
+        "SELECT email_id FROM caught_emails WHERE credential_id = ? ORDER BY created_at ASC",
+        [credential_id]
+    );
+
+    for (const email of allEmailsOldest) {
+        if (totalBytes <= maxBytes) break;
+        
+        // Find attachments for this email to subtract their size
+        const emailAtts = attRows.filter(a => a.email_id === email.email_id);
+        for (const ea of emailAtts) {
+            const fileName = path.basename(ea.url);
+            const filePath = path.join(UPLOAD_DIR, fileName);
+            if (fs.existsSync(filePath)) {
+                totalBytes -= fs.statSync(filePath).size;
+            }
+        }
+        await deleteEmailFull(email.email_id);
+    }
+  }
+}
+
+async function deleteEmailFull(emailId) {
+  // 1. Get attachments to delete files
+  const [atts] = await pool.execute(
+    "SELECT url FROM attachments WHERE entity_type = 'EMAIL' AND entity_id = ?",
+    [emailId]
+  );
+
+  for (const att of atts) {
+    const fileName = path.basename(att.url);
+    const filePath = path.join(UPLOAD_DIR, fileName);
+    if (fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
+    }
+  }
+
+  // 2. Delete from DB (CASCADE will handle project_mail_credentials and attachments if set up, 
+  // but we'll be explicit or rely on the schema)
+  // Schema has: FOREIGN KEY (credential_id) REFERENCES mail_credentials(credential_id) ON DELETE CASCADE
+  // We need to delete the email itself
+  await pool.execute("DELETE FROM caught_emails WHERE email_id = ?", [emailId]);
 }
 
 const PORT = process.env.SMTP_PORT || 25;

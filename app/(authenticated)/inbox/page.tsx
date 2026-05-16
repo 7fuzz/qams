@@ -23,7 +23,7 @@ interface Project {
 export default function MailInboxPage() {
   const [emails, setEmails] = useState<CaughtEmail[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
-  const [selectedProjectId, setSelectedProjectId] = useState<string>('');
+  const [selectedProjectId, setSelectedProjectId] = useState<string>('all');
   const [loading, setLoading] = useState(false);
   
   const [selectedEmail, setSelectedEmail] = useState<CaughtEmail | null>(null);
@@ -35,16 +35,16 @@ export default function MailInboxPage() {
       .then(res => {
         const data = res.data || [];
         setProjects(data);
-        if (data.length > 0) {
-          setSelectedProjectId(data[0].project_id);
-        }
       });
   }, []);
 
   const fetchEmails = useCallback(() => {
-    if (!selectedProjectId) return;
     setLoading(true);
-    fetch(`/api/projects/emails?projectId=${selectedProjectId}`)
+    const url = selectedProjectId === 'all' 
+        ? '/api/projects/emails?projectId=all' 
+        : `/api/projects/emails?projectId=${selectedProjectId}`;
+        
+    fetch(url)
       .then(res => res.json())
       .then(res => {
         setEmails(Array.isArray(res) ? res : []);
@@ -106,6 +106,17 @@ export default function MailInboxPage() {
         accessorKey: 'recipient',
         cell: (email) => <span className="text-sm text-text-theme-muted">{email.recipient}</span>
     },
+    {
+        header: 'Project',
+        accessorKey: 'project_name',
+        cell: (email) => (
+            <div className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+                email.project_name ? "bg-primary-theme/10 text-primary-theme" : "bg-surface-theme-subtle text-text-theme-subtle"
+            }`}>
+                {email.project_name || "Unassigned"}
+            </div>
+        )
+    },
     { 
         header: 'Received', 
         accessorKey: 'created_at',
@@ -140,7 +151,10 @@ export default function MailInboxPage() {
             <div className="flex items-center gap-3">
                 <div className="w-64">
                     <Combobox 
-                        options={projects.map(p => ({ value: p.project_id, label: p.name }))}
+                        options={[
+                            { value: 'all', label: 'All Projects' },
+                            ...projects.map(p => ({ value: p.project_id, label: p.name }))
+                        ]}
                         value={selectedProjectId}
                         onChange={val => setSelectedProjectId(val as string)}
                         placeholder="Select Project..."

@@ -6,6 +6,8 @@ export interface MailCredential {
   name: string;
   smtp_user: string;
   smtp_password: string;
+  max_emails: number;
+  max_size_mb: number;
   created_at?: string;
 }
 
@@ -18,6 +20,7 @@ export interface CaughtEmail {
   body_text: string;
   body_html: string;
   created_at: string;
+  project_name?: string;
   attachments?: { attachment_id: string, name: string, url: string }[];
 }
 
@@ -30,8 +33,8 @@ export class MailModel {
   static async createCredential(data: Omit<MailCredential, 'credential_id'>): Promise<string> {
     const id = randomUUID();
     await db.execute(
-      'INSERT INTO mail_credentials (credential_id, name, smtp_user, smtp_password) VALUES (?, ?, ?, ?)',
-      [id, data.name, data.smtp_user, data.smtp_password]
+      'INSERT INTO mail_credentials (credential_id, name, smtp_user, smtp_password, max_emails, max_size_mb) VALUES (?, ?, ?, ?, ?, ?)',
+      [id, data.name, data.smtp_user, data.smtp_password, data.max_emails || 100, data.max_size_mb || 50]
     );
     return id;
   }
@@ -66,11 +69,33 @@ export class MailModel {
 
   static async getEmailsForProject(projectId: string): Promise<CaughtEmail[]> {
     const [rows] = await db.execute(
-      `SELECT ce.* FROM caught_emails ce
+      `SELECT ce.*, p.name as project_name FROM caught_emails ce
        JOIN project_mail_credentials pmc ON ce.credential_id = pmc.credential_id
+       JOIN projects p ON pmc.project_id = p.project_id
        WHERE pmc.project_id = ?
        ORDER BY ce.created_at DESC`,
       [projectId]
+    );
+    
+    const emails = rows as CaughtEmail[];
+    for (const email of emails) {
+        const [attachments] = await db.execute(
+            'SELECT attachment_id, name, url FROM attachments WHERE entity_type = "EMAIL" AND entity_id = ?',
+            [email.email_id]
+        );
+        email.attachments = attachments as { attachment_id: string, name: string, url: string }[];
+    }
+    return emails;
+  }
+
+  static async getAllEmails(): Promise<CaughtEmail[]> {
+    const [rows] = await db.execute(
+      `SELECT ce.*, GROUP_CONCAT(p.name SEPARATOR ', ') as project_name 
+       FROM caught_emails ce
+       LEFT JOIN project_mail_credentials pmc ON ce.credential_id = pmc.credential_id
+       LEFT JOIN projects p ON pmc.project_id = p.project_id
+       GROUP BY ce.email_id
+       ORDER BY ce.created_at DESC`
     );
     
     const emails = rows as CaughtEmail[];

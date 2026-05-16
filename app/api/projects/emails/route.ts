@@ -13,8 +13,12 @@ export async function GET(request: Request) {
     const projectId = searchParams.get('projectId');
 
     try {
-        if (!projectId) return NextResponse.json({ error: 'Missing Project ID' }, { status: 400 });
-        const emails = await MailModel.getEmailsForProject(projectId);
+        let emails;
+        if (!projectId || projectId === 'all') {
+            emails = await MailModel.getAllEmails();
+        } else {
+            emails = await MailModel.getEmailsForProject(projectId);
+        }
         return NextResponse.json(emails);
     } catch {
         return NextResponse.json({ error: 'Failed to fetch emails' }, { status: 500 });

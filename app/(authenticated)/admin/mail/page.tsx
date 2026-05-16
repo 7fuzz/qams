@@ -24,7 +24,13 @@ export default function MailCredentialManagementPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
   const [selectedCred, setSelectedCred] = useState<MailCredential | null>(null);
-  const [formData, setFormData] = useState({ name: '', smtp_user: '', smtp_password: '' });
+  const [formData, setFormData] = useState({ 
+    name: '', 
+    smtp_user: '', 
+    smtp_password: '',
+    max_emails: 100,
+    max_size_mb: 50
+  });
   
   const [assignedProjects, setAssignedProjects] = useState<Project[]>([]);
   const [selectedProjectId, setSelectedProjectId] = useState('');
@@ -55,7 +61,13 @@ export default function MailCredentialManagementPage() {
   }, [fetchCredentials, fetchProjects]);
 
   const handleOpenCreate = () => {
-    setFormData({ name: '', smtp_user: '', smtp_password: '' });
+    setFormData({ 
+      name: '', 
+      smtp_user: '', 
+      smtp_password: '',
+      max_emails: 100,
+      max_size_mb: 50
+    });
     setIsModalOpen(true);
   };
 
@@ -135,6 +147,15 @@ export default function MailCredentialManagementPage() {
         accessorKey: 'smtp_password',
         cell: (cred) => <code className="text-xs bg-surface-theme-subtle px-1.5 py-0.5 rounded text-text-theme-muted">••••••••</code>
     },
+    {
+        header: 'Quotas',
+        cell: (cred) => (
+            <div className="flex flex-col text-[10px] font-bold uppercase text-text-theme-muted gap-0.5">
+                <span>{cred.max_emails} Emails</span>
+                <span>{cred.max_size_mb} MB Storage</span>
+            </div>
+        )
+    },
     { 
       header: 'Actions', 
       className: 'text-right',
@@ -195,6 +216,26 @@ export default function MailCredentialManagementPage() {
                     onChange={e => setFormData({...formData, smtp_password: e.target.value})} 
                     placeholder="Password"
                 />
+            </div>
+            <div className="grid grid-cols-2 gap-4 border-t border-border-theme pt-4">
+                <div className="space-y-2">
+                    <Label className="text-[10px] font-bold uppercase tracking-widest text-text-theme-muted">Max Emails</Label>
+                    <Input 
+                        type="number"
+                        value={formData.max_emails} 
+                        onChange={e => setFormData({...formData, max_emails: parseInt(e.target.value)})} 
+                        placeholder="100"
+                    />
+                </div>
+                <div className="space-y-2">
+                    <Label className="text-[10px] font-bold uppercase tracking-widest text-text-theme-muted">Max Storage (MB)</Label>
+                    <Input 
+                        type="number"
+                        value={formData.max_size_mb} 
+                        onChange={e => setFormData({...formData, max_size_mb: parseInt(e.target.value)})} 
+                        placeholder="50"
+                    />
+                </div>
             </div>
             <div className="flex justify-end gap-3 pt-4">
                 <Button variant="outline" onClick={() => setIsModalOpen(false)}>Cancel</Button>

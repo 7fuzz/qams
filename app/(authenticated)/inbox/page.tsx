@@ -198,15 +198,15 @@ export default function MailInboxPage() {
 
                 <div className="space-y-2">
                     <Label className="text-[10px] font-bold uppercase tracking-widest text-text-theme-muted">Content</Label>
-                    <div className="border border-border-theme rounded-lg bg-white overflow-hidden min-h-[300px]">
+                    <div className="border border-border-theme rounded-lg bg-surface-theme-subtle overflow-hidden min-h-[300px]">
                         {selectedEmail.body_html ? (
                             <iframe 
-                                srcDoc={selectedEmail.body_html} 
+                                srcDoc={`<style>body { background: white; color: black; font-family: sans-serif; padding: 1rem; margin: 0; }</style>${selectedEmail.body_html}`} 
                                 className="w-full h-[400px] border-none"
                                 title="Email Body"
                             />
                         ) : (
-                            <pre className="p-4 text-sm whitespace-pre-wrap font-sans text-gray-800">
+                            <pre className="p-4 text-sm whitespace-pre-wrap font-sans text-text-theme-main">
                                 {selectedEmail.body_text}
                             </pre>
                         )}

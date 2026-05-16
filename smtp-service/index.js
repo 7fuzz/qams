@@ -15,6 +15,7 @@ const pool = mysql.createPool({
 
 const server = new SMTPServer({
   authOptional: false,
+  disabledCommands: ['STARTTLS'], // Disable secure upgrade
   onAuth(auth, session, callback) {
     authenticate(auth.username, auth.password)
       .then((credential) => {

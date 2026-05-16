@@ -13,6 +13,7 @@ import {
   FileText,
   FolderTree,
   Tag,
+  Mail,
   AlertTriangle,
   Lock,
   Layers,

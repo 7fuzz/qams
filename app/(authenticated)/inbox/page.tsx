@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Button, IconButton, Modal, ManagementPage, Column, Combobox } from "@/components/ui";
+import { Button, IconButton, Modal, ManagementPage, Column, Combobox, Label } from "@/components/ui";
 import { Mail, Trash2, Eye, RefreshCw, Clock, User, Paperclip, Download } from 'lucide-react';
 
 interface CaughtEmail {

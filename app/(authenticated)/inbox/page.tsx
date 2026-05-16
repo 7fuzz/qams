@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { Button, IconButton, Modal, ManagementPage, Column, Combobox, Label } from "@/components/ui";
-import { Mail, Trash2, Eye, RefreshCw, Clock, User, Paperclip, Download } from 'lucide-react';
+import { Mail, Trash2, Eye, RefreshCw, Clock, User, Paperclip, Download, Settings2, Eraser } from 'lucide-react';
 
 interface CaughtEmail {
   email_id: string;
@@ -75,6 +75,14 @@ export default function MailInboxPage() {
     setIsViewModalOpen(true);
   };
 
+  const handleClearInbox = async () => {
+    if (!selectedProjectId) return;
+    if (!confirm('Are you sure you want to delete ALL emails for this project? This cannot be undone.')) return;
+    
+    const res = await fetch(`/api/projects/emails/clear?projectId=${selectedProjectId}`, { method: 'DELETE' });
+    if (res.ok) fetchEmails();
+  };
+
   const columns: Column<CaughtEmail>[] = [
     { 
         header: 'Subject', 
@@ -125,8 +133,8 @@ export default function MailInboxPage() {
   return (
     <>
       <ManagementPage
-        title="Project Mailbox"
-        description="View emails captured by assigned SMTP credentials."
+        title="Mail Catcher"
+        description="Monitor and inspect development emails in real-time."
         icon={Mail}
         primaryAction={
             <div className="flex items-center gap-3">
@@ -138,8 +146,12 @@ export default function MailInboxPage() {
                         placeholder="Select Project..."
                     />
                 </div>
-                <Button variant="outline" onClick={fetchEmails} disabled={loading}>
-                    <RefreshCw size={18} className={loading ? "animate-spin" : ""} />
+                <div className="h-8 w-px bg-border-theme mx-1" /> {/* Separator */}
+                <Button variant="outline" size="sm" onClick={fetchEmails} disabled={loading} title="Refresh">
+                    <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
+                </Button>
+                <Button variant="outline" size="sm" onClick={handleClearInbox} disabled={loading || emails.length === 0} className="text-danger-theme hover:bg-danger-theme/10" title="Clear Inbox">
+                    <Eraser size={16} />
                 </Button>
             </div>
         }

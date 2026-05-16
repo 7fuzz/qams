@@ -87,4 +87,13 @@ export class MailModel {
   static async deleteEmail(emailId: string): Promise<void> {
     await db.execute('DELETE FROM caught_emails WHERE email_id = ?', [emailId]);
   }
+
+  static async clearEmailsForProject(projectId: string): Promise<void> {
+    await db.execute(
+      `DELETE ce FROM caught_emails ce
+       JOIN project_mail_credentials pmc ON ce.credential_id = pmc.credential_id
+       WHERE pmc.project_id = ?`,
+      [projectId]
+    );
+  }
 }

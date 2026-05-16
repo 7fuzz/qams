@@ -59,9 +59,14 @@ export const Sidebar = ({ userPermissions = [] }: SidebarProps) => {
         items: [
             { name: "Test Library", href: "/tests", icon: ClipboardList },
             { name: "Test Executions", href: "/runs", icon: FileText },
-            { name: "Project Inbox", href: "/inbox", icon: Mail },
             { name: "Issue Management", href: "/issues", icon: AlertTriangle },
             { name: "Releases", href: "/releases", icon: Tag },
+        ]
+    },
+    {
+        label: "Dev Tools",
+        items: [
+            { name: "Mail Catcher", href: "/inbox", icon: Mail },
         ]
     }
   ];

@@ -67,14 +67,23 @@ export class MailModel {
     return rows as MailCredential[];
   }
 
-  static async getEmailsForProject(projectId: string): Promise<CaughtEmail[]> {
+  static async getEmailsForProject(projectId: string, limit: number = 20, offset: number = 0): Promise<{ data: CaughtEmail[], total: number }> {
+    const [countRows] = await db.execute(
+        `SELECT COUNT(*) as total FROM caught_emails ce
+         JOIN project_mail_credentials pmc ON ce.credential_id = pmc.credential_id
+         WHERE pmc.project_id = ?`,
+        [projectId]
+    );
+    const total = (countRows as any)[0].total;
+
     const [rows] = await db.execute(
       `SELECT ce.*, p.name as project_name FROM caught_emails ce
        JOIN project_mail_credentials pmc ON ce.credential_id = pmc.credential_id
        JOIN projects p ON pmc.project_id = p.project_id
        WHERE pmc.project_id = ?
-       ORDER BY ce.created_at DESC`,
-      [projectId]
+       ORDER BY ce.created_at DESC
+       LIMIT ? OFFSET ?`,
+      [projectId, limit, offset]
     );
     
     const emails = rows as CaughtEmail[];
@@ -85,17 +94,22 @@ export class MailModel {
         );
         email.attachments = attachments as { attachment_id: string, name: string, url: string }[];
     }
-    return emails;
+    return { data: emails, total };
   }
 
-  static async getAllEmails(): Promise<CaughtEmail[]> {
+  static async getAllEmails(limit: number = 20, offset: number = 0): Promise<{ data: CaughtEmail[], total: number }> {
+    const [countRows] = await db.execute("SELECT COUNT(*) as total FROM caught_emails");
+    const total = (countRows as any)[0].total;
+
     const [rows] = await db.execute(
       `SELECT ce.*, GROUP_CONCAT(p.name SEPARATOR ', ') as project_name 
        FROM caught_emails ce
        LEFT JOIN project_mail_credentials pmc ON ce.credential_id = pmc.credential_id
        LEFT JOIN projects p ON pmc.project_id = p.project_id
        GROUP BY ce.email_id
-       ORDER BY ce.created_at DESC`
+       ORDER BY ce.created_at DESC
+       LIMIT ? OFFSET ?`,
+      [limit, offset]
     );
     
     const emails = rows as CaughtEmail[];
@@ -106,7 +120,7 @@ export class MailModel {
         );
         email.attachments = attachments as { attachment_id: string, name: string, url: string }[];
     }
-    return emails;
+    return { data: emails, total };
   }
 
   static async deleteEmail(emailId: string): Promise<void> {

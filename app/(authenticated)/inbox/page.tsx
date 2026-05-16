@@ -26,6 +26,11 @@ export default function MailInboxPage() {
   const [selectedProjectId, setSelectedProjectId] = useState<string>('all');
   const [loading, setLoading] = useState(false);
   
+  // Pagination
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(20);
+  const [total, setTotal] = useState(0);
+
   const [selectedEmail, setSelectedEmail] = useState<CaughtEmail | null>(null);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
 
@@ -41,20 +46,21 @@ export default function MailInboxPage() {
   const fetchEmails = useCallback(() => {
     setLoading(true);
     const url = selectedProjectId === 'all' 
-        ? '/api/projects/emails?projectId=all' 
-        : `/api/projects/emails?projectId=${selectedProjectId}`;
+        ? `/api/projects/emails?projectId=all&page=${page}&limit=${limit}`
+        : `/api/projects/emails?projectId=${selectedProjectId}&page=${page}&limit=${limit}`;
         
     fetch(url)
       .then(res => res.json())
       .then(res => {
-        setEmails(Array.isArray(res) ? res : []);
+        setEmails(res.data || []);
+        setTotal(res.total || 0);
         setLoading(false);
       })
       .catch(() => {
         setEmails([]);
         setLoading(false);
       });
-  }, [selectedProjectId]);
+  }, [selectedProjectId, page, limit]);
 
   useEffect(() => {
     fetchProjects();
@@ -63,6 +69,11 @@ export default function MailInboxPage() {
   useEffect(() => {
     fetchEmails();
   }, [fetchEmails]);
+
+  // Reset page when project changes
+  useEffect(() => {
+    setPage(1);
+  }, [selectedProjectId]);
 
   const handleDelete = async (id: string) => {
     if (!confirm('Delete this email?')) return;
@@ -172,6 +183,11 @@ export default function MailInboxPage() {
         data={emails}
         columns={columns}
         loading={loading}
+        totalItems={total}
+        currentPage={page}
+        pageSize={limit}
+        onPageChange={setPage}
+        onPageSizeChange={(s) => { setLimit(s); setPage(1); }}
         searchPlaceholder="Search inbox..."
       />
 

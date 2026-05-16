@@ -11,15 +11,18 @@ export async function GET(request: Request) {
 
     const { searchParams } = new URL(request.url);
     const projectId = searchParams.get('projectId');
+    const page = parseInt(searchParams.get('page') || '1');
+    const limit = parseInt(searchParams.get('limit') || '20');
+    const offset = (page - 1) * limit;
 
     try {
-        let emails;
+        let result;
         if (!projectId || projectId === 'all') {
-            emails = await MailModel.getAllEmails();
+            result = await MailModel.getAllEmails(limit, offset);
         } else {
-            emails = await MailModel.getEmailsForProject(projectId);
+            result = await MailModel.getEmailsForProject(projectId, limit, offset);
         }
-        return NextResponse.json(emails);
+        return NextResponse.json(result);
     } catch {
         return NextResponse.json({ error: 'Failed to fetch emails' }, { status: 500 });
     }

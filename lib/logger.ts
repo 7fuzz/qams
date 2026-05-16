@@ -16,6 +16,12 @@ export async function logActivity(
             INSERT INTO activity_log (log_id, user_id, action, entity_type, entity_id, details)
             VALUES (?, ?, ?, ?, ?, ?)
         `, [generateId(), userId, action, entityType, entityId, details ? JSON.stringify(details) : null]);
+
+        // Auto-cleanup: Delete logs older than 1 month
+        // We run this with a low probability (e.g., 5% of logs) to avoid constant overhead
+        if (Math.random() < 0.05) {
+            await db.execute('DELETE FROM activity_log WHERE timestamp < DATE_SUB(NOW(), INTERVAL 1 MONTH)');
+        }
     } catch (error) {
         console.error('Failed to log activity:', error);
     }

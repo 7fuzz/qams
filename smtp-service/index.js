@@ -32,7 +32,7 @@ const server = new SMTPServer({
   onData(stream, session, callback) {
     simpleParser(stream)
       .then((parsed) => {
-        return saveEmail(session.user, parsed);
+        return saveEmail(session.user, parsed, session.envelope);
       })
       .then(() => callback())
       .catch((err) => {
@@ -58,11 +58,19 @@ if (!fs.existsSync(UPLOAD_DIR)) {
   fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 }
 
-async function saveEmail(credential, parsed) {
+async function saveEmail(credential, parsed, envelope) {
   const credentialId = credential.credential_id;
   const emailId = uuidv4();
-  const recipient = parsed.to ? parsed.to.text : "";
-  const sender = parsed.from ? parsed.from.text : "";
+  
+  // Prioritize Header From, but fallback to Protocol Envelope From
+  const headerFrom = parsed.from ? parsed.from.text : "";
+  const protocolFrom = envelope.mailFrom ? envelope.mailFrom.address : "";
+  const sender = headerFrom || protocolFrom || "(Unknown Sender)";
+
+  // Similarly for recipients
+  const headerTo = parsed.to ? parsed.to.text : "";
+  const protocolTo = envelope.rcptTo ? envelope.rcptTo.map(r => r.address).join(", ") : "";
+  const recipient = headerTo || protocolTo || "(Unknown Recipient)";
   
   await pool.execute(
     "INSERT INTO caught_emails (email_id, credential_id, sender, recipient, subject, body_text, body_html) VALUES (?, ?, ?, ?, ?, ?, ?)",

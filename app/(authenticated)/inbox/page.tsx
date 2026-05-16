@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { Button, IconButton, Modal, ManagementPage, Column, Combobox, Label } from "@/components/ui";
-import { Mail, Trash2, Eye, RefreshCw, Clock, User, Paperclip, Download, Settings2, Eraser } from 'lucide-react';
+import { Mail, Trash2, Eye, RefreshCw, Clock, User, Paperclip, Download, Settings2, Eraser, Server } from 'lucide-react';
 
 interface CaughtEmail {
   email_id: string;
@@ -13,6 +13,7 @@ interface CaughtEmail {
   body_html: string;
   created_at: string;
   project_name?: string;
+  credential_name?: string;
   attachments?: { attachment_id: string, name: string, url: string }[];
 }
 
@@ -107,9 +108,14 @@ export default function MailInboxPage() {
                         <Paperclip size={12} className="text-primary-theme" />
                     )}
                 </div>
-                <span className="text-[10px] text-text-theme-muted uppercase font-bold flex items-center gap-1">
-                    <User size={10} /> {email.sender}
-                </span>
+                <div className="flex items-center gap-2 mt-0.5">
+                    <span className="text-[10px] text-text-theme-muted uppercase font-bold flex items-center gap-1">
+                        <User size={10} /> {email.sender}
+                    </span>
+                    <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-surface-theme-subtle text-text-theme-subtle border border-border-theme font-medium flex items-center gap-1">
+                        <Server size={10} /> {email.credential_name || "Unknown Account"}
+                    </span>
+                </div>
             </div>
         )
     },

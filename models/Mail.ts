@@ -21,6 +21,7 @@ export interface CaughtEmail {
   body_html: string;
   created_at: string;
   project_name?: string;
+  credential_name?: string;
   attachments?: { attachment_id: string, name: string, url: string }[];
 }
 
@@ -102,9 +103,10 @@ export class MailModel {
     const total = (countRows as any)[0].total;
 
     const [rows] = await db.execute(
-      `SELECT ce.*, p.name as project_name FROM caught_emails ce
+      `SELECT ce.*, p.name as project_name, mc.name as credential_name FROM caught_emails ce
        JOIN project_mail_credentials pmc ON ce.credential_id = pmc.credential_id
        JOIN projects p ON pmc.project_id = p.project_id
+       LEFT JOIN mail_credentials mc ON ce.credential_id = mc.credential_id
        WHERE pmc.project_id = ?
        ORDER BY ce.created_at DESC
        LIMIT ? OFFSET ?`,
@@ -127,8 +129,9 @@ export class MailModel {
     const total = (countRows as any)[0].total;
 
     const [rows] = await db.execute(
-      `SELECT ce.*, GROUP_CONCAT(p.name SEPARATOR ', ') as project_name 
+      `SELECT ce.*, mc.name as credential_name, GROUP_CONCAT(p.name SEPARATOR ', ') as project_name 
        FROM caught_emails ce
+       LEFT JOIN mail_credentials mc ON ce.credential_id = mc.credential_id
        LEFT JOIN project_mail_credentials pmc ON ce.credential_id = pmc.credential_id
        LEFT JOIN projects p ON pmc.project_id = p.project_id
        GROUP BY ce.email_id

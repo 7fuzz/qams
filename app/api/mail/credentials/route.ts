@@ -34,6 +34,23 @@ export async function POST(request: Request) {
     }
 }
 
+export async function PUT(request: Request) {
+    const session = await getIronSession<SessionData>(await cookies(), sessionOptions);
+    if (!session.isLoggedIn || !session.permissions.includes('users:manage')) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    try {
+        const { credential_id, ...data } = await request.json();
+        if (!credential_id) return NextResponse.json({ error: 'Missing ID' }, { status: 400 });
+        await MailModel.updateCredential(credential_id, data);
+        await logActivity(session.user_id, 'UPDATE', 'MAIL_CREDENTIAL', credential_id, { name: data.name });
+        return NextResponse.json({ success: true });
+    } catch {
+        return NextResponse.json({ error: 'Failed to update credential' }, { status: 500 });
+    }
+}
+
 export async function DELETE(request: Request) {
     const session = await getIronSession<SessionData>(await cookies(), sessionOptions);
     if (!session.isLoggedIn || !session.permissions.includes('users:manage')) {

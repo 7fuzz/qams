@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { Button, IconButton, Modal, Input, Label, ManagementPage, Column, Combobox } from "@/components/ui";
-import { Plus, Trash2, Mail, Server, Shield, Link as LinkIcon, X } from 'lucide-react';
+import { Plus, Trash2, Mail, Server, Shield, Link as LinkIcon, X, Edit2 } from 'lucide-react';
 
 interface MailCredential {
     credential_id: string;
@@ -72,16 +72,33 @@ export default function MailCredentialManagementPage() {
   };
 
   const handleSave = async () => {
-    const res = await fetch('/api/mail/credentials', {
-        method: 'POST',
+    const isEdit = !!selectedCred;
+    const url = '/api/mail/credentials';
+    const method = isEdit ? 'PUT' : 'POST';
+    const body = isEdit ? { ...formData, credential_id: selectedCred.credential_id } : formData;
+
+    const res = await fetch(url, {
+        method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(body),
     });
 
     if (res.ok) {
         setIsModalOpen(false);
         fetchCredentials();
     }
+  };
+
+  const handleOpenEdit = (cred: MailCredential) => {
+    setSelectedCred(cred);
+    setFormData({ 
+      name: cred.name, 
+      smtp_user: cred.smtp_user, 
+      smtp_password: cred.smtp_password,
+      max_emails: cred.max_emails,
+      max_size_mb: cred.max_size_mb
+    });
+    setIsModalOpen(true);
   };
 
   const handleDelete = useCallback(async (id: string) => {
@@ -161,6 +178,7 @@ export default function MailCredentialManagementPage() {
       className: 'text-right',
       cell: (cred) => (
         <div className="flex gap-1 justify-end">
+          <IconButton icon={Edit2} size="sm" variant="ghost" className="text-primary-theme" onClick={() => handleOpenEdit(cred)} title="Edit Settings" />
           <IconButton icon={LinkIcon} size="sm" variant="ghost" className="text-primary-theme" onClick={() => handleOpenAssign(cred)} title="Assign to Projects" />
           <IconButton icon={Trash2} size="sm" variant="ghost" className="text-danger-theme" onClick={() => handleDelete(cred.credential_id)} title="Delete" />
         </div>
@@ -189,7 +207,7 @@ export default function MailCredentialManagementPage() {
       <Modal 
         isOpen={isModalOpen} 
         onClose={() => setIsModalOpen(false)} 
-        title="New SMTP Credential"
+        title={selectedCred ? `Edit SMTP Credential: ${selectedCred.name}` : 'New SMTP Credential'}
       >
         <div className="space-y-4">
             <div className="space-y-2">
@@ -239,7 +257,9 @@ export default function MailCredentialManagementPage() {
             </div>
             <div className="flex justify-end gap-3 pt-4">
                 <Button variant="outline" onClick={() => setIsModalOpen(false)}>Cancel</Button>
-                <Button onClick={handleSave}>Create</Button>
+                <Button onClick={handleSave}>
+                    {selectedCred ? 'Save Changes' : 'Create'}
+                </Button>
             </div>
         </div>
       </Modal>

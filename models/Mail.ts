@@ -39,6 +39,25 @@ export class MailModel {
     return id;
   }
 
+  static async updateCredential(id: string, data: Partial<MailCredential>): Promise<void> {
+    const fields: string[] = [];
+    const values: any[] = [];
+    
+    if (data.name !== undefined) { fields.push('name = ?'); values.push(data.name); }
+    if (data.smtp_user !== undefined) { fields.push('smtp_user = ?'); values.push(data.smtp_user); }
+    if (data.smtp_password !== undefined) { fields.push('smtp_password = ?'); values.push(data.smtp_password); }
+    if (data.max_emails !== undefined) { fields.push('max_emails = ?'); values.push(data.max_emails); }
+    if (data.max_size_mb !== undefined) { fields.push('max_size_mb = ?'); values.push(data.max_size_mb); }
+    
+    if (fields.length === 0) return;
+    
+    values.push(id);
+    await db.execute(
+      `UPDATE mail_credentials SET ${fields.join(', ')} WHERE credential_id = ?`,
+      values
+    );
+  }
+
   static async deleteCredential(id: string): Promise<void> {
     await db.execute('DELETE FROM mail_credentials WHERE credential_id = ?', [id]);
   }

@@ -117,7 +117,7 @@ export const Sidebar = ({ userPermissions = [] }: SidebarProps) => {
       } z-40`}
     >
       <div className="flex h-16 items-center justify-between px-4 border-b border-border-theme shrink-0">
-        {!isCollapsed && <span className="text-lg font-bold tracking-tight text-text-theme-main">Menu</span>}
+        {!isCollapsed && <span className="text-lg font-bold tracking-tight text-text-theme-main">Testing Management</span>}
         <button 
           onClick={() => setIsCollapsed(!isCollapsed)}
           className="rounded-md p-1 hover:bg-surface-accent transition-colors text-text-theme-muted"

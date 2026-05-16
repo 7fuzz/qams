@@ -3,7 +3,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: testing-management
+    container_name: testing-mgmt-web
     restart: always
     ports:
       - "3000:3000"
@@ -22,7 +22,7 @@ services:
     build:
       context: ./smtp-service
       dockerfile: Dockerfile
-    container_name: my-app-smtp
+    container_name: testing-mgmt-smtp
     restart: always
     ports:
       - "2525:25"
@@ -40,7 +40,7 @@ services:
 
   db:
     image: mariadb:10.6
-    container_name: my-app-db
+    container_name: testing-mgmt-db
     restart: always
     environment:
       MARIADB_ROOT_PASSWORD: root

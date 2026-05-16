@@ -22,7 +22,7 @@ This will start:
 ### 3. Initialize the Database
 The first time you run the project, you must apply the schema and seed the initial admin account:
 ```bash
-docker exec -it my-app-web npm run db:init
+docker exec -it testing-mgmt-web npm run db:init
 ```
 
 **Default Admin Credentials:**

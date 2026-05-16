@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { Button, IconButton, Modal, ManagementPage, Column, Combobox } from "@/components/ui";
-import { Mail, Trash2, Eye, RefreshCw, Clock, User, ArrowRight } from 'lucide-react';
+import { Mail, Trash2, Eye, RefreshCw, Clock, User, Paperclip, Download } from 'lucide-react';
 
 interface CaughtEmail {
   email_id: string;
@@ -12,6 +12,7 @@ interface CaughtEmail {
   body_text: string;
   body_html: string;
   created_at: string;
+  attachments?: { attachment_id: string, name: string, url: string }[];
 }
 
 interface Project {
@@ -80,7 +81,12 @@ export default function MailInboxPage() {
         accessorKey: 'subject',
         cell: (email) => (
             <div className="flex flex-col">
-                <span className="font-semibold text-text-theme-main">{email.subject}</span>
+                <div className="flex items-center gap-2">
+                    <span className="font-semibold text-text-theme-main">{email.subject}</span>
+                    {email.attachments && email.attachments.length > 0 && (
+                        <Paperclip size={12} className="text-primary-theme" />
+                    )}
+                </div>
                 <span className="text-[10px] text-text-theme-muted uppercase font-bold flex items-center gap-1">
                     <User size={10} /> {email.sender}
                 </span>
@@ -165,6 +171,30 @@ export default function MailInboxPage() {
                         <span className="text-text-theme-muted">{new Date(selectedEmail.created_at).toLocaleString()}</span>
                     </div>
                 </div>
+
+                {selectedEmail.attachments && selectedEmail.attachments.length > 0 && (
+                    <div className="space-y-2">
+                        <Label className="text-[10px] font-bold uppercase tracking-widest text-text-theme-muted">Attachments</Label>
+                        <div className="grid grid-cols-2 gap-2">
+                            {selectedEmail.attachments.map(att => (
+                                <a 
+                                    key={att.attachment_id} 
+                                    href={att.url} 
+                                    download={att.name}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex items-center justify-between p-2 text-xs bg-surface-theme-subtle border border-border-theme rounded hover:bg-surface-accent transition-colors"
+                                >
+                                    <div className="flex items-center gap-2 truncate">
+                                        <Paperclip size={14} className="text-text-theme-muted" />
+                                        <span className="truncate font-medium">{att.name}</span>
+                                    </div>
+                                    <Download size={14} className="text-primary-theme shrink-0" />
+                                </a>
+                            ))}
+                        </div>
+                    </div>
+                )}
 
                 <div className="space-y-2">
                     <Label className="text-[10px] font-bold uppercase tracking-widest text-text-theme-muted">Content</Label>

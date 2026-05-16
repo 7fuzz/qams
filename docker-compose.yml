@@ -12,6 +12,8 @@ services:
       MYSQL_USER: root
       MYSQL_PASSWORD: root
       MYSQL_DATABASE: test_management
+    volumes:
+      - ./public/uploads:/app/public/uploads
     depends_on:
       db:
         condition: service_healthy
@@ -29,6 +31,9 @@ services:
       MYSQL_USER: root
       MYSQL_PASSWORD: root
       MYSQL_DATABASE: test_management
+      UPLOAD_DIR: /app/attachments
+    volumes:
+      - ./public/uploads/mail:/app/attachments
     depends_on:
       db:
         condition: service_healthy

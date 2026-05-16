@@ -18,6 +18,7 @@ export interface CaughtEmail {
   body_text: string;
   body_html: string;
   created_at: string;
+  attachments?: { attachment_id: string, name: string, url: string }[];
 }
 
 export class MailModel {
@@ -71,7 +72,16 @@ export class MailModel {
        ORDER BY ce.created_at DESC`,
       [projectId]
     );
-    return rows as CaughtEmail[];
+    
+    const emails = rows as CaughtEmail[];
+    for (const email of emails) {
+        const [attachments] = await db.execute(
+            'SELECT attachment_id, name, url FROM attachments WHERE entity_type = "EMAIL" AND entity_id = ?',
+            [email.email_id]
+        );
+        email.attachments = attachments as { attachment_id: string, name: string, url: string }[];
+    }
+    return emails;
   }
 
   static async deleteEmail(emailId: string): Promise<void> {

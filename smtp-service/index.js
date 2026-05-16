@@ -50,6 +50,14 @@ async function authenticate(username, password) {
   return rows.length > 0 ? rows[0] : null;
 }
 
+const fs = require("fs");
+const path = require("path");
+
+const UPLOAD_DIR = process.env.UPLOAD_DIR || "./attachments";
+if (!fs.existsSync(UPLOAD_DIR)) {
+  fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+}
+
 async function saveEmail(credentialId, parsed) {
   const emailId = uuidv4();
   const recipient = parsed.to ? parsed.to.text : "";
@@ -67,7 +75,28 @@ async function saveEmail(credentialId, parsed) {
       parsed.html || "",
     ]
   );
-  console.log(`[${new Date().toISOString()}] Caught email for cred ${credentialId}: ${parsed.subject}`);
+
+  if (parsed.attachments && parsed.attachments.length > 0) {
+    for (const attachment of parsed.attachments) {
+      const attachmentId = uuidv4();
+      const ext = path.extname(attachment.filename);
+      const fileName = `${attachmentId}${ext}`;
+      const filePath = path.join(UPLOAD_DIR, fileName);
+      
+      fs.writeFileSync(filePath, attachment.content);
+      
+      // Use the existing attachments table
+      // url will be the relative path for the web app to serve
+      const publicUrl = `/uploads/mail/${fileName}`;
+      
+      await pool.execute(
+        "INSERT INTO attachments (attachment_id, entity_type, entity_id, url, name) VALUES (?, ?, ?, ?, ?)",
+        [attachmentId, 'EMAIL', emailId, publicUrl, attachment.filename]
+      );
+    }
+  }
+  
+  console.log(`[${new Date().toISOString()}] Caught email for cred ${credentialId}: ${parsed.subject} (${parsed.attachments?.length || 0} attachments)`);
 }
 
 const PORT = process.env.SMTP_PORT || 25;

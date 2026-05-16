@@ -12,6 +12,7 @@ interface CaughtEmail {
   body_text: string;
   body_html: string;
   created_at: string;
+  project_name?: string;
   attachments?: { attachment_id: string, name: string, url: string }[];
 }
 
@@ -195,7 +196,7 @@ export default function MailInboxPage() {
         isOpen={isViewModalOpen} 
         onClose={() => setIsViewModalOpen(false)} 
         title={selectedEmail?.subject || 'View Email'}
-        size="lg"
+        maxWidth="max-w-4xl"
       >
         {selectedEmail && (
             <div className="space-y-6">

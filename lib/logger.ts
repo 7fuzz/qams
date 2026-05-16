@@ -1,8 +1,8 @@
 import db from './db';
 import { generateId } from './id-utils';
 
-export type Action = 'CREATE' | 'UPDATE' | 'DELETE' | 'LOGIN' | 'LOGOUT';
-export type EntityType = 'PROJECT' | 'MODULE' | 'SCENARIO' | 'TEST_CASE' | 'TEST_RUN' | 'TAG' | 'ISSUE' | 'RELEASE' | 'USER' | 'ROLE' | 'AUTH' | 'ATTACHMENT';
+export type Action = 'CREATE' | 'UPDATE' | 'DELETE' | 'LOGIN' | 'LOGOUT' | 'ASSIGN' | 'UNASSIGN' | 'CLEAR';
+export type EntityType = 'PROJECT' | 'MODULE' | 'SCENARIO' | 'TEST_CASE' | 'TEST_RUN' | 'TAG' | 'ISSUE' | 'RELEASE' | 'USER' | 'ROLE' | 'AUTH' | 'ATTACHMENT' | 'MAIL_CREDENTIAL' | 'CAUGHT_EMAIL' | 'CAUGHT_EMAILS';
 
 export async function logActivity(
     userId: string,

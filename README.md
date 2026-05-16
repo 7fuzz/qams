@@ -1,36 +1,82 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Test Management System with Built-in Mail Catcher
 
-## Getting Started
+A comprehensive test management application with an integrated SMTP "Mail Catcher" (similar to Mailtrap) for development and testing.
 
-First, run the development server:
+## 🚀 Docker Setup
 
+The easiest way to run the entire stack (Next.js, MariaDB, and SMTP Listener) is using Docker Compose.
+
+### 1. Prerequisites
+- [Docker](https://docs.docker.com/get-docker/)
+- [Docker Compose](https://docs.docker.com/compose/install/)
+
+### 2. Start the Services
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+docker compose up -d
+```
+This will start:
+- **Web App**: `http://localhost:3000`
+- **MariaDB**: `localhost:3306` (root / root)
+- **SMTP Listener**: `localhost:2525`
+
+### 3. Initialize the Database
+The first time you run the project, you must apply the schema and seed the initial admin account:
+```bash
+docker exec -it my-app-web npm run db:init
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+**Default Admin Credentials:**
+- **Email**: `admin@example.com`
+- **Password**: `123`
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+---
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 📧 Mail Catcher Feature
 
-## Learn More
+The built-in Mail Catcher allows you to capture outgoing emails from any application during development.
 
-To learn more about Next.js, take a look at the following resources:
+### How to use:
+1.  **Create Credentials**: Go to **Admin > Mail Admin** in the sidebar. Create a new SMTP credential (username/password).
+2.  **Assign to Project**: Link the credential to one or more projects using the "Link" icon.
+3.  **Configure your app**: Point your external application's SMTP settings to:
+    - **Host**: `localhost` (or your server IP)
+    - **Port**: `2525`
+    - **User/Pass**: The ones you created in Step 1.
+4.  **View Emails**: Go to **Dev Tools > Mail Catcher** in the sidebar to see captured emails in real-time.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### Features:
+- **HTML Support**: View rich formatted emails in an isolated iframe.
+- **Attachments**: Automatically captures and stores files (stored in `public/uploads/mail`).
+- **Quotas**: Set per-credential limits for email count and storage size (oldest emails are auto-deleted).
+- **Pagination**: Efficiently handle thousands of captured emails.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+---
 
-## Deploy on Vercel
+## 🛠 Local Development (Hybrid)
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+If you prefer to run the Next.js app locally for faster hot-reloading:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+1.  **Start Infrastructure**:
+    ```bash
+    docker compose up -d db smtp
+    ```
+2.  **Install Dependencies**:
+    ```bash
+    npm install
+    ```
+3.  **Setup Environment**: Copy `.env.example` to `.env.local`.
+4.  **Initialize DB**:
+    ```bash
+    npm run db:init
+    ```
+5.  **Run Dev Server**:
+    ```bash
+    npm run dev
+    ```
+
+## 📁 Directory Structure
+- `/app`: Next.js frontend and API routes.
+- `/models`: Database logic and abstractions.
+- `/smtp-service`: Standalone Node.js SMTP listener.
+- `/public/uploads`: Shared volume for email attachments.
+- `/lib/db`: Database connection and schema files.

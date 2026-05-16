@@ -58,6 +58,7 @@ export const Sidebar = ({ userPermissions = [] }: SidebarProps) => {
         items: [
             { name: "Test Library", href: "/tests", icon: ClipboardList },
             { name: "Test Executions", href: "/runs", icon: FileText },
+            { name: "Project Inbox", href: "/inbox", icon: Mail },
             { name: "Issue Management", href: "/issues", icon: AlertTriangle },
             { name: "Releases", href: "/releases", icon: Tag },
         ]
@@ -81,6 +82,7 @@ export const Sidebar = ({ userPermissions = [] }: SidebarProps) => {
   const adminItems: MenuItem[] = [];
   if (userPermissions.includes('users:manage')) {
     adminItems.push({ name: "User Admin", href: "/admin/users", icon: Users });
+    adminItems.push({ name: "Mail Admin", href: "/admin/mail", icon: Mail });
   }
   if (userPermissions.includes('roles:manage')) {
     adminItems.push({ name: "Role Matrix", href: "/admin/roles", icon: Lock });

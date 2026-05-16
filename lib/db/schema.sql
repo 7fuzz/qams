@@ -308,3 +308,36 @@ CREATE TABLE IF NOT EXISTS attachments (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- Mail Credentials Table
+CREATE TABLE IF NOT EXISTS mail_credentials (
+    credential_id VARCHAR(255) PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    smtp_user VARCHAR(255) UNIQUE NOT NULL,
+    smtp_password VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- Junction: Projects to Mail Credentials
+CREATE TABLE IF NOT EXISTS project_mail_credentials (
+    project_id VARCHAR(255) NOT NULL,
+    credential_id VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (project_id, credential_id),
+    FOREIGN KEY (project_id) REFERENCES projects(project_id) ON DELETE CASCADE,
+    FOREIGN KEY (credential_id) REFERENCES mail_credentials(credential_id) ON DELETE CASCADE
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- Caught Emails Table
+CREATE TABLE IF NOT EXISTS caught_emails (
+    email_id VARCHAR(255) PRIMARY KEY,
+    credential_id VARCHAR(255) NOT NULL,
+    sender VARCHAR(255),
+    recipient TEXT,
+    subject TEXT,
+    body_text LONGTEXT,
+    body_html LONGTEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (credential_id) REFERENCES mail_credentials(credential_id) ON DELETE CASCADE
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;

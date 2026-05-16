@@ -16,6 +16,23 @@ services:
       db:
         condition: service_healthy
 
+  smtp:
+    build:
+      context: ./smtp-service
+      dockerfile: Dockerfile
+    container_name: my-app-smtp
+    restart: always
+    ports:
+      - "2525:25"
+    environment:
+      MYSQL_HOST: db
+      MYSQL_USER: root
+      MYSQL_PASSWORD: root
+      MYSQL_DATABASE: test_management
+    depends_on:
+      db:
+        condition: service_healthy
+
   db:
     image: mariadb:10.6
     container_name: my-app-db

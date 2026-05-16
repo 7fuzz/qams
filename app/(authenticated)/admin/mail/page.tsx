@@ -9,6 +9,8 @@ interface MailCredential {
     name: string;
     smtp_user: string;
     smtp_password: string;
+    max_emails: number;
+    max_size_mb: number;
 }
 
 interface Project {

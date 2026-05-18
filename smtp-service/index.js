@@ -13,8 +13,30 @@ const pool = mysql.createPool({
   queueLimit: 0,
 });
 
+const fs = require("fs");
+const path = require("path");
+
+const UPLOAD_DIR = process.env.UPLOAD_DIR || "./attachments";
+const CERT_DIR = path.join(__dirname, "cert");
+
+// Optional SSL Configuration
+let sslOptions = {};
+const keyPath = path.join(CERT_DIR, "key.pem");
+const certPath = path.join(CERT_DIR, "cert.pem");
+
+if (fs.existsSync(keyPath) && fs.existsSync(certPath)) {
+  sslOptions = {
+    key: fs.readFileSync(keyPath),
+    cert: fs.readFileSync(certPath),
+  };
+  console.log("SSL Certificates loaded from cert folder.");
+} else {
+  console.log("Running without SSL (key.pem/cert.pem not found in cert folder).");
+}
+
 const server = new SMTPServer({
   authOptional: false,
+  ...sslOptions,
   onAuth(auth, session, callback) {
     authenticate(auth.username, auth.password)
       .then((credential) => {
@@ -42,6 +64,11 @@ const server = new SMTPServer({
   },
 });
 
+// Add error handler to prevent process crash
+server.on("error", (err) => {
+  console.error("SMTP Server Error:", err.message);
+});
+
 async function authenticate(username, password) {
   const [rows] = await pool.execute(
     "SELECT credential_id, smtp_user, max_emails, max_size_mb FROM mail_credentials WHERE smtp_user = ? AND smtp_password = ?",
@@ -50,10 +77,6 @@ async function authenticate(username, password) {
   return rows.length > 0 ? rows[0] : null;
 }
 
-const fs = require("fs");
-const path = require("path");
-
-const UPLOAD_DIR = process.env.UPLOAD_DIR || "./attachments";
 if (!fs.existsSync(UPLOAD_DIR)) {
   fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 }

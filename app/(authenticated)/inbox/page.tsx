@@ -90,7 +90,12 @@ export default function MailInboxPage() {
 
   const handleClearInbox = async () => {
     if (!selectedProjectId) return;
-    if (!confirm('Are you sure you want to delete ALL emails for this project? This cannot be undone.')) return;
+    const isAll = selectedProjectId === 'all';
+    const message = isAll 
+      ? 'Are you sure you want to delete ALL emails from EVERY project? This cannot be undone.'
+      : 'Are you sure you want to delete ALL emails for this project? This cannot be undone.';
+    
+    if (!confirm(message)) return;
 
     const res = await fetch(`/api/projects/emails/clear?projectId=${selectedProjectId}`, { method: 'DELETE' });
     if (res.ok) fetchEmails();

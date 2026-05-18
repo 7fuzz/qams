@@ -156,6 +156,10 @@ export class MailModel {
   }
 
   static async clearEmailsForProject(projectId: string): Promise<void> {
+    if (projectId === 'all') {
+      await db.execute('DELETE FROM caught_emails');
+      return;
+    }
     await db.execute(
       `DELETE ce FROM caught_emails ce
        JOIN project_mail_credentials pmc ON ce.credential_id = pmc.credential_id

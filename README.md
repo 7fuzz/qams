@@ -29,6 +29,24 @@ docker exec -it testing-mgmt-web npm run db:init
 - **Email**: `admin@example.com`
 - **Password**: `123`
 
+### 4. SSL/TLS Support (Optional)
+The SMTP listener supports STARTTLS if certificates are provided in the `smtp-service/cert/` directory.
+
+**Development (Self-signed):**
+```bash
+openssl req -x509 -newkey rsa:4096 -keyout smtp-service/cert/key.pem -out smtp-service/cert/cert.pem -days 365 -nodes -subj "/CN=localhost"
+docker compose up -d --build smtp
+```
+*Note: You must configure your mail client to trust self-signed certificates (`rejectUnauthorized: false`).*
+
+**Production:**
+Mount your trusted certificates (e.g., from Certbot) via volumes in `docker-compose.yml`:
+```yaml
+volumes:
+  - /etc/letsencrypt/live/yourdomain/privkey.pem:/app/cert/key.pem:ro
+  - /etc/letsencrypt/live/yourdomain/fullchain.pem:/app/cert/cert.pem:ro
+```
+
 ---
 
 ## 📧 Mail Catcher Feature

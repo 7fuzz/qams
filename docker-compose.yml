@@ -7,6 +7,8 @@ services:
     restart: always
     ports:
       - "3000:3000"
+    env_file:
+      - .env.production
     environment:
       MYSQL_HOST: db
       MYSQL_USER: root
@@ -26,6 +28,8 @@ services:
     restart: always
     ports:
       - "2525:25"
+    env_file:
+      - .env.production
     environment:
       MYSQL_HOST: db
       MYSQL_USER: root

@@ -44,7 +44,7 @@ const server = new SMTPServer({
 
 async function authenticate(username, password) {
   const [rows] = await pool.execute(
-    "SELECT credential_id, max_emails, max_size_mb FROM mail_credentials WHERE smtp_user = ? AND smtp_password = ?",
+    "SELECT credential_id, smtp_user, max_emails, max_size_mb FROM mail_credentials WHERE smtp_user = ? AND smtp_password = ?",
     [username, password]
   );
   return rows.length > 0 ? rows[0] : null;
@@ -58,13 +58,15 @@ if (!fs.existsSync(UPLOAD_DIR)) {
   fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 }
 
-function formatAddress(parsedAddr, envelopeAddr) {
+function formatAddress(parsedAddr, envelopeAddr, smtpUser) {
   // If we have parsed headers, use the first one (most common case)
   if (parsedAddr && parsedAddr.value && parsedAddr.value.length > 0) {
     const first = parsedAddr.value[0];
+    let name = first.name;
     // Only return "Name <email>" if there is actually a name
-    if (first.name && first.name.trim()) {
-      return `${first.name.trim()} <${first.address}>`;
+    if (name && name.trim()) {
+      if (smtpUser) name = name.replace(smtpUser, '').trim();
+      return name ? `${name} <${first.address}>` : first.address;
     }
     return first.address;
   }
@@ -77,13 +79,17 @@ async function saveEmail(credential, parsed, envelope) {
   const emailId = uuidv4();
   
   // Use custom formatter to get clean strings
-  const sender = formatAddress(parsed.from, envelope.mailFrom ? envelope.mailFrom.address : null);
+  const sender = formatAddress(parsed.from, envelope.mailFrom ? envelope.mailFrom.address : null, credential.smtp_user);
   
   // For recipients, we handle potential multiple addresses
   let recipient = "";
   if (parsed.to && parsed.to.value && parsed.to.value.length > 0) {
     recipient = parsed.to.value.map(addr => {
-        if (addr.name && addr.name.trim()) return `${addr.name.trim()} <${addr.address}>`;
+        let name = addr.name;
+        if (name && name.trim()) {
+            if (credential.smtp_user) name = name.replace(credential.smtp_user, '').trim();
+            return name ? `${name} <${addr.address}>` : addr.address;
+        }
         return addr.address;
     }).join(", ");
   } else {

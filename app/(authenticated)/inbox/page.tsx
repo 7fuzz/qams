@@ -27,7 +27,7 @@ export default function MailInboxPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [selectedProjectId, setSelectedProjectId] = useState<string>('all');
   const [loading, setLoading] = useState(false);
-  
+
   // Pagination
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(20);
@@ -47,10 +47,10 @@ export default function MailInboxPage() {
 
   const fetchEmails = useCallback(() => {
     setLoading(true);
-    const url = selectedProjectId === 'all' 
-        ? `/api/projects/emails?projectId=all&page=${page}&limit=${limit}`
-        : `/api/projects/emails?projectId=${selectedProjectId}&page=${page}&limit=${limit}`;
-        
+    const url = selectedProjectId === 'all'
+      ? `/api/projects/emails?projectId=all&page=${page}&limit=${limit}`
+      : `/api/projects/emails?projectId=${selectedProjectId}&page=${page}&limit=${limit}`;
+
     fetch(url)
       .then(res => res.json())
       .then(res => {
@@ -91,63 +91,62 @@ export default function MailInboxPage() {
   const handleClearInbox = async () => {
     if (!selectedProjectId) return;
     if (!confirm('Are you sure you want to delete ALL emails for this project? This cannot be undone.')) return;
-    
+
     const res = await fetch(`/api/projects/emails/clear?projectId=${selectedProjectId}`, { method: 'DELETE' });
     if (res.ok) fetchEmails();
   };
 
   const columns: Column<CaughtEmail>[] = [
-    { 
-        header: 'Subject', 
-        accessorKey: 'subject',
-        cell: (email) => (
-            <div className="flex flex-col">
-                <div className="flex items-center gap-2">
-                    <span className="font-semibold text-text-theme-main">{email.subject}</span>
-                    {email.attachments && email.attachments.length > 0 && (
-                        <Paperclip size={12} className="text-primary-theme" />
-                    )}
-                </div>
-                <div className="flex items-center gap-2 mt-0.5">
-                    <span className="text-[10px] text-text-theme-muted uppercase font-bold flex items-center gap-1">
-                        <User size={10} /> {email.sender}
-                    </span>
-                    <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-surface-theme-subtle text-text-theme-subtle border border-border-theme font-medium flex items-center gap-1">
-                        <Server size={10} /> {email.credential_name || "Unknown Account"}
-                    </span>
-                </div>
-            </div>
-        )
-    },
-    { 
-        header: 'Recipient', 
-        accessorKey: 'recipient',
-        cell: (email) => <span className="text-sm text-text-theme-muted">{email.recipient}</span>
+    {
+      header: 'Subject',
+      accessorKey: 'subject',
+      cell: (email) => (
+        <div className="flex flex-col">
+          <div className="flex items-center gap-2">
+            <span className="font-semibold text-text-theme-main">{email.subject}</span>
+            {email.attachments && email.attachments.length > 0 && (
+              <Paperclip size={12} className="text-primary-theme" />
+            )}
+          </div>
+          <div className="flex items-center flex-wrap gap-x-2 gap-y-1 mt-0.5">
+            <span className="text-[10px] text-text-theme-muted uppercase font-bold flex items-center gap-1">
+              <User size={10} className="shrink-0" /> <span className="break-all">{email.sender}</span>
+            </span>
+            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-surface-theme-subtle text-text-theme-subtle border border-border-theme font-medium flex items-center gap-1 shrink-0">
+              <Server size={10} className="shrink-0" /> {email.credential_name || "Unknown Account"}
+            </span>
+          </div>
+        </div>
+      )
     },
     {
-        header: 'Project',
-        accessorKey: 'project_name',
-        cell: (email) => (
-            <div className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
-                email.project_name ? "bg-primary-theme/10 text-primary-theme" : "bg-surface-theme-subtle text-text-theme-subtle"
-            }`}>
-                {email.project_name || "Unassigned"}
-            </div>
-        )
+      header: 'Recipient',
+      accessorKey: 'recipient',
+      cell: (email) => <span className="text-sm text-text-theme-muted break-all whitespace-normal">{email.recipient}</span>
     },
-    { 
-        header: 'Received', 
-        accessorKey: 'created_at',
-        width: 180,
-        cell: (email) => (
-            <div className="flex items-center gap-2 text-text-theme-subtle">
-                <Clock size={14} />
-                <span className="text-xs">{new Date(email.created_at).toLocaleString()}</span>
-            </div>
-        )
+    {
+      header: 'Project',
+      accessorKey: 'project_name',
+      cell: (email) => (
+        <div className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase ${email.project_name ? "bg-primary-theme/10 text-primary-theme" : "bg-surface-theme-subtle text-text-theme-subtle"
+          }`}>
+          {email.project_name || "Unassigned"}
+        </div>
+      )
     },
-    { 
-      header: 'Actions', 
+    {
+      header: 'Received',
+      accessorKey: 'created_at',
+      width: 180,
+      cell: (email) => (
+        <div className="flex items-center gap-2 text-text-theme-subtle">
+          <Clock size={14} />
+          <span className="text-xs">{new Date(email.created_at).toLocaleString()}</span>
+        </div>
+      )
+    },
+    {
+      header: 'Actions',
       className: 'text-right',
       width: 100,
       cell: (email) => (
@@ -166,26 +165,26 @@ export default function MailInboxPage() {
         description="Monitor and inspect development emails in real-time."
         icon={Mail}
         primaryAction={
-            <div className="flex items-center gap-3">
-                <div className="w-64">
-                    <Combobox 
-                        options={[
-                            { value: 'all', label: 'All Projects' },
-                            ...projects.map(p => ({ value: p.project_id, label: p.name }))
-                        ]}
-                        value={selectedProjectId}
-                        onChange={val => setSelectedProjectId(val as string)}
-                        placeholder="Select Project..."
-                    />
-                </div>
-                <div className="h-8 w-px bg-border-theme mx-1" /> {/* Separator */}
-                <Button variant="outline" size="sm" onClick={fetchEmails} disabled={loading} title="Refresh">
-                    <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
-                </Button>
-                <Button variant="outline" size="sm" onClick={handleClearInbox} disabled={loading || emails.length === 0} className="text-danger-theme hover:bg-danger-theme/10" title="Clear Inbox">
-                    <Eraser size={16} />
-                </Button>
+          <div className="flex items-center gap-3">
+            <div className="w-64">
+              <Combobox
+                options={[
+                  { value: 'all', label: 'All Projects' },
+                  ...projects.map(p => ({ value: p.project_id, label: p.name }))
+                ]}
+                value={selectedProjectId}
+                onChange={val => setSelectedProjectId(val as string)}
+                placeholder="Select Project..."
+              />
             </div>
+            <div className="h-8 w-px bg-border-theme mx-1" /> {/* Separator */}
+            <Button variant="outline" size="sm" onClick={fetchEmails} disabled={loading} title="Refresh">
+              <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
+            </Button>
+            <Button variant="outline" size="sm" onClick={handleClearInbox} disabled={loading || emails.length === 0} className="text-danger-theme hover:bg-danger-theme/10" title="Clear Inbox">
+              <Eraser size={16} />
+            </Button>
+          </div>
         }
         data={emails}
         columns={columns}
@@ -198,74 +197,74 @@ export default function MailInboxPage() {
         searchPlaceholder="Search inbox..."
       />
 
-      <Modal 
-        isOpen={isViewModalOpen} 
-        onClose={() => setIsViewModalOpen(false)} 
+      <Modal
+        isOpen={isViewModalOpen}
+        onClose={() => setIsViewModalOpen(false)}
         title={selectedEmail?.subject || 'View Email'}
         maxWidth="max-w-4xl"
       >
         {selectedEmail && (
-            <div className="space-y-6">
-                <div className="bg-surface-theme-subtle p-4 rounded-lg border border-border-theme space-y-2">
-                    <div className="flex items-center gap-2 text-xs">
-                        <span className="font-bold text-text-theme-muted uppercase w-16">From:</span>
-                        <span className="text-text-theme-main">{selectedEmail.sender}</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-xs">
-                        <span className="font-bold text-text-theme-muted uppercase w-16">To:</span>
-                        <span className="text-text-theme-main">{selectedEmail.recipient}</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-xs border-t border-border-theme pt-2 mt-2">
-                        <Clock size={12} className="text-text-theme-muted" />
-                        <span className="text-text-theme-muted">{new Date(selectedEmail.created_at).toLocaleString()}</span>
-                    </div>
-                </div>
-
-                {selectedEmail.attachments && selectedEmail.attachments.length > 0 && (
-                    <div className="space-y-2">
-                        <Label className="text-[10px] font-bold uppercase tracking-widest text-text-theme-muted">Attachments</Label>
-                        <div className="grid grid-cols-2 gap-2">
-                            {selectedEmail.attachments.map(att => (
-                                <a 
-                                    key={att.attachment_id} 
-                                    href={att.url} 
-                                    download={att.name}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="flex items-center justify-between p-2 text-xs bg-surface-theme-subtle border border-border-theme rounded hover:bg-surface-accent transition-colors"
-                                >
-                                    <div className="flex items-center gap-2 truncate">
-                                        <Paperclip size={14} className="text-text-theme-muted" />
-                                        <span className="truncate font-medium">{att.name}</span>
-                                    </div>
-                                    <Download size={14} className="text-primary-theme shrink-0" />
-                                </a>
-                            ))}
-                        </div>
-                    </div>
-                )}
-
-                <div className="space-y-2">
-                    <Label className="text-[10px] font-bold uppercase tracking-widest text-text-theme-muted">Content</Label>
-                    <div className="border border-border-theme rounded-lg bg-surface-theme-subtle overflow-hidden min-h-[300px]">
-                        {selectedEmail.body_html ? (
-                            <iframe 
-                                srcDoc={`<style>body { background: white; color: black; font-family: sans-serif; padding: 1rem; margin: 0; }</style>${selectedEmail.body_html}`} 
-                                className="w-full h-[400px] border-none"
-                                title="Email Body"
-                            />
-                        ) : (
-                            <pre className="p-4 text-sm whitespace-pre-wrap font-sans text-text-theme-main">
-                                {selectedEmail.body_text}
-                            </pre>
-                        )}
-                    </div>
-                </div>
-
-                <div className="flex justify-end pt-4">
-                    <Button variant="outline" onClick={() => setIsViewModalOpen(false)}>Close</Button>
-                </div>
+          <div className="space-y-6">
+            <div className="bg-surface-theme-subtle p-4 rounded-lg border border-border-theme space-y-2">
+              <div className="flex items-center gap-2 text-xs">
+                <span className="font-bold text-text-theme-muted uppercase w-16">From:</span>
+                <span className="text-text-theme-main">{selectedEmail.sender}</span>
+              </div>
+              <div className="flex items-center gap-2 text-xs">
+                <span className="font-bold text-text-theme-muted uppercase w-16">To:</span>
+                <span className="text-text-theme-main">{selectedEmail.recipient}</span>
+              </div>
+              <div className="flex items-center gap-2 text-xs border-t border-border-theme pt-2 mt-2">
+                <Clock size={12} className="text-text-theme-muted" />
+                <span className="text-text-theme-muted">{new Date(selectedEmail.created_at).toLocaleString()}</span>
+              </div>
             </div>
+
+            {selectedEmail.attachments && selectedEmail.attachments.length > 0 && (
+              <div className="space-y-2">
+                <Label className="text-[10px] font-bold uppercase tracking-widest text-text-theme-muted">Attachments</Label>
+                <div className="grid grid-cols-2 gap-2">
+                  {selectedEmail.attachments.map(att => (
+                    <a
+                      key={att.attachment_id}
+                      href={att.url}
+                      download={att.name}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center justify-between p-2 text-xs bg-surface-theme-subtle border border-border-theme rounded hover:bg-surface-accent transition-colors"
+                    >
+                      <div className="flex items-center gap-2 truncate">
+                        <Paperclip size={14} className="text-text-theme-muted" />
+                        <span className="truncate font-medium">{att.name}</span>
+                      </div>
+                      <Download size={14} className="text-primary-theme shrink-0" />
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <Label className="text-[10px] font-bold uppercase tracking-widest text-text-theme-muted">Content</Label>
+              <div className="border border-border-theme rounded-lg bg-surface-theme-subtle overflow-hidden min-h-[300px]">
+                {selectedEmail.body_html ? (
+                  <iframe
+                    srcDoc={`<style>body { background: white; color: black; font-family: sans-serif; padding: 1rem; margin: 0; }</style>${selectedEmail.body_html}`}
+                    className="w-full h-[400px] border-none"
+                    title="Email Body"
+                  />
+                ) : (
+                  <pre className="p-4 text-sm whitespace-pre-wrap font-sans text-text-theme-main">
+                    {selectedEmail.body_text}
+                  </pre>
+                )}
+              </div>
+            </div>
+
+            <div className="flex justify-end pt-4">
+              <Button variant="outline" onClick={() => setIsViewModalOpen(false)}>Close</Button>
+            </div>
+          </div>
         )}
       </Modal>
     </>

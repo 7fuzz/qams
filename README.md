@@ -17,7 +17,7 @@ docker compose up -d
 This will start:
 - **Web App**: `http://localhost:3000`
 - **MariaDB**: `localhost:3306` (root / root)
-- **SMTP Listener**: `localhost:2525`
+- **SMTP Listener**: `localhost:587`
 
 ### 3. Initialize the Database
 The first time you run the project, you must apply the schema and seed the initial admin account:
@@ -58,7 +58,7 @@ The built-in Mail Catcher allows you to capture outgoing emails from any applica
 2.  **Assign to Project**: Link the credential to one or more projects using the "Link" icon.
 3.  **Configure your app**: Point your external application's SMTP settings to:
     - **Host**: `localhost` (or your server IP)
-    - **Port**: `2525`
+    - **Port**: `587`
     - **User/Pass**: The ones you created in Step 1.
 4.  **View Emails**: Go to **Dev Tools > Mail Catcher** in the sidebar to see captured emails in real-time.
 

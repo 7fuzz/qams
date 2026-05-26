@@ -6,14 +6,15 @@ services:
     container_name: testing-mgmt-web
     restart: always
     ports:
-      - "3000:3000"
+      - "${APP_PORT:-3000}:${APP_PORT:-3000}"
     env_file:
       - .env.production
     environment:
+      PORT: ${APP_PORT:-3000}
       MYSQL_HOST: db
-      MYSQL_USER: root
-      MYSQL_PASSWORD: root
-      MYSQL_DATABASE: test_management
+      MYSQL_USER: ${MYSQL_USER:-root}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-root}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-test_management}
     volumes:
       - ./public/uploads:/app/public/uploads
     depends_on:
@@ -27,14 +28,15 @@ services:
     container_name: testing-mgmt-smtp
     restart: always
     ports:
-      - "2525:25"
+      - "${SMTP_PORT:-587}:${SMTP_PORT:-587}"
     env_file:
       - .env.production
     environment:
+      SMTP_PORT: ${SMTP_PORT:-587}
       MYSQL_HOST: db
-      MYSQL_USER: root
-      MYSQL_PASSWORD: root
-      MYSQL_DATABASE: test_management
+      MYSQL_USER: ${MYSQL_USER:-root}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-root}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-test_management}
       UPLOAD_DIR: /app/attachments
     volumes:
       - ./public/uploads/mail:/app/attachments
@@ -47,14 +49,14 @@ services:
     container_name: testing-mgmt-db
     restart: always
     environment:
-      MARIADB_ROOT_PASSWORD: root
-      MARIADB_DATABASE: test_management
+      MARIADB_ROOT_PASSWORD: ${MYSQL_PASSWORD:-root}
+      MARIADB_DATABASE: ${MYSQL_DATABASE:-test_management}
     ports:
-      - "3306:3306"
+      - "${DB_PORT:-3306}:3306"
     volumes:
       - mariadb_data:/var/lib/mysql
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "${MYSQL_USER:-root}", "-p${MYSQL_PASSWORD:-root}"]
       interval: 5s
       timeout: 5s
       retries: 5

@@ -249,7 +249,7 @@ async function deleteEmailFull(emailId) {
   await pool.execute("DELETE FROM caught_emails WHERE email_id = ?", [emailId]);
 }
 
-const PORT = process.env.SMTP_PORT || 25;
+const PORT = process.env.SMTP_PORT || 587;
 server.listen(PORT, "0.0.0.0", () => {
   console.log(`SMTP Listener running on port ${PORT}`);
 });

@@ -101,3 +101,29 @@ body {
 .whitespace-pre-wrap {
   white-space: pre-wrap !important;
 }
+
+/* Pinned Column Utilities */
+.pinned-column {
+  background-color: var(--surface) !important;
+  z-index: 10;
+}
+
+.pinned-header {
+  background-color: var(--surface-muted) !important;
+  z-index: 31;
+}
+
+.pinned-shadow-left {
+  shadow: inset -1px 0 0 0 rgba(0,0,0,0.1);
+  box-shadow: inset -1px 0 0 0 rgba(0,0,0,0.1);
+}
+
+.pinned-shadow-right {
+  shadow: inset 1px 0 0 0 rgba(0,0,0,0.1);
+  box-shadow: inset 1px 0 0 0 rgba(0,0,0,0.1);
+}
+
+/* Ensure hover state still works for pinned columns */
+.group\/row:hover .pinned-column {
+  background-color: var(--surface-accent) !important;
+}

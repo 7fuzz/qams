@@ -120,3 +120,46 @@ export async function PUT(request: Request) {
         return NextResponse.json({ error: 'Failed to update execution' }, { status: 500 });
     }
 }
+
+export async function PATCH(request: Request) {
+    const session = await getIronSession<SessionData>(await cookies(), sessionOptions);
+    if (!session.isLoggedIn || !session.permissions.includes('tests:run')) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    try {
+        const { ids, status, runId } = await request.json();
+        if (!ids || !Array.isArray(ids) || !status) {
+            return NextResponse.json({ error: 'Missing ids or status' }, { status: 400 });
+        }
+
+        // Security Check: Is user assigned to this run?
+        if (runId) {
+            const [assignments] = await db.execute<RowDataPacket[]>(`
+                SELECT user_id FROM test_run_assignments WHERE run_id = ? AND user_id = ?
+            `, [runId, session.user_id]);
+
+            const isAssigned = assignments.length > 0;
+            const canBypass = session.permissions.includes('tests:bypass_assignment');
+
+            if (!isAssigned && !canBypass) {
+                return NextResponse.json({ error: "You are not assigned to this test run" }, { status: 403 });
+            }
+        }
+
+        await TestRunModel.bulkUpdateStatus(ids, status);
+
+        if (runId) {
+            await logActivity(session.user_id, 'UPDATE', 'TEST_RUN', runId, { 
+                action: 'BULK_STATUS_UPDATE',
+                count: ids.length,
+                status
+            });
+        }
+
+        return NextResponse.json({ success: true });
+    } catch (error) {
+        console.error('Bulk Update Execution Error:', error);
+        return NextResponse.json({ error: 'Failed to update executions' }, { status: 500 });
+    }
+}

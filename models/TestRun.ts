@@ -338,6 +338,16 @@ export const TestRunModel = {
         `, [data.status || null, data.notes || null, data.proof_url || null, id]);
     },
 
+    async bulkUpdateStatus(ids: string[], status: string) {
+        if (!ids || ids.length === 0) return;
+        const placeholders = ids.map(() => '?').join(',');
+        await db.execute(`
+            UPDATE test_executions 
+            SET status = ?, executed_at = CURRENT_TIMESTAMP
+            WHERE execution_id IN (${placeholders})
+        `, [status, ...ids]);
+    },
+
     async findExecutionHistory(testCaseId: string) {
         const [rows] = await db.execute<RowDataPacket[]>(`
             SELECT te.*, tr.name as run_name, u.name as tester_name, tr.created_at as run_date

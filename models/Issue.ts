@@ -347,5 +347,42 @@ export const IssueModel = {
             WHERE itc.issue_id = ?
         `, [issueId]);
         return rows.map(r => r.project_id) as string[];
+    },
+
+    async linkToTestCases(issueId: string, testCaseIds: string[]): Promise<{ linkedCount: number, skippedCount: number }> {
+        if (!testCaseIds || testCaseIds.length === 0) return { linkedCount: 0, skippedCount: 0 };
+
+        const connection = await db.getConnection();
+        await connection.beginTransaction();
+
+        try {
+            // Find existing links
+            const placeholders = testCaseIds.map(() => '?').join(',');
+            const [existing] = await connection.execute<RowDataPacket[]>(
+                `SELECT test_case_id FROM issue_test_cases WHERE issue_id = ? AND test_case_id IN (${placeholders})`,
+                [issueId, ...testCaseIds]
+            );
+
+            const existingSet = new Set(existing.map(e => e.test_case_id));
+            const newIds = testCaseIds.filter(id => !existingSet.has(id));
+
+            for (const tcId of newIds) {
+                await connection.execute(
+                    'INSERT INTO issue_test_cases (issue_id, test_case_id) VALUES (?, ?)',
+                    [issueId, tcId]
+                );
+            }
+
+            await connection.commit();
+            return {
+                linkedCount: newIds.length,
+                skippedCount: testCaseIds.length - newIds.length
+            };
+        } catch (error) {
+            await connection.rollback();
+            throw error;
+        } finally {
+            connection.release();
+        }
     }
 };

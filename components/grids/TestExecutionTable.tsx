@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { TEST_STATUS, TestStatus } from '@/lib/constants';
 import { AddCasesToRunDialog } from '../dialogs/AddCasesToRunDialog';
+import { BulkAddIssueDialog } from '../dialogs/BulkAddIssueDialog';
 import { Module, Scenario } from '@/types/app';
 
 interface Execution {
@@ -78,6 +79,9 @@ export const TestExecutionTable = ({ runId, onUpdate }: { runId: string, onUpdat
   const [statusFilter, setStatusFilter] = useState<string>('');
   const [moduleFilter, setModuleFilter] = useState<string>('');
   const [scenarioFilter, setScenarioFilter] = useState<string>('');
+
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [isBulkIssueDialogOpen, setIsBulkIssueDialogOpen] = useState(false);
 
   useEffect(() => {
     fetch(`/api/test-runs/${runId}`)
@@ -138,6 +142,27 @@ export const TestExecutionTable = ({ runId, onUpdate }: { runId: string, onUpdat
         fetchExecutions();
     });
   }, [fetchExecutions]);
+
+  const handleBulkStatusUpdate = async (status: string) => {
+    if (selectedIds.length === 0) return;
+    if (!confirm(`Are you sure you want to set status to ${status} for ${selectedIds.length} items?`)) return;
+    
+    setLoading(true);
+    try {
+        const res = await fetch('/api/test-executions', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ids: selectedIds, status, runId })
+        });
+        if (res.ok) {
+            fetchExecutions();
+            onUpdate?.();
+            setSelectedIds([]);
+        }
+    } finally {
+        setLoading(false);
+    }
+  };
 
   const handleQuickPass = useCallback(async (id: string) => {
     await fetch('/api/test-executions', {
@@ -312,6 +337,58 @@ export const TestExecutionTable = ({ runId, onUpdate }: { runId: string, onUpdat
         </div>
       </div>
 
+      {selectedIds.length > 0 && (
+        <div className="bg-primary-theme/5 border border-primary-theme/20 p-4 rounded-xl flex flex-col md:flex-row md:items-center justify-between gap-4 animate-in slide-in-from-top-2 duration-200">
+            <div className="flex items-center gap-3">
+                <div className="bg-primary-theme text-white text-[10px] font-black px-2 py-1 rounded-md uppercase">
+                    {selectedIds.length} Selected
+                </div>
+                <div className="text-xs text-text-theme-muted font-medium">Bulk Actions:</div>
+            </div>
+            <div className="flex flex-wrap gap-2">
+                <Button 
+                    size="sm" 
+                    variant="outline" 
+                    className="h-9 text-[10px] font-bold uppercase tracking-widest border-primary-theme/20 hover:bg-primary-theme/10"
+                    onClick={() => setIsBulkIssueDialogOpen(true)}
+                >
+                    Link to Issue
+                </Button>
+                <div className="h-9 w-[1px] bg-border-theme mx-1" />
+                <Button 
+                    size="sm" 
+                    className="h-9 text-[10px] font-bold uppercase tracking-widest bg-success-theme hover:bg-success-theme/90"
+                    onClick={() => handleBulkStatusUpdate(TEST_STATUS.PASSED)}
+                >
+                    Mark Passed
+                </Button>
+                <Button 
+                    size="sm" 
+                    className="h-9 text-[10px] font-bold uppercase tracking-widest bg-danger-theme hover:bg-danger-theme/90"
+                    onClick={() => handleBulkStatusUpdate(TEST_STATUS.FAILED)}
+                >
+                    Mark Failed
+                </Button>
+                <Button 
+                    size="sm" 
+                    variant="outline"
+                    className="h-9 text-[10px] font-bold uppercase tracking-widest"
+                    onClick={() => handleBulkStatusUpdate(TEST_STATUS.PENDING)}
+                >
+                    Reset Pending
+                </Button>
+                <Button 
+                    size="sm" 
+                    variant="ghost" 
+                    className="h-9 text-[10px] font-bold uppercase tracking-widest text-text-theme-muted"
+                    onClick={() => setSelectedIds([])}
+                >
+                    Cancel
+                </Button>
+            </div>
+        </div>
+      )}
+
       <CRUDTable
         data={executions as object[]}
         columns={columns as Column<object>[]}
@@ -325,6 +402,9 @@ export const TestExecutionTable = ({ runId, onUpdate }: { runId: string, onUpdat
         onSort={(key, order) => { setSortBy(key); setSortOrder(order); }}
         sortBy={sortBy}
         sortOrder={sortOrder}
+        selectedIds={selectedIds}
+        onSelectionChange={setSelectedIds}
+        rowIdKey="execution_id"
         onCreate={() => setIsAddCasesOpen(true)}
         createLabel="Add Cases"
         onRowClick={(item) => {
@@ -356,6 +436,17 @@ export const TestExecutionTable = ({ runId, onUpdate }: { runId: string, onUpdat
             onUpdate?.();
         }}
         existingTestCaseIds={executions.map(e => e.test_case_id)}
+      />
+
+      <BulkAddIssueDialog 
+        projectId={projectId}
+        testCaseIds={executions.filter(e => selectedIds.includes(e.execution_id)).map(e => e.test_case_id)}
+        isOpen={isBulkIssueDialogOpen}
+        onClose={() => setIsBulkIssueDialogOpen(false)}
+        onSuccess={() => {
+            setSelectedIds([]);
+            fetchExecutions();
+        }}
       />
     </div>
   );

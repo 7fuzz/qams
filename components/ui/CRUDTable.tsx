@@ -12,6 +12,7 @@ import {
 import { Pagination } from './Pagination';
 import { Input } from './Input';
 import { Button } from './Button';
+import { Checkbox } from './Checkbox';
 import { Search, Plus, ChevronUp, ChevronDown } from 'lucide-react';
 
 export interface Column<T> {
@@ -40,6 +41,9 @@ interface CRUDTableProps<T> {
   sortOrder?: 'ASC' | 'DESC';
   onCreate?: () => void;
   onRowClick?: (item: T) => void;
+  selectedIds?: string[];
+  onSelectionChange?: (ids: string[]) => void;
+  rowIdKey?: string;
   createLabel?: string;
   searchPlaceholder?: string;
   title?: string;
@@ -63,6 +67,9 @@ export function CRUDTable<T extends object>({
   sortOrder,
   onCreate,
   onRowClick,
+  selectedIds = [],
+  onSelectionChange,
+  rowIdKey = 'id',
   createLabel = "Add New",
   searchPlaceholder = "Search...",
   title,
@@ -178,7 +185,7 @@ export function CRUDTable<T extends object>({
       };
 
       if (col.pin === 'left') {
-          let left = 0;
+          let left = onSelectionChange ? 40 : 0;
           for (let i = 0; i < idx; i++) {
               left += columnWidths[i] || columns[i].width || 150;
           }
@@ -208,6 +215,25 @@ export function CRUDTable<T extends object>({
   };
 
   const totalPages = Math.ceil(totalItems / pageSize) || 1;
+
+  const toggleSelectAll = () => {
+    if (!onSelectionChange) return;
+    if (selectedIds.length === data.length && data.length > 0) {
+      onSelectionChange([]);
+    } else {
+      const allIds = data.map(item => String((item as any)[rowIdKey]));
+      onSelectionChange(allIds);
+    }
+  };
+
+  const toggleSelectRow = (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    if (!onSelectionChange) return;
+    const next = selectedIds.includes(id)
+      ? selectedIds.filter(i => i !== id)
+      : [...selectedIds, id];
+    onSelectionChange(next);
+  };
 
   const header = (title || onCreate || onSearch) && !hideHeader && (
     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -276,6 +302,19 @@ export function CRUDTable<T extends object>({
             <Table className="w-max table-fixed border-separate border-spacing-0">
               <TableHeader className="bg-surface-muted sticky top-0 z-30 shadow-[0_1px_0_0_rgba(0,0,0,0.1)]">
                 <TableRow className="hover:bg-transparent border-b-0">
+                  {onSelectionChange && (
+                    <TableHead 
+                        style={{ width: 40, minWidth: 40, maxWidth: 40, position: 'sticky', left: 0, zIndex: 40 }}
+                        className="pinned-header shadow-[inset_-1px_0_0_0_rgba(0,0,0,0.1)] text-center px-0"
+                    >
+                        <div className="flex items-center justify-center">
+                            <Checkbox 
+                                checked={data.length > 0 && selectedIds.length === data.length}
+                                onCheckedChange={toggleSelectAll}
+                            />
+                        </div>
+                    </TableHead>
+                  )}
                   {columns.map((col, idx) => {
                     const pinStyles = getPinStyles(col, idx);
                     return (
@@ -352,6 +391,21 @@ export function CRUDTable<T extends object>({
                                 className={`${onRowClick ? 'cursor-pointer' : ''} group/row`}
                                 onClick={() => onRowClick?.(item)}
                             >
+                                {onSelectionChange && (
+                                    <TableCell 
+                                        style={{ width: 40, minWidth: 40, maxWidth: 40, position: 'sticky', left: 0, zIndex: 30 }}
+                                        className="pinned-column shadow-[inset_-1px_0_0_0_rgba(0,0,0,0.1)] text-center px-0"
+                                        onClick={(e) => toggleSelectRow(e, String((item as any)[rowIdKey]))}
+                                    >
+                                        <div className="flex items-center justify-center">
+                                            <Checkbox 
+                                                checked={selectedIds.includes(String((item as any)[rowIdKey]))}
+                                                onCheckedChange={() => toggleSelectAll} // Not used here as parent handles click
+                                                readOnly
+                                            />
+                                        </div>
+                                    </TableCell>
+                                )}
                                 {columns.map((col, colIdx) => (
                                     <TableCell 
                                         key={colIdx} 

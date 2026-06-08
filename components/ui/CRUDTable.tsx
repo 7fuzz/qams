@@ -274,7 +274,7 @@ export function CRUDTable<T extends object>({
 
       <div className="w-full border border-border-theme rounded-lg overflow-hidden bg-surface shadow-sm">
         <div className="w-full overflow-x-auto scrollbar-thin scrollbar-thumb-border-theme scrollbar-track-transparent max-h-[70vh] overflow-y-auto">
-            <Table className="min-w-full table-fixed border-separate border-spacing-0">
+            <Table className="w-max table-fixed border-separate border-spacing-0">
               <TableHeader className="bg-surface-muted sticky top-0 z-30 shadow-[0_1px_0_0_rgba(0,0,0,0.1)]">
                 <TableRow className="hover:bg-transparent border-b-0">
                   {columns.map((col, idx) => {

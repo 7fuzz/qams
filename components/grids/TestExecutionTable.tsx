@@ -5,7 +5,9 @@ import {
   Button, 
   IconButton, 
   CRUDTable,
-  Column
+  Column,
+  Combobox,
+  Label
 } from '../ui';
 import { ExecutionDialog } from '../dialogs/ExecutionDialog';
 import { 
@@ -19,6 +21,7 @@ import {
 } from 'lucide-react';
 import { TEST_STATUS, TestStatus } from '@/lib/constants';
 import { AddCasesToRunDialog } from '../dialogs/AddCasesToRunDialog';
+import { Module, Scenario } from '@/types/app';
 
 interface Execution {
   execution_id: string;
@@ -26,6 +29,8 @@ interface Execution {
   custom_id: string | null;
   title: string;
   status: TestStatus;
+  module_name: string;
+  scenario_name: string;
   steps: string;
   expected_result: string;
   precondition: string;
@@ -58,6 +63,8 @@ export const TestExecutionTable = ({ runId, onUpdate }: { runId: string, onUpdat
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isAddCasesOpen, setIsAddCasesOpen] = useState(false);
   const [projectId, setProjectId] = useState<string>('');
+  const [availableModules, setAvailableModules] = useState<Module[]>([]);
+  const [availableScenarios, setAvailableScenarios] = useState<Scenario[]>([]);
   
   // Pagination & Search
   const [page, setPage] = useState(1);
@@ -67,6 +74,11 @@ export const TestExecutionTable = ({ runId, onUpdate }: { runId: string, onUpdat
   const [sortBy, setSortBy] = useState('id');
   const [sortOrder, setSortOrder] = useState<'ASC' | 'DESC'>('ASC');
 
+  // Filters
+  const [statusFilter, setStatusFilter] = useState<string>('');
+  const [moduleFilter, setModuleFilter] = useState<string>('');
+  const [scenarioFilter, setScenarioFilter] = useState<string>('');
+
   useEffect(() => {
     fetch(`/api/test-runs/${runId}`)
       .then(res => res.json())
@@ -75,9 +87,34 @@ export const TestExecutionTable = ({ runId, onUpdate }: { runId: string, onUpdat
       });
   }, [runId]);
 
+  useEffect(() => {
+    if (projectId) {
+      fetch(`/api/modules?projectId=${projectId}&limit=1000`)
+        .then(res => res.json())
+        .then(res => setAvailableModules(res.data || []));
+    }
+  }, [projectId]);
+
+  useEffect(() => {
+    if (moduleFilter) {
+      fetch(`/api/scenarios?moduleId=${moduleFilter}`)
+        .then(res => res.json())
+        .then(res => setAvailableScenarios(res || []));
+    } else {
+        setAvailableScenarios([]);
+        setScenarioFilter('');
+    }
+  }, [moduleFilter]);
+
   const fetchExecutions = useCallback(() => {
     setLoading(true);
-    fetch(`/api/test-executions?runId=${runId}&page=${page}&limit=${limit}&sortBy=${sortBy}&sortOrder=${sortOrder}&search=${encodeURIComponent(search)}`)
+    let url = `/api/test-executions?runId=${runId}&page=${page}&limit=${limit}&sortBy=${sortBy}&sortOrder=${sortOrder}&search=${encodeURIComponent(search)}`;
+    
+    if (statusFilter) url += `&status=${statusFilter}`;
+    if (moduleFilter) url += `&moduleId=${moduleFilter}`;
+    if (scenarioFilter) url += `&scenarioId=${scenarioFilter}`;
+
+    fetch(url)
       .then(res => res.json())
       .then(res => {
         if (res.data) {
@@ -94,7 +131,7 @@ export const TestExecutionTable = ({ runId, onUpdate }: { runId: string, onUpdat
           setTotal(0);
           setLoading(false);
       });
-  }, [runId, page, limit, sortBy, sortOrder, search]);
+  }, [runId, page, limit, sortBy, sortOrder, search, statusFilter, moduleFilter, scenarioFilter]);
 
   useEffect(() => {
     queueMicrotask(() => {
@@ -125,6 +162,20 @@ export const TestExecutionTable = ({ runId, onUpdate }: { runId: string, onUpdat
         )
     },
     {
+        header: 'Module',
+        accessorKey: 'module_name' as any,
+        sortable: true,
+        className: 'w-[120px] text-[10px] font-bold uppercase text-text-theme-muted',
+        cell: (item) => item.module_name
+    },
+    {
+        header: 'Scenario',
+        accessorKey: 'scenario_name' as any,
+        sortable: true,
+        className: 'w-[150px] text-[10px] font-bold uppercase text-text-theme-muted',
+        cell: (item) => item.scenario_name
+    },
+    {
         header: 'Test Case Title',
         accessorKey: 'title',
         sortable: true,
@@ -150,7 +201,7 @@ export const TestExecutionTable = ({ runId, onUpdate }: { runId: string, onUpdat
     {
         header: 'Notes',
         accessorKey: 'notes',
-        className: 'w-[250px] text-xs text-text-theme-muted italic line-clamp-1',
+        className: 'w-[250px] text-xs text-text-theme-muted italic line-clamp-1 flex items-center',
         cell: (item) => item.notes ? `“${item.notes}”` : '-'
     },
     {
@@ -196,7 +247,64 @@ export const TestExecutionTable = ({ runId, onUpdate }: { runId: string, onUpdat
   ], [handleQuickPass, setSelectedExecution, setIsDialogOpen]);
 
   return (
-    <div className="pt-4">
+    <div className="pt-4 space-y-4">
+      <div className="bg-surface border border-border-theme p-4 rounded-xl shadow-sm">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+            <div className="space-y-1.5">
+                <Label className="text-[10px] font-bold uppercase tracking-wider text-text-theme-muted">Status</Label>
+                <Combobox 
+                    options={[
+                        { value: '', label: 'All Statuses' },
+                        { value: TEST_STATUS.PENDING, label: 'Pending' },
+                        { value: TEST_STATUS.PASSED, label: 'Passed' },
+                        { value: TEST_STATUS.FAILED, label: 'Failed' },
+                        { value: TEST_STATUS.ON_HOLD, label: 'On Hold' },
+                    ]}
+                    value={statusFilter}
+                    onChange={(val) => { setStatusFilter(val as string); setPage(1); }}
+                />
+            </div>
+            <div className="space-y-1.5">
+                <Label className="text-[10px] font-bold uppercase tracking-wider text-text-theme-muted">Module</Label>
+                <Combobox 
+                    options={[
+                        { value: '', label: 'All Modules' },
+                        ...availableModules.map(m => ({ value: m.module_id, label: m.name }))
+                    ]}
+                    value={moduleFilter}
+                    onChange={(val) => { setModuleFilter(val as string); setPage(1); }}
+                />
+            </div>
+            <div className="space-y-1.5">
+                <Label className="text-[10px] font-bold uppercase tracking-wider text-text-theme-muted">Scenario</Label>
+                <Combobox 
+                    options={[
+                        { value: '', label: 'All Scenarios' },
+                        ...availableScenarios.map(s => ({ value: s.scenario_id, label: s.name }))
+                    ]}
+                    value={scenarioFilter}
+                    onChange={(val) => { setScenarioFilter(val as string); setPage(1); }}
+                />
+            </div>
+            <div className="flex gap-2">
+                <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="h-10 flex-1 text-[10px] font-bold uppercase tracking-wider"
+                    onClick={() => {
+                        setStatusFilter('');
+                        setModuleFilter('');
+                        setScenarioFilter('');
+                        setSearch('');
+                        setPage(1);
+                    }}
+                >
+                    Clear Filters
+                </Button>
+            </div>
+        </div>
+      </div>
+
       <CRUDTable
         data={executions as object[]}
         columns={columns as Column<object>[]}

@@ -236,7 +236,15 @@ export const TestRunModel = {
     },
 
     // Execution Logic
-    async findExecutions(runId: string, sortBy?: string, sortOrder?: 'ASC' | 'DESC', search?: string, limit?: number, offset?: number) {
+    async findExecutions(
+        runId: string, 
+        sortBy?: string, 
+        sortOrder?: 'ASC' | 'DESC', 
+        search?: string, 
+        limit?: number, 
+        offset?: number,
+        filters: { status?: string, moduleId?: string, scenarioId?: string } = {}
+    ) {
         let whereClause = 'WHERE te.run_id = ?';
         const params: any[] = [runId];
 
@@ -246,10 +254,26 @@ export const TestRunModel = {
             params.push(searchParam, searchParam, searchParam);
         }
 
+        if (filters.status) {
+            whereClause += ' AND te.status = ?';
+            params.push(filters.status);
+        }
+
+        if (filters.moduleId) {
+            whereClause += ' AND s.module_id = ?';
+            params.push(filters.moduleId);
+        }
+
+        if (filters.scenarioId) {
+            whereClause += ' AND tc.scenario_id = ?';
+            params.push(filters.scenarioId);
+        }
+
         const countQuery = `
             SELECT COUNT(*) as total 
             FROM test_executions te
             JOIN test_cases tc ON te.test_case_id = tc.test_case_id
+            JOIN scenarios s ON tc.scenario_id = s.scenario_id
             ${whereClause}
         `;
         const [countRows] = await db.execute<(RowDataPacket & { total: number })[]>(countQuery, params);
@@ -259,16 +283,24 @@ export const TestRunModel = {
             'id': 'tc.custom_id',
             'title': 'tc.title',
             'status': 'te.status',
-            'executed_at': 'te.executed_at'
+            'executed_at': 'te.executed_at',
+            'module': 'm.name',
+            'scenario': 's.name'
         };
 
-        const sortColumn = allowedSortColumns[sortBy || ''] || 'tc.title';
+        const sortColumn = allowedSortColumns[sortBy || ''] || 'tc.custom_id';
         const order = sortOrder === 'DESC' ? 'DESC' : 'ASC';
 
         const dataQuery = `
-            SELECT te.*, tc.title, tc.custom_id, tc.steps, tc.expected_result, tc.precondition, tc.test_data
+            SELECT 
+                te.*, 
+                tc.title, tc.custom_id, tc.steps, tc.expected_result, tc.precondition, tc.test_data,
+                s.name as scenario_name,
+                m.name as module_name
             FROM test_executions te
             JOIN test_cases tc ON te.test_case_id = tc.test_case_id
+            JOIN scenarios s ON tc.scenario_id = s.scenario_id
+            JOIN modules m ON s.module_id = m.module_id
             ${whereClause}
             ORDER BY ${sortColumn} ${order}
         `;

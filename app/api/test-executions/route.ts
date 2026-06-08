@@ -30,6 +30,44 @@ export async function GET(request: Request) {
     }
 }
 
+export async function POST(request: Request) {
+    const session = await getIronSession<SessionData>(await cookies(), sessionOptions);
+    if (!session.isLoggedIn || !session.permissions.includes('tests:run')) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    try {
+        const { runId, testCaseIds } = await request.json();
+        if (!runId || !testCaseIds || !Array.isArray(testCaseIds)) {
+            return NextResponse.json({ error: 'Missing runId or testCaseIds' }, { status: 400 });
+        }
+
+        // Security Check: Is user assigned to this run?
+        const [assignments] = await db.execute<RowDataPacket[]>(`
+            SELECT user_id FROM test_run_assignments WHERE run_id = ? AND user_id = ?
+        `, [runId, session.user_id]);
+
+        const isAssigned = assignments.length > 0;
+        const canBypass = session.permissions.includes('tests:bypass_assignment');
+
+        if (!isAssigned && !canBypass) {
+            return NextResponse.json({ error: "You are not assigned to this test run" }, { status: 403 });
+        }
+
+        const addedCount = await TestRunModel.addExecutions(runId, testCaseIds);
+
+        await logActivity(session.user_id, 'UPDATE', 'TEST_RUN', runId, { 
+            action: 'ADD_CASES',
+            count: addedCount
+        });
+
+        return NextResponse.json({ success: true, addedCount });
+    } catch (error) {
+        console.error('Add Executions Error:', error);
+        return NextResponse.json({ error: 'Failed to add executions' }, { status: 500 });
+    }
+}
+
 export async function PUT(request: Request) {
     const session = await getIronSession<SessionData>(await cookies(), sessionOptions);
     if (!session.isLoggedIn || !session.permissions.includes('tests:run')) {

@@ -88,6 +88,40 @@ export const TestRunModel = {
         return { data, total };
     },
 
+    async findById(id: string): Promise<TestRun | undefined> {
+        const [rows] = await db.execute<TestRun[] & RowDataPacket[]>(`
+            SELECT 
+                tr.*, 
+                rb.name as requested_by_name,
+                p.name as project_name, 
+                po.name as project_owner,
+                (SELECT COUNT(*) FROM test_executions WHERE run_id = tr.run_id) as total_cases,
+                (SELECT COUNT(*) FROM test_executions WHERE run_id = tr.run_id AND status = 'Passed') as passed_count,
+                (SELECT COUNT(*) FROM test_executions WHERE run_id = tr.run_id AND status = 'Failed') as failed_count,
+                (SELECT COUNT(*) FROM test_executions WHERE run_id = tr.run_id AND status = 'Pending') as pending_count
+            FROM test_runs tr 
+            LEFT JOIN users rb ON tr.requested_by_id = rb.user_id
+            JOIN projects p ON tr.project_id = p.project_id
+            JOIN users po ON p.lead_developer_id = po.user_id
+            WHERE tr.run_id = ?
+        `, [id]);
+        
+        if (rows.length === 0) return undefined;
+        const run = rows[0];
+
+        // Fetch assigned testers
+        const [assignments] = await db.execute<RowDataPacket[]>(`
+            SELECT u.user_id, u.name 
+            FROM test_run_assignments tra
+            JOIN users u ON tra.user_id = u.user_id
+            WHERE tra.run_id = ?
+        `, [run.run_id]);
+        run.assigned_tester_ids = assignments.map(a => a.user_id);
+        run.assigned_tester_names = assignments.map(a => a.name);
+
+        return run;
+    },
+
     async create(data: { project_id: string, name: string, type: string | null, requested_by_id?: string, scenario_ids?: string[], module_ids?: string[], status?: string, assigned_tester_ids?: string[] }) {
         const runId = generateId();
         const connection = await db.getConnection();
@@ -165,6 +199,40 @@ export const TestRunModel = {
     async delete(id: string) {
         const [result] = await db.execute<ResultSetHeader>('DELETE FROM test_runs WHERE run_id = ?', [id]);
         return result;
+    },
+
+    async addExecutions(runId: string, testCaseIds: string[]) {
+        if (!testCaseIds || testCaseIds.length === 0) return;
+
+        const connection = await db.getConnection();
+        await connection.beginTransaction();
+
+        try {
+            // Filter out test cases that are already in this run
+            const placeholders = testCaseIds.map(() => '?').join(',');
+            const [existing] = await connection.execute<RowDataPacket[]>(
+                `SELECT test_case_id FROM test_executions WHERE run_id = ? AND test_case_id IN (${placeholders})`,
+                [runId, ...testCaseIds]
+            );
+
+            const existingIds = new Set(existing.map(e => e.test_case_id));
+            const newIds = testCaseIds.filter(id => !existingIds.has(id));
+
+            for (const tcId of newIds) {
+                await connection.execute(
+                    'INSERT INTO test_executions (execution_id, run_id, test_case_id, status) VALUES (?, ?, ?, ?)',
+                    [generateId(), runId, tcId, 'Pending']
+                );
+            }
+
+            await connection.commit();
+            return newIds.length;
+        } catch (error) {
+            await connection.rollback();
+            throw error;
+        } finally {
+            connection.release();
+        }
     },
 
     // Execution Logic

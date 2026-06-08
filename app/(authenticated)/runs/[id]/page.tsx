@@ -156,7 +156,7 @@ export default function RunExecutionPage({ params }: { params: Promise<{ id: str
         </div>
       )}
 
-      <TestExecutionTable runId={id} />
+      <TestExecutionTable runId={id} onUpdate={fetchRun} />
     </div>
   );
 }

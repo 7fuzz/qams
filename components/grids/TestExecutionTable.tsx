@@ -18,6 +18,7 @@ import {
   FastForward,
 } from 'lucide-react';
 import { TEST_STATUS, TestStatus } from '@/lib/constants';
+import { AddCasesToRunDialog } from '../dialogs/AddCasesToRunDialog';
 
 interface Execution {
   execution_id: string;
@@ -50,19 +51,29 @@ const getStatusIcon = (status: TestStatus) => {
   }
 };
 
-export const TestExecutionTable = ({ runId }: { runId: string }) => {
+export const TestExecutionTable = ({ runId, onUpdate }: { runId: string, onUpdate?: () => void }) => {
   const [executions, setExecutions] = useState<Execution[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedExecution, setSelectedExecution] = useState<Execution | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isAddCasesOpen, setIsAddCasesOpen] = useState(false);
+  const [projectId, setProjectId] = useState<string>('');
   
   // Pagination & Search
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(50);
   const [total, setTotal] = useState(0);
   const [search, setSearch] = useState('');
-  const [sortBy, setSortBy] = useState('title');
+  const [sortBy, setSortBy] = useState('id');
   const [sortOrder, setSortOrder] = useState<'ASC' | 'DESC'>('ASC');
+
+  useEffect(() => {
+    fetch(`/api/test-runs/${runId}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.project_id) setProjectId(data.project_id);
+      });
+  }, [runId]);
 
   const fetchExecutions = useCallback(() => {
     setLoading(true);
@@ -199,6 +210,8 @@ export const TestExecutionTable = ({ runId }: { runId: string }) => {
         onSort={(key, order) => { setSortBy(key); setSortOrder(order); }}
         sortBy={sortBy}
         sortOrder={sortOrder}
+        onCreate={() => setIsAddCasesOpen(true)}
+        createLabel="Add Cases"
         onRowClick={(item) => {
             setSelectedExecution(item as unknown as Execution);
             setIsDialogOpen(true);
@@ -212,7 +225,22 @@ export const TestExecutionTable = ({ runId }: { runId: string }) => {
         execution={selectedExecution}
         isOpen={isDialogOpen}
         onClose={() => setIsDialogOpen(false)}
-        onSave={() => fetchExecutions()}
+        onSave={() => {
+            fetchExecutions();
+            onUpdate?.();
+        }}
+      />
+
+      <AddCasesToRunDialog 
+        runId={runId}
+        projectId={projectId}
+        isOpen={isAddCasesOpen}
+        onClose={() => setIsAddCasesOpen(false)}
+        onSuccess={() => {
+            fetchExecutions();
+            onUpdate?.();
+        }}
+        existingTestCaseIds={executions.map(e => e.test_case_id)}
       />
     </div>
   );

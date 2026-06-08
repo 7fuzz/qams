@@ -50,6 +50,7 @@ export const TestManagementGrid = ({ moduleId }: TestManagementGridProps) => {
   const [scenarios, setScenarios] = useState<Scenario[]>([]);
   const [loading, setLoading] = useState(true);
   const [newScenarioName, setNewScenarioName] = useState('');
+  const [newScenarioCode, setNewScenarioCode] = useState('');
   const [createMissingModules, setCreateMissingModules] = useState(false);
 
   // Pagination State
@@ -165,9 +166,10 @@ export const TestManagementGrid = ({ moduleId }: TestManagementGridProps) => {
     await fetch('/api/scenarios', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: newScenarioName, module_id: moduleId }),
+      body: JSON.stringify({ name: newScenarioName, code: newScenarioCode, module_id: moduleId }),
     });
     setNewScenarioName('');
+    setNewScenarioCode('');
     fetchScenarios();
   };
 
@@ -517,6 +519,13 @@ export const TestManagementGrid = ({ moduleId }: TestManagementGridProps) => {
               value={newScenarioName}
               onChange={e => setNewScenarioName(e.target.value)}
               className="h-7 text-[10px] w-[140px] bg-white dark:bg-gray-950"
+            />
+            <Input
+              placeholder="Code (e.g. LOG)"
+              value={newScenarioCode}
+              onChange={e => setNewScenarioCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''))}
+              className="h-7 text-[10px] w-[80px] bg-white dark:bg-gray-950"
+              maxLength={10}
             />
             <IconButton icon={Plus} size="sm" variant="outline" className="h-7 px-2" aria-label="Add scenario" onClick={handleAddScenario} />
           </div>

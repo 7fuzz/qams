@@ -37,16 +37,17 @@ export async function POST(request: Request) {
     }
 
     try {
-        const { name, version, description, lead_developer_id } = await request.json() as { name: string, version?: string, description?: string, lead_developer_id?: string };
+        const { name, code, version, description, lead_developer_id } = await request.json() as { name: string, code?: string, version?: string, description?: string, lead_developer_id?: string };
         const projectId = await ProjectModel.create({
             name,
+            code,
             version,
             description,
             lead_developer_id: lead_developer_id || session.user_id
         });
 
-        await logActivity(session.user_id, 'CREATE', 'PROJECT', projectId, { name });
-        return NextResponse.json({ project_id: projectId, name });
+        await logActivity(session.user_id, 'CREATE', 'PROJECT', projectId, { name, code });
+        return NextResponse.json({ project_id: projectId, name, code });
     } catch {
         return NextResponse.json({ error: 'Failed to create project' }, { status: 500 });
     }
@@ -59,7 +60,7 @@ export async function PUT(request: Request) {
     }
 
     try {
-        const { project_id, name, version, description, lead_developer_id } = await request.json() as { project_id: string, name: string, version: string, description?: string, lead_developer_id?: string };
+        const { project_id, name, code, version, description, lead_developer_id } = await request.json() as { project_id: string, name: string, code?: string, version: string, description?: string, lead_developer_id?: string };
         
         if (!await canManageProject(session, project_id)) {
             return NextResponse.json({ error: "Forbidden: You don't have access to this project" }, { status: 403 });
@@ -67,12 +68,13 @@ export async function PUT(request: Request) {
 
         await ProjectModel.update(project_id, {
             name,
+            code,
             version,
             description,
             lead_developer_id
         });
 
-        await logActivity(session.user_id, 'UPDATE', 'PROJECT', project_id, { name });
+        await logActivity(session.user_id, 'UPDATE', 'PROJECT', project_id, { name, code });
         return NextResponse.json({ success: true });
     } catch {
         return NextResponse.json({ error: 'Failed to update project' }, { status: 500 });

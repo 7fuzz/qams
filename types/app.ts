@@ -1,6 +1,7 @@
 export interface Project {
     project_id: string;
     name: string;
+    code?: string;
     description?: string;
     lead_developer_id?: string;
 }
@@ -9,6 +10,7 @@ export interface Module {
     module_id: string;
     project_id: string;
     name: string;
+    code?: string;
     description?: string;
     sla_date?: string | null;
     actual_date?: string | null;
@@ -18,6 +20,7 @@ export interface Scenario {
     scenario_id: string;
     module_id: string;
     name: string;
+    code?: string;
     open_issues_count?: number;
 }
 

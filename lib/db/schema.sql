@@ -43,6 +43,7 @@ CREATE TABLE IF NOT EXISTS users (
 CREATE TABLE IF NOT EXISTS projects (
     project_id VARCHAR(255) PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
+    code VARCHAR(50) UNIQUE, -- Hierarchical code (e.g. ACC)
     version VARCHAR(50) DEFAULT '1.0.0',
     description TEXT,
     lead_developer_id VARCHAR(255) NOT NULL,
@@ -66,6 +67,7 @@ CREATE TABLE IF NOT EXISTS modules (
     module_id VARCHAR(255) PRIMARY KEY,
     project_id VARCHAR(255) NOT NULL,
     name VARCHAR(255) NOT NULL,
+    code VARCHAR(50), -- Hierarchical code (e.g. AUTH)
     description TEXT,
     responsible_id VARCHAR(255),
     sla_date DATETIME,
@@ -81,6 +83,7 @@ CREATE TABLE IF NOT EXISTS scenarios (
     scenario_id VARCHAR(255) PRIMARY KEY,
     module_id VARCHAR(255) NOT NULL,
     name VARCHAR(255) NOT NULL,
+    code VARCHAR(50), -- Hierarchical code (e.g. LOG)
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (module_id) REFERENCES modules(module_id) ON DELETE CASCADE
@@ -89,7 +92,8 @@ CREATE TABLE IF NOT EXISTS scenarios (
 -- Test Cases Table
 CREATE TABLE IF NOT EXISTS test_cases (
     test_case_id VARCHAR(255) PRIMARY KEY,
-    custom_id VARCHAR(255), -- Optional manual ID (e.g. TC-001)
+    custom_id VARCHAR(255), -- Optional manual ID or auto-generated (e.g. ACC-AUTH-LOG-001)
+    code_index INTEGER DEFAULT 0, -- Suffix index for auto-generation
     scenario_id VARCHAR(255) NOT NULL,
     title VARCHAR(255) NOT NULL,
     type VARCHAR(255),

@@ -44,7 +44,7 @@ export async function POST(request: Request) {
     }
 
     try {
-        const { project_id, name, description, responsible_id, sla_date, actual_date } = await request.json();
+        const { project_id, name, code, description, responsible_id, sla_date, actual_date } = await request.json();
         
         if (!await canManageProject(session, project_id)) {
             return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -53,15 +53,16 @@ export async function POST(request: Request) {
         const moduleId = await ProjectModel.createModule({
             project_id,
             name,
+            code,
             description,
             responsible_id,
             sla_date,
             actual_date
         });
         
-        await logActivity(session.user_id, 'CREATE', 'MODULE', moduleId, { name, project_id });
+        await logActivity(session.user_id, 'CREATE', 'MODULE', moduleId, { name, code, project_id });
         
-        return NextResponse.json({ module_id: moduleId, project_id, name, description });
+        return NextResponse.json({ module_id: moduleId, project_id, name, code, description });
     } catch {
         return NextResponse.json({ error: 'Failed to create module' }, { status: 500 });
     }
@@ -74,7 +75,7 @@ export async function PUT(request: Request) {
     }
 
     try {
-        const { module_id, name, description, responsible_id, sla_date, actual_date } = await request.json();
+        const { module_id, name, code, description, responsible_id, sla_date, actual_date } = await request.json();
         
         // Fetch module to get project_id
         const { data: modules } = await ProjectModel.findModules({ moduleIds: [module_id] });
@@ -86,13 +87,14 @@ export async function PUT(request: Request) {
 
         await ProjectModel.updateModule(module_id, {
             name,
+            code,
             description,
             responsible_id,
             sla_date,
             actual_date
         });
         
-        await logActivity(session.user_id, 'UPDATE', 'MODULE', module_id, { name });
+        await logActivity(session.user_id, 'UPDATE', 'MODULE', module_id, { name, code });
         return NextResponse.json({ success: true });
     } catch {
         return NextResponse.json({ error: 'Failed to update module' }, { status: 500 });

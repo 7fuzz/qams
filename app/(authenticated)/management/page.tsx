@@ -18,6 +18,7 @@ import { Trash2, Plus, FolderTree, AlertCircle, Save, FileText, Settings2, UserP
 interface Project {
   project_id: string;
   name: string;
+  code: string;
   description: string;
   version: string;
   lead_developer_name: string;
@@ -36,6 +37,7 @@ interface User {
 interface EditData {
   project_desc?: string;
   project_name?: string;
+  project_code?: string;
   project_version?: string;
   lead_developer_id?: string;
 }
@@ -58,7 +60,7 @@ export default function ProjectManagementPage() {
   const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
-  const [newName, setNewName] = useState({ project: '', project_version: '1.0.0', project_desc: '', lead_developer_id: '' });
+  const [newName, setNewName] = useState({ project: '', project_code: '', project_version: '1.0.0', project_desc: '', lead_developer_id: '' });
   const [editData, setEditData] = useState<EditData>({});
 
   const fetchUsers = useCallback(async () => {
@@ -100,12 +102,13 @@ export default function ProjectManagementPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         name: newName.project,
+        code: newName.project_code,
         version: newName.project_version,
         description: newName.project_desc,
         lead_developer_id: newName.lead_developer_id
       }),
     });
-    setNewName({ project: '', project_desc: '', project_version: '1.0.0', lead_developer_id: '' }); 
+    setNewName({ project: '', project_code: '', project_desc: '', project_version: '1.0.0', lead_developer_id: '' }); 
     setIsCreateModalOpen(false);
     fetchProjects();
   };
@@ -118,6 +121,7 @@ export default function ProjectManagementPage() {
       body: JSON.stringify({
         project_id: selectedProjectId,
         name: editData.project_name,
+        code: editData.project_code,
         version: editData.project_version,
         description: editData.project_desc,
         lead_developer_id: editData.lead_developer_id
@@ -163,7 +167,7 @@ export default function ProjectManagementPage() {
       header: 'Project Name',
       accessorKey: 'name',
       sortable: true,
-      width: 300,
+      width: 250,
       minWidth: 200,
       cell: (item: Project) => (
         <div className="flex flex-col">
@@ -171,6 +175,14 @@ export default function ProjectManagementPage() {
           <span className="text-[10px] text-text-theme-subtle font-bold uppercase tracking-tighter">{item.version}</span>
         </div>
       )
+    },
+    {
+      header: 'Project Code',
+      accessorKey: 'code',
+      sortable: true,
+      width: 120,
+      minWidth: 100,
+      cell: (item: Project) => <span className="font-mono text-[10px] font-black text-primary-theme uppercase">{item.code}</span>
     },
     {
       header: 'Lead Developer',
@@ -285,22 +297,33 @@ export default function ProjectManagementPage() {
                 />
               </div>
               <div className="space-y-1">
-                <Label className="text-[10px] font-bold uppercase">Lead Developer</Label>
-                <Combobox
-                  options={userOptions}
-                  value={newName.lead_developer_id}
-                  onChange={val => setNewName({ ...newName, lead_developer_id: val as string })}
-                  placeholder="Select Lead..."
+                <Label className="text-[10px] font-bold uppercase">Project Code</Label>
+                <Input
+                  value={newName.project_code}
+                  onChange={e => setNewName({ ...newName, project_code: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '') })}
+                  placeholder="ACC"
+                  maxLength={10}
                 />
               </div>
             </div>
-            <div className="space-y-1">
-              <Label className="text-[10px] font-bold uppercase">Initial Version</Label>
-              <Input
-                value={newName.project_version}
-                onChange={e => setNewName({ ...newName, project_version: e.target.value })}
-                placeholder="1.0.0"
-              />
+            <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                <Label className="text-[10px] font-bold uppercase">Lead Developer</Label>
+                <Combobox
+                    options={userOptions}
+                    value={newName.lead_developer_id}
+                    onChange={val => setNewName({ ...newName, lead_developer_id: val as string })}
+                    placeholder="Select Lead..."
+                />
+                </div>
+                <div className="space-y-1">
+                <Label className="text-[10px] font-bold uppercase">Initial Version</Label>
+                <Input
+                    value={newName.project_version}
+                    onChange={e => setNewName({ ...newName, project_version: e.target.value })}
+                    placeholder="1.0.0"
+                />
+                </div>
             </div>
             <div className="space-y-1">
               <Label className="text-[10px] font-bold uppercase">Description</Label>
@@ -340,21 +363,32 @@ export default function ProjectManagementPage() {
                 />
               </div>
               <div className="space-y-1">
-                <Label className="text-[10px] font-bold text-text-theme-subtle uppercase tracking-wider">LEAD DEVELOPER</Label>
-                <Combobox
-                  options={userOptions}
-                  value={editData.lead_developer_id}
-                  onChange={val => setEditData({ ...editData, lead_developer_id: val as string })}
+                <Label className="text-[10px] font-bold text-text-theme-subtle uppercase tracking-wider">PROJECT CODE</Label>
+                <Input
+                  value={editData.project_code || ''}
+                  onChange={e => setEditData({ ...editData, project_code: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '') })}
+                  className="bg-surface"
+                  maxLength={10}
                 />
               </div>
             </div>
-            <div className="space-y-1">
-              <Label className="text-[10px] font-bold text-text-theme-subtle uppercase tracking-wider">VERSION</Label>
-              <Input
-                value={editData.project_version || ''}
-                onChange={e => setEditData({ ...editData, project_version: e.target.value })}
-                className="bg-surface"
-              />
+            <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                <Label className="text-[10px] font-bold text-text-theme-subtle uppercase tracking-wider">LEAD DEVELOPER</Label>
+                <Combobox
+                    options={userOptions}
+                    value={editData.lead_developer_id}
+                    onChange={val => setEditData({ ...editData, lead_developer_id: val as string })}
+                />
+                </div>
+                <div className="space-y-1">
+                <Label className="text-[10px] font-bold text-text-theme-subtle uppercase tracking-wider">VERSION</Label>
+                <Input
+                    value={editData.project_version || ''}
+                    onChange={e => setEditData({ ...editData, project_version: e.target.value })}
+                    className="bg-surface"
+                />
+                </div>
             </div>
             <div className="space-y-2">
               <Label className="text-[10px] font-bold text-text-theme-subtle uppercase tracking-wider">PROJECT DESCRIPTION</Label>

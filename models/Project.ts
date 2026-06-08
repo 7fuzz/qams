@@ -14,8 +14,8 @@ export const ProjectModel = {
         const params: any[] = [];
 
         if (filters.search) {
-            whereClause += ' AND (p.name LIKE ? OR p.description LIKE ?)';
-            params.push(`%${filters.search}%`, `%${filters.search}%`);
+            whereClause += ' AND (p.name LIKE ? OR p.code LIKE ? OR p.description LIKE ?)';
+            params.push(`%${filters.search}%`, `%${filters.search}%`, `%${filters.search}%`);
         }
 
         if (filters.assignedUserId) {
@@ -65,23 +65,25 @@ export const ProjectModel = {
         return { data: rows, total };
     },
 
-    async create(data: { name: string, version?: string, description?: string, lead_developer_id: string }): Promise<string> {
+    async create(data: { name: string, code?: string, version?: string, description?: string, lead_developer_id: string }): Promise<string> {
         const projectId = generateId();
-        await db.execute('INSERT INTO projects (project_id, name, version, description, lead_developer_id) VALUES (?, ?, ?, ?, ?)', 
-            [projectId, data.name, data.version || '1.0.0', data.description || null, data.lead_developer_id]);
+        await db.execute('INSERT INTO projects (project_id, name, code, version, description, lead_developer_id) VALUES (?, ?, ?, ?, ?, ?)', 
+            [projectId, data.name, data.code || null, data.version || '1.0.0', data.description || null, data.lead_developer_id]);
         return projectId;
     },
 
-    async update(id: string, data: { name?: string, version?: string, description?: string, lead_developer_id?: string }): Promise<void> {
+    async update(id: string, data: { name?: string, code?: string, version?: string, description?: string, lead_developer_id?: string }): Promise<void> {
         await db.execute(`
             UPDATE projects 
             SET name = COALESCE(?, name), 
+                code = COALESCE(?, code),
                 version = COALESCE(?, version), 
                 description = COALESCE(?, description), 
                 lead_developer_id = COALESCE(?, lead_developer_id) 
             WHERE project_id = ?
         `, [
             data.name ?? null, 
+            data.code ?? null,
             data.version ?? null, 
             data.description ?? null, 
             data.lead_developer_id ?? null, 
@@ -115,8 +117,8 @@ export const ProjectModel = {
         }
 
         if (filters.search) {
-            whereClause += ' AND (m.name LIKE ? OR m.description LIKE ? OR p.name LIKE ?)';
-            params.push(`%${filters.search}%`, `%${filters.search}%`, `%${filters.search}%`);
+            whereClause += ' AND (m.name LIKE ? OR m.code LIKE ? OR m.description LIKE ? OR p.name LIKE ?)';
+            params.push(`%${filters.search}%`, `%${filters.search}%`, `%${filters.search}%`, `%${filters.search}%`);
         }
 
         const baseQuery = `
@@ -131,6 +133,7 @@ export const ProjectModel = {
 
         const allowedSortColumns: Record<string, string> = {
             'name': 'm.name',
+            'code': 'm.code',
             'project_name': 'p.name',
             'responsible_name': 'u.name'
         };
@@ -153,17 +156,18 @@ export const ProjectModel = {
         return { data: rows, total };
     },
 
-    async createModule(data: { project_id: string, name: string, description?: string, responsible_id?: string, sla_date?: string, actual_date?: string }): Promise<string> {
+    async createModule(data: { project_id: string, name: string, code?: string, description?: string, responsible_id?: string, sla_date?: string, actual_date?: string }): Promise<string> {
         const moduleId = generateId();
-        await db.execute('INSERT INTO modules (module_id, project_id, name, description, responsible_id, sla_date, actual_date) VALUES (?, ?, ?, ?, ?, ?, ?)', 
-            [moduleId, data.project_id, data.name, data.description || null, data.responsible_id || null, data.sla_date || null, data.actual_date || null]);
+        await db.execute('INSERT INTO modules (module_id, project_id, name, code, description, responsible_id, sla_date, actual_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?)', 
+            [moduleId, data.project_id, data.name, data.code || null, data.description || null, data.responsible_id || null, data.sla_date || null, data.actual_date || null]);
         return moduleId;
     },
 
-    async updateModule(id: string, data: { name?: string, description?: string, responsible_id?: string, sla_date?: string, actual_date?: string }): Promise<void> {
+    async updateModule(id: string, data: { name?: string, code?: string, description?: string, responsible_id?: string, sla_date?: string, actual_date?: string }): Promise<void> {
         await db.execute(`
             UPDATE modules 
             SET name = COALESCE(?, name), 
+                code = COALESCE(?, code),
                 description = COALESCE(?, description), 
                 responsible_id = COALESCE(?, responsible_id), 
                 sla_date = COALESCE(?, sla_date), 
@@ -171,6 +175,7 @@ export const ProjectModel = {
             WHERE module_id = ?
         `, [
             data.name ?? null, 
+            data.code ?? null,
             data.description ?? null, 
             data.responsible_id ?? null, 
             data.sla_date ?? null, 

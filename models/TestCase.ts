@@ -98,17 +98,54 @@ export const TestCaseModel = {
 
     async create(data: Partial<TestCase>): Promise<string> {
         const id = generateId();
-        const params: any[] = [
-            id, data.custom_id ?? null, data.scenario_id, data.title, data.type ?? null, 
-            data.priority ?? null, data.automation_status ?? null, 
-            data.requirement_link ?? null, data.estimated_duration ?? null, 
-            data.precondition ?? null, data.steps ?? null, data.test_data ?? null, data.expected_result ?? null
-        ];
-        await db.execute(`
-            INSERT INTO test_cases (test_case_id, custom_id, scenario_id, title, type, priority, automation_status, requirement_link, estimated_duration, precondition, steps, test_data, expected_result)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `, params);
-        return id;
+        let customId = data.custom_id;
+        let codeIndex = 0;
+
+        const connection = await db.getConnection();
+        await connection.beginTransaction();
+
+        try {
+            if (!customId) {
+                // Fetch codes to generate hierarchical ID
+                const [rows] = await connection.execute<RowDataPacket[]>(`
+                    SELECT p.code as p_code, m.code as m_code, s.code as s_code,
+                           (SELECT MAX(code_index) FROM test_cases WHERE scenario_id = s.scenario_id) as max_index
+                    FROM scenarios s
+                    JOIN modules m ON s.module_id = m.module_id
+                    JOIN projects p ON m.project_id = p.project_id
+                    WHERE s.scenario_id = ?
+                `, [data.scenario_id]);
+
+                if (rows.length > 0) {
+                    const row = rows[0];
+                    codeIndex = (row.max_index || 0) + 1;
+                    const pCode = row.p_code || 'PRJ';
+                    const mCode = row.m_code || 'MOD';
+                    const sCode = row.s_code || 'SCE';
+                    customId = `${pCode}-${mCode}-${sCode}-${String(codeIndex).padStart(3, '0')}`;
+                }
+            }
+
+            const params: any[] = [
+                id, customId ?? null, codeIndex, data.scenario_id, data.title, data.type ?? null, 
+                data.priority ?? null, data.automation_status ?? null, 
+                data.requirement_link ?? null, data.estimated_duration ?? null, 
+                data.precondition ?? null, data.steps ?? null, data.test_data ?? null, data.expected_result ?? null
+            ];
+
+            await connection.execute(`
+                INSERT INTO test_cases (test_case_id, custom_id, code_index, scenario_id, title, type, priority, automation_status, requirement_link, estimated_duration, precondition, steps, test_data, expected_result)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            `, params);
+
+            await connection.commit();
+            return id;
+        } catch (error) {
+            await connection.rollback();
+            throw error;
+        } finally {
+            connection.release();
+        }
     },
 
     async update(id: string, data: Partial<TestCase>): Promise<void> {
@@ -152,26 +189,15 @@ export const TestCaseModel = {
         const source = await this.findById(id);
         if (!source) return null;
 
-        const newId = generateId();
-        await db.query(`
-            INSERT INTO test_cases (test_case_id, custom_id, scenario_id, title, type, priority, automation_status, requirement_link, estimated_duration, precondition, steps, test_data, expected_result)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `, [
-            newId,
-            source.custom_id ? source.custom_id + ' (Copy)' : null,
-            source.scenario_id, 
-            source.title + ' (Copy)', 
-            source.type || null, 
-            source.priority || null,
-            source.automation_status || null,
-            source.requirement_link || null,
-            source.estimated_duration || null,
-            source.precondition || null, 
-            source.steps || null, 
-            source.test_data || null, 
-            source.expected_result || null
-        ]);
-        return { id: newId, title: source.title + ' (Copy)' };
+        const newTitle = source.title + ' (Copy)';
+        const newId = await this.create({
+            ...source,
+            test_case_id: undefined,
+            custom_id: undefined, // Force regeneration
+            title: newTitle
+        });
+        
+        return { id: newId, title: newTitle };
     },
 
     // Scenario Logic
@@ -194,14 +220,14 @@ export const TestCaseModel = {
         return rows;
     },
 
-    async createScenario(moduleId: string, name: string): Promise<string> {
+    async createScenario(moduleId: string, name: string, code?: string): Promise<string> {
         const id = generateId();
-        await db.execute('INSERT INTO scenarios (scenario_id, module_id, name) VALUES (?, ?, ?)', [id, moduleId, name]);
+        await db.execute('INSERT INTO scenarios (scenario_id, module_id, name, code) VALUES (?, ?, ?, ?)', [id, moduleId, name, code || null]);
         return id;
     },
 
-    async updateScenario(id: string, name: string): Promise<void> {
-        await db.execute('UPDATE scenarios SET name = ? WHERE scenario_id = ?', [name, id]);
+    async updateScenario(id: string, name: string, code?: string): Promise<void> {
+        await db.execute('UPDATE scenarios SET name = ?, code = COALESCE(?, code) WHERE scenario_id = ?', [name, code ?? null, id]);
     },
 
     async deleteScenario(id: string): Promise<void> {
@@ -251,6 +277,7 @@ export const TestCaseModel = {
 
                 // Determine target moduleId
                 const targetModuleName = (tc.module || tc.module_name) as string | undefined;
+                const targetModuleCode = (tc.module_code || tc.code) as string | undefined;
                 let currentModuleId = moduleId;
 
                 if (targetModuleName && targetModuleName.trim()) {
@@ -268,8 +295,8 @@ export const TestCaseModel = {
                         } else if (options.createMissingModules) {
                             currentModuleId = generateId();
                             await connection.execute(
-                                'INSERT INTO modules (module_id, project_id, name) VALUES (?, ?, ?)',
-                                [currentModuleId, projectId, mName]
+                                'INSERT INTO modules (module_id, project_id, name, code) VALUES (?, ?, ?, ?)',
+                                [currentModuleId, projectId, mName, targetModuleCode || null]
                             );
                         } else {
                             // Fallback to initial moduleId if not found and creation not allowed
@@ -280,6 +307,7 @@ export const TestCaseModel = {
                 }
 
                 const scenarioName = (tc.scenario || 'Default Scenario') as string;
+                const scenarioCode = (tc.scenario_code || tc.s_code) as string | undefined;
                 const scenarioCacheKey = `${currentModuleId}:${scenarioName}`;
                 
                 let scenarioId = scenarioCache[scenarioCacheKey];
@@ -294,8 +322,8 @@ export const TestCaseModel = {
                     } else {
                         scenarioId = generateId();
                         await connection.execute(
-                            'INSERT INTO scenarios (scenario_id, module_id, name) VALUES (?, ?, ?)',
-                            [scenarioId, currentModuleId, scenarioName]
+                            'INSERT INTO scenarios (scenario_id, module_id, name, code) VALUES (?, ?, ?, ?)',
+                            [scenarioId, currentModuleId, scenarioName, scenarioCode || null]
                         );
                     }
                     scenarioCache[scenarioCacheKey] = scenarioId;
@@ -336,23 +364,21 @@ export const TestCaseModel = {
                         existingId
                     ]);
                 } else {
-                    const insertParams: any[] = [
-                        generateId(), customId, scenarioId, title, type, priority,
-                        normalizers.automation(tc.automation_status),
-                        tc.requirement_link || null,
-                        parseInt(tc.estimated_duration as string) || 0,
-                        tc.precondition || '',
-                        tc.steps || '',
-                        tc.test_data || '',
-                        tc.expected_result || ''
-                    ];
-                    await connection.execute(`
-                        INSERT INTO test_cases (
-                            test_case_id, custom_id, scenario_id, title, type, priority, 
-                            automation_status, requirement_link, estimated_duration, 
-                            precondition, steps, test_data, expected_result
-                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                    `, insertParams);
+                    // Use the existing create method to leverage hierarchical ID auto-generation
+                    await this.create({
+                        custom_id: customId,
+                        scenario_id: scenarioId,
+                        title,
+                        type,
+                        priority,
+                        automation_status: normalizers.automation(tc.automation_status),
+                        requirement_link: tc.requirement_link as string,
+                        estimated_duration: parseInt(tc.estimated_duration as string) || 0,
+                        precondition: tc.precondition as string,
+                        steps: tc.steps as string,
+                        test_data: tc.test_data as string,
+                        expected_result: tc.expected_result as string
+                    });
                 }
                 importedCount++;
             }

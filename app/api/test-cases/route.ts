@@ -62,10 +62,15 @@ export async function POST(request: Request) {
         }
 
         const testCaseId = await TestCaseModel.create(body);
+        const newTestCase = await TestCaseModel.findById(testCaseId);
         
-        await logActivity(session.user_id, 'CREATE', 'TEST_CASE', testCaseId, { title: body.title, scenario_id: body.scenario_id });
+        await logActivity(session.user_id, 'CREATE', 'TEST_CASE', testCaseId, { 
+            title: body.title, 
+            scenario_id: body.scenario_id,
+            custom_id: newTestCase?.custom_id
+        });
         
-        return NextResponse.json({ test_case_id: testCaseId, ...body });
+        return NextResponse.json(newTestCase);
     } catch {
         return NextResponse.json({ error: 'Failed to create test case' }, { status: 500 });
     }

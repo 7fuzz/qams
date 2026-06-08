@@ -23,6 +23,7 @@ interface Project {
 interface Module {
   module_id: string;
   name: string;
+  code: string;
   description: string;
   project_id: string;
   project_name: string;
@@ -56,7 +57,7 @@ export default function ModuleManagementPage() {
 
   // New Module Form
   const [isAdding, setIsAdding] = useState(false);
-  const [newModule, setNewModule] = useState({ name: '', project_id: '', description: '', responsible_id: '', sla_date: '', actual_date: '' });
+  const [newModule, setNewModule] = useState({ name: '', code: '', project_id: '', description: '', responsible_id: '', sla_date: '', actual_date: '' });
 
   const fetchBaseData = useCallback(async () => {
     const [pRes, uRes] = await Promise.all([
@@ -104,7 +105,7 @@ export default function ModuleManagementPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(newModule),
     });
-    setNewModule({ name: '', project_id: '', description: '', responsible_id: '', sla_date: '', actual_date: '' });
+    setNewModule({ name: '', code: '', project_id: '', description: '', responsible_id: '', sla_date: '', actual_date: '' });
     setIsAdding(false);
     fetchModules();
   };
@@ -134,7 +135,7 @@ export default function ModuleManagementPage() {
         header: 'Module Name',
         accessorKey: 'name',
         sortable: true,
-        width: 300,
+        width: 250,
         minWidth: 200,
         cell: (item) => (
             <div className="flex items-center gap-3">
@@ -144,6 +145,14 @@ export default function ModuleManagementPage() {
                 <div className="font-bold text-sm text-text-theme-main">{item.name}</div>
             </div>
         )
+    },
+    {
+        header: 'Module Code',
+        accessorKey: 'code',
+        sortable: true,
+        width: 120,
+        minWidth: 100,
+        cell: (item) => <span className="font-mono text-[10px] font-black text-primary-theme uppercase">{item.code}</span>
     },
     {
         header: 'Project',
@@ -256,14 +265,24 @@ export default function ModuleManagementPage() {
       {isAdding && (
         <Card className="border-primary-theme/20 bg-primary-theme/5 shadow-sm animate-in fade-in slide-in-from-top-4 duration-300">
           <CardContent className="p-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 items-end">
-              <div className="space-y-1.5">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4 items-end">
+              <div className="space-y-1.5 lg:col-span-2">
                 <Label className="text-[10px] font-bold uppercase tracking-widest text-text-theme-muted">Module Name</Label>
                 <input 
                   placeholder="e.g. Authentication" 
                   value={newModule.name} 
                   onChange={e => setNewModule({...newModule, name: e.target.value})}
                   className="w-full h-10 px-3 rounded border border-border-theme bg-surface text-sm focus:outline-none focus:ring-2 focus:ring-primary-theme/20 transition-all"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-[10px] font-bold uppercase tracking-widest text-text-theme-muted">Module Code</Label>
+                <input 
+                  placeholder="e.g. AUTH" 
+                  value={newModule.code} 
+                  onChange={e => setNewModule({...newModule, code: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '')})}
+                  className="w-full h-10 px-3 rounded border border-border-theme bg-surface text-sm focus:outline-none focus:ring-2 focus:ring-primary-theme/20 transition-all"
+                  maxLength={10}
                 />
               </div>
               <div className="space-y-1.5">
@@ -282,15 +301,6 @@ export default function ModuleManagementPage() {
                   value={newModule.sla_date} 
                   onChange={e => setNewModule({...newModule, sla_date: e.target.value})}
                   className="bg-surface"
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-[10px] font-bold uppercase tracking-widest text-text-theme-muted">Lead Developer</Label>
-                <Combobox 
-                  options={userOptions} 
-                  value={newModule.responsible_id} 
-                  onChange={val => setNewModule({...newModule, responsible_id: val as string})} 
-                  placeholder="Assign Responsible..."
                 />
               </div>
               <Button onClick={handleAddModule} className="w-full">Create Module</Button>

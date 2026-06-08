@@ -201,22 +201,45 @@ export const TestRunModel = {
         return result;
     },
 
-    async addExecutions(runId: string, testCaseIds: string[]) {
-        if (!testCaseIds || testCaseIds.length === 0) return;
-
+    async addExecutions(runId: string, testCaseIds: string[] = [], moduleIds: string[] = [], scenarioIds: string[] = []) {
         const connection = await db.getConnection();
         await connection.beginTransaction();
 
         try {
+            const finalTestCaseIds = [...new Set(testCaseIds)];
+
+            // If moduleIds are provided, fetch all test cases for those modules
+            if (moduleIds.length > 0) {
+                const [rows] = await connection.execute<RowDataPacket[]>(`
+                    SELECT tc.test_case_id 
+                    FROM test_cases tc
+                    JOIN scenarios s ON tc.scenario_id = s.scenario_id
+                    WHERE s.module_id IN (${moduleIds.map(() => '?').join(',')})
+                `, moduleIds);
+                rows.forEach(r => finalTestCaseIds.push(r.test_case_id));
+            }
+
+            // If scenarioIds are provided, fetch all test cases for those scenarios
+            if (scenarioIds.length > 0) {
+                const [rows] = await connection.execute<RowDataPacket[]>(`
+                    SELECT test_case_id FROM test_cases WHERE scenario_id IN (${scenarioIds.map(() => '?').join(',')})
+                `, scenarioIds);
+                rows.forEach(r => finalTestCaseIds.push(r.test_case_id));
+            }
+
+            if (finalTestCaseIds.length === 0) return 0;
+
+            const uniqueTestCaseIds = [...new Set(finalTestCaseIds)];
+
             // Filter out test cases that are already in this run
-            const placeholders = testCaseIds.map(() => '?').join(',');
+            const placeholders = uniqueTestCaseIds.map(() => '?').join(',');
             const [existing] = await connection.execute<RowDataPacket[]>(
                 `SELECT test_case_id FROM test_executions WHERE run_id = ? AND test_case_id IN (${placeholders})`,
-                [runId, ...testCaseIds]
+                [runId, ...uniqueTestCaseIds]
             );
 
             const existingIds = new Set(existing.map(e => e.test_case_id));
-            const newIds = testCaseIds.filter(id => !existingIds.has(id));
+            const newIds = uniqueTestCaseIds.filter(id => !existingIds.has(id));
 
             for (const tcId of newIds) {
                 await connection.execute(

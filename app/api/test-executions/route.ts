@@ -45,9 +45,10 @@ export async function POST(request: Request) {
     }
 
     try {
-        const { runId, testCaseIds } = await request.json();
-        if (!runId || !testCaseIds || !Array.isArray(testCaseIds)) {
-            return NextResponse.json({ error: 'Missing runId or testCaseIds' }, { status: 400 });
+        const { runId, testCaseIds = [], moduleIds = [], scenarioIds = [] } = await request.json();
+        
+        if (!runId || (testCaseIds.length === 0 && moduleIds.length === 0 && scenarioIds.length === 0)) {
+            return NextResponse.json({ error: 'Missing runId or data to add' }, { status: 400 });
         }
 
         // Security Check: Is user assigned to this run?
@@ -62,11 +63,13 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: "You are not assigned to this test run" }, { status: 403 });
         }
 
-        const addedCount = await TestRunModel.addExecutions(runId, testCaseIds);
+        const addedCount = await TestRunModel.addExecutions(runId, testCaseIds, moduleIds, scenarioIds);
 
         await logActivity(session.user_id, 'UPDATE', 'TEST_RUN', runId, { 
             action: 'ADD_CASES',
-            count: addedCount
+            count: addedCount,
+            modules: moduleIds.length,
+            scenarios: scenarioIds.length
         });
 
         return NextResponse.json({ success: true, addedCount });

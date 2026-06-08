@@ -13,6 +13,7 @@ if (!fs.existsSync(OUTPUT_DIR)) {
 const data = [
     {
         id: 'TC-001',
+        module: 'Authentication',
         scenario: 'Login',
         title: 'Login dengan email terdaftar dan password yang benar',
         type: 'Positive',
@@ -27,6 +28,7 @@ const data = [
     },
     {
         id: 'TC-002',
+        module: 'Authentication',
         scenario: '',
         title: 'Login menggunakan email yang terdaftar dan password yang salah',
         type: 'Negative',
@@ -48,6 +50,7 @@ XLSX.utils.book_append_sheet(workbook, worksheet, "Test Cases");
 // Adjust column widths
 const wscols = [
     { wch: 10 }, // id
+    { wch: 15 }, // module
     { wch: 15 }, // scenario
     { wch: 40 }, // title
     { wch: 10 }, // type

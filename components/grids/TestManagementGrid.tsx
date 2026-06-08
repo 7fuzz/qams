@@ -10,7 +10,7 @@ import {
   ICellRendererParams,
   ColumnState
 } from 'ag-grid-community';
-import { Button, IconButton, Input, Pagination } from '../ui';
+import { Button, IconButton, Input, Pagination, Checkbox, Label } from '../ui';
 import { Trash2, Plus, Copy, AlertCircle, Edit2, CheckCircle2, ExternalLink, Download, Upload } from 'lucide-react';
 import { TEST_CASE_TYPE, TEST_CASE_TYPE_OPTIONS, TEST_PRIORITY, TEST_PRIORITY_OPTIONS, AUTOMATION_STATUS_OPTIONS } from '@/lib/constants';
 import { unifiedGridTheme } from '@/lib/theme';
@@ -50,6 +50,7 @@ export const TestManagementGrid = ({ moduleId }: TestManagementGridProps) => {
   const [scenarios, setScenarios] = useState<Scenario[]>([]);
   const [loading, setLoading] = useState(true);
   const [newScenarioName, setNewScenarioName] = useState('');
+  const [createMissingModules, setCreateMissingModules] = useState(false);
 
   // Pagination State
   const [page, setPage] = useState(1);
@@ -212,7 +213,7 @@ export const TestManagementGrid = ({ moduleId }: TestManagementGridProps) => {
         const res = await fetch('/api/test-cases/import', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ moduleId, testCases }),
+          body: JSON.stringify({ moduleId, testCases, createMissingModules }),
         });
         const result = await res.json();
         if (res.ok) {
@@ -512,6 +513,16 @@ export const TestManagementGrid = ({ moduleId }: TestManagementGridProps) => {
           </div>
         </div>
         <div className="flex gap-2">
+          <div className="flex items-center gap-2 mr-2">
+            <Checkbox 
+              id="createMissingModules" 
+              checked={createMissingModules} 
+              onCheckedChange={setCreateMissingModules} 
+            />
+            <Label htmlFor="createMissingModules" className="text-[10px] cursor-pointer whitespace-nowrap">
+              Auto-create Modules
+            </Label>
+          </div>
           <Button onClick={handleDownloadTemplate} variant="ghost" size="sm" className="h-8 text-gray-600 hover:bg-gray-50">
             <Download size={16} className="mr-2" /> Template
           </Button>

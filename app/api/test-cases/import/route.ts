@@ -40,7 +40,7 @@ export async function POST(request: Request) {
     if (!session.isLoggedIn) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     try {
-        const { moduleId, testCases } = await request.json();
+        const { moduleId, testCases, createMissingModules } = await request.json();
         
         if (!testCases || !Array.isArray(testCases)) {
             return NextResponse.json({ error: 'Invalid data format' }, { status: 400 });
@@ -50,6 +50,8 @@ export async function POST(request: Request) {
             type: normalizeType,
             priority: normalizePriority,
             automation: normalizeAutomation
+        }, {
+            createMissingModules: !!createMissingModules
         });
         
         await logActivity(session.user_id, 'CREATE', 'TEST_CASE', moduleId, { action: 'IMPORT_BATCH', count: importedCount, skipped: skippedCount });

@@ -208,7 +208,16 @@ export const TestCaseModel = {
         await db.execute('DELETE FROM scenarios WHERE scenario_id = ?', [id]);
     },
 
-    async importTestCases(moduleId: string, testCases: Record<string, unknown>[], normalizers: { type: (value: unknown) => string, priority: (value: unknown) => string, automation: (value: unknown) => string }): Promise<{ importedCount: number, skippedCount: number }> {
+    async importTestCases(
+        moduleId: string, 
+        testCases: Record<string, unknown>[], 
+        normalizers: { 
+            type: (value: unknown) => string, 
+            priority: (value: unknown) => string, 
+            automation: (value: unknown) => string 
+        },
+        options: { createMissingModules?: boolean } = {}
+    ): Promise<{ importedCount: number, skippedCount: number }> {
         let importedCount = 0;
         let skippedCount = 0;
 
@@ -216,6 +225,18 @@ export const TestCaseModel = {
         await connection.beginTransaction();
 
         try {
+            // Get project_id from the initial moduleId to ensure all modules stay within the same project
+            const [baseModule] = await connection.execute<RowDataPacket[]>(
+                'SELECT project_id FROM modules WHERE module_id = ?',
+                [moduleId]
+            );
+            
+            if (baseModule.length === 0) {
+                throw new Error('Base module not found');
+            }
+            
+            const projectId = baseModule[0].project_id;
+            const moduleCache: Record<string, string> = {};
             const scenarioCache: Record<string, string> = {};
 
             for (const tc of testCases) {
@@ -228,13 +249,44 @@ export const TestCaseModel = {
                 const type = normalizers.type(tc.type);
                 const priority = normalizers.priority(tc.priority);
 
+                // Determine target moduleId
+                const targetModuleName = (tc.module || tc.module_name) as string | undefined;
+                let currentModuleId = moduleId;
+
+                if (targetModuleName && targetModuleName.trim()) {
+                    const mName = targetModuleName.trim();
+                    if (moduleCache[mName]) {
+                        currentModuleId = moduleCache[mName];
+                    } else {
+                        const [existingModules] = await connection.execute<RowDataPacket[]>(
+                            'SELECT module_id FROM modules WHERE name = ? AND project_id = ?',
+                            [mName, projectId]
+                        );
+                        
+                        if (existingModules.length > 0) {
+                            currentModuleId = existingModules[0].module_id;
+                        } else if (options.createMissingModules) {
+                            currentModuleId = generateId();
+                            await connection.execute(
+                                'INSERT INTO modules (module_id, project_id, name) VALUES (?, ?, ?)',
+                                [currentModuleId, projectId, mName]
+                            );
+                        } else {
+                            // Fallback to initial moduleId if not found and creation not allowed
+                            currentModuleId = moduleId;
+                        }
+                        moduleCache[mName] = currentModuleId;
+                    }
+                }
+
                 const scenarioName = (tc.scenario || 'Default Scenario') as string;
+                const scenarioCacheKey = `${currentModuleId}:${scenarioName}`;
                 
-                let scenarioId = scenarioCache[scenarioName];
+                let scenarioId = scenarioCache[scenarioCacheKey];
                 if (!scenarioId) {
                     const [existingScenarios] = await connection.execute<RowDataPacket[]>(
                         'SELECT scenario_id FROM scenarios WHERE name = ? AND module_id = ?', 
-                        [scenarioName, moduleId]
+                        [scenarioName, currentModuleId]
                     );
                     
                     if (existingScenarios.length > 0) {
@@ -243,10 +295,10 @@ export const TestCaseModel = {
                         scenarioId = generateId();
                         await connection.execute(
                             'INSERT INTO scenarios (scenario_id, module_id, name) VALUES (?, ?, ?)',
-                            [scenarioId, moduleId, scenarioName]
+                            [scenarioId, currentModuleId, scenarioName]
                         );
                     }
-                    scenarioCache[scenarioName] = scenarioId;
+                    scenarioCache[scenarioCacheKey] = scenarioId;
                 }
 
                 const customId = (tc.id || tc.custom_id || null) as string | null;
@@ -258,7 +310,7 @@ export const TestCaseModel = {
                         FROM test_cases tc
                         JOIN scenarios s ON tc.scenario_id = s.scenario_id
                         WHERE tc.custom_id = ? AND s.module_id = ?
-                    `, [customId, moduleId]);
+                    `, [customId, currentModuleId]);
                     
                     if (existingCases.length > 0) {
                         existingId = existingCases[0].test_case_id;

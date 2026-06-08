@@ -98,3 +98,16 @@ If you prefer to run the Next.js app locally for faster hot-reloading:
 - `/smtp-service`: Standalone Node.js SMTP listener.
 - `/public/uploads`: Shared volume for email attachments.
 - `/lib/db`: Database connection and schema files.
+
+---
+
+## 🧪 Test Case Management
+
+### Import Test Cases
+You can import test cases from Excel/JSON files. The system supports the following columns:
+- **id** (optional): Custom ID for the test case.
+- **module** (optional): The module name. If it doesn't exist, it will be **automatically created** within the project.
+- **scenario** (optional): The scenario name. Defaults to "Default Scenario".
+- **title** (required): The test case title.
+- **type**, **priority**, **automation_status**: Normalized automatically.
+- **steps**, **precondition**, **test_data**, **expected_result**, etc.

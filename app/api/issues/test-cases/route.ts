@@ -22,7 +22,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
     const session = await getIronSession<SessionData>(await cookies(), sessionOptions);
-    if (!session.isLoggedIn || !session.permissions.includes('issues:write')) {
+    if (!session.isLoggedIn || !session.permissions.includes('issues:manage')) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 

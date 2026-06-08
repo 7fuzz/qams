@@ -97,6 +97,11 @@ export const TestCaseModel = {
     },
 
     async create(data: Partial<TestCase>): Promise<string> {
+        const scenarioId = data.scenario_id;
+        if (!scenarioId) {
+            throw new Error('scenario_id is required to create a test case');
+        }
+
         const id = generateId();
         let customId = data.custom_id;
         let codeIndex = 0;
@@ -114,7 +119,7 @@ export const TestCaseModel = {
                     JOIN modules m ON s.module_id = m.module_id
                     JOIN projects p ON m.project_id = p.project_id
                     WHERE s.scenario_id = ?
-                `, [data.scenario_id]);
+                `, [scenarioId]);
 
                 if (rows.length > 0) {
                     const row = rows[0];
@@ -127,7 +132,7 @@ export const TestCaseModel = {
             }
 
             const params: any[] = [
-                id, customId ?? null, codeIndex, data.scenario_id, data.title, data.type ?? null, 
+                id, customId ?? null, codeIndex, scenarioId, data.title || 'Untitled', data.type ?? null, 
                 data.priority ?? null, data.automation_status ?? null, 
                 data.requirement_link ?? null, data.estimated_duration ?? null, 
                 data.precondition ?? null, data.steps ?? null, data.test_data ?? null, data.expected_result ?? null
@@ -329,7 +334,7 @@ export const TestCaseModel = {
                     scenarioCache[scenarioCacheKey] = scenarioId;
                 }
 
-                const customId = (tc.id || tc.custom_id || null) as string | null;
+                const customId = (tc.id || tc.custom_id || undefined) as string | undefined;
                 let existingId = null;
 
                 if (customId) {

@@ -108,7 +108,7 @@ export function CRUDTable<T extends object>({
         const initialWidths: Record<number, number> = { ...prev };
         let hasChanges = false;
         columns.forEach((col, idx) => {
-            if (initialWidths[idx] === undefined) {
+            if (initialWidths[idx] === undefined || (col.width && initialWidths[idx] !== col.width)) {
                 initialWidths[idx] = col.width || 150;
                 hasChanges = true;
             }
@@ -283,15 +283,17 @@ export function CRUDTable<T extends object>({
                             key={idx}
                             style={{ 
                                 width: columnWidths[idx] || 150,
+                                minWidth: columnWidths[idx] || 150,
+                                maxWidth: columnWidths[idx] || 150,
                                 ...pinStyles,
                                 zIndex: col.pin ? 31 : 30
                             }}
-                            className={`relative group whitespace-nowrap overflow-hidden text-ellipsis border-b border-border-theme ${
+                            className={`relative group border-b border-border-theme ${
                                 col.pin ? 'bg-surface-muted shadow-[inset_-1px_0_0_0_rgba(0,0,0,0.1)]' : ''
                             } ${col.sortable ? 'cursor-pointer hover:bg-surface-accent transition-colors' : ''} ${col.className || ''}`}
                             onClick={() => col.sortable && col.accessorKey && handleSortClick(col.accessorKey as string)}
                         >
-                            <div className="flex items-center gap-1 pr-4">
+                            <div className="flex items-center gap-1 pr-4 whitespace-nowrap overflow-hidden text-ellipsis">
                                 {col.header}
                                 {col.sortable && col.accessorKey && sortBy === col.accessorKey && (
                                     sortOrder === 'ASC' ? <ChevronUp size={14} /> : <ChevronDown size={14} />
@@ -350,7 +352,12 @@ export function CRUDTable<T extends object>({
                                 {columns.map((col, colIdx) => (
                                     <TableCell 
                                         key={colIdx} 
-                                        style={getPinStyles(col, colIdx)}
+                                        style={{
+                                            ...getPinStyles(col, colIdx),
+                                            width: columnWidths[colIdx] || 150,
+                                            minWidth: columnWidths[colIdx] || 150,
+                                            maxWidth: columnWidths[colIdx] || 150,
+                                        }}
                                         className={`overflow-hidden text-ellipsis whitespace-nowrap border-b border-border-theme py-3 ${
                                             col.pin ? 'bg-surface z-10 group-hover/row:bg-surface-accent shadow-[inset_-1px_0_0_0_rgba(0,0,0,0.1)]' : ''
                                         } ${col.className || ''}`}

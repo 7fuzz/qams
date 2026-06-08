@@ -153,7 +153,8 @@ export const TestExecutionTable = ({ runId, onUpdate }: { runId: string, onUpdat
         header: 'Case ID',
         accessorKey: 'custom_id',
         sortable: true,
-        className: 'w-[120px] font-mono text-[10px] text-text-theme-muted uppercase',
+        width: 100,
+        className: 'w-[100px] font-mono text-[10px] text-text-theme-muted uppercase',
         cell: (item) => (
             <div className="flex flex-col gap-0.5">
                 <span className="font-black text-primary-theme">{item.custom_id || 'TC-NEW'}</span>
@@ -165,20 +166,23 @@ export const TestExecutionTable = ({ runId, onUpdate }: { runId: string, onUpdat
         header: 'Module',
         accessorKey: 'module_name' as any,
         sortable: true,
-        className: 'w-[120px] text-[10px] font-bold uppercase text-text-theme-muted',
+        width: 110,
+        className: 'w-[110px] text-[10px] font-bold uppercase text-text-theme-muted',
         cell: (item) => item.module_name
     },
     {
         header: 'Scenario',
         accessorKey: 'scenario_name' as any,
         sortable: true,
-        className: 'w-[150px] text-[10px] font-bold uppercase text-text-theme-muted',
+        width: 130,
+        className: 'w-[130px] text-[10px] font-bold uppercase text-text-theme-muted',
         cell: (item) => item.scenario_name
     },
     {
         header: 'Test Case Title',
         accessorKey: 'title',
         sortable: true,
+        width: 300,
         className: 'font-medium',
         cell: (item) => item.title
     },
@@ -186,7 +190,8 @@ export const TestExecutionTable = ({ runId, onUpdate }: { runId: string, onUpdat
         header: 'Status',
         accessorKey: 'status',
         sortable: true,
-        className: 'w-[150px]',
+        width: 130,
+        className: 'w-[130px]',
         cell: (item) => (
             <div className="flex items-center gap-2">
                 {getStatusIcon(item.status)}
@@ -201,21 +206,23 @@ export const TestExecutionTable = ({ runId, onUpdate }: { runId: string, onUpdat
     {
         header: 'Notes',
         accessorKey: 'notes',
-        className: 'w-[250px] text-xs text-text-theme-muted italic line-clamp-1 flex items-center',
+        width: 250,
+        className: 'w-[250px] text-xs text-text-theme-muted italic line-clamp-1',
         cell: (item) => item.notes ? `“${item.notes}”` : '-'
     },
     {
         header: 'Executed At',
         accessorKey: 'executed_at',
         sortable: true,
-        className: 'w-[180px] text-xs text-text-theme-muted',
+        width: 150,
+        className: 'w-[150px] text-xs text-text-theme-muted',
         cell: (item) => item.executed_at ? new Date(item.executed_at).toLocaleString() : 'Not executed'
     },
     {
         header: 'Actions',
         className: 'text-right',
-        width: 150,
-        minWidth: 150,
+        width: 130,
+        minWidth: 130,
         pin: 'right',
         cell: (item) => (
             <div className="flex justify-end gap-1" onClick={(e) => e.stopPropagation()}>

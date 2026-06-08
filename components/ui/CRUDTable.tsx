@@ -174,7 +174,8 @@ export function CRUDTable<T extends object>({
       
       const styles: React.CSSProperties = {
           position: 'sticky',
-          zIndex: col.pin === 'left' ? 21 : 20, 
+          zIndex: col.pin === 'left' ? 21 : 20,
+          backgroundColor: 'inherit',
       };
 
       if (col.pin === 'left') {
@@ -289,7 +290,10 @@ export function CRUDTable<T extends object>({
                                 zIndex: col.pin ? 31 : 30
                             }}
                             className={`relative group border-b border-border-theme ${
-                                col.pin ? 'bg-surface-muted shadow-[inset_-1px_0_0_0_rgba(0,0,0,0.1)]' : ''
+                                col.pin ? 'bg-surface-muted' : ''
+                            } ${
+                                col.pin === 'left' ? 'shadow-[inset_-1px_0_0_0_rgba(0,0,0,0.1)]' : 
+                                col.pin === 'right' ? 'shadow-[inset_1px_0_0_0_rgba(0,0,0,0.1)]' : ''
                             } ${col.sortable ? 'cursor-pointer hover:bg-surface-accent transition-colors' : ''} ${col.className || ''}`}
                             onClick={() => col.sortable && col.accessorKey && handleSortClick(col.accessorKey as string)}
                         >
@@ -359,7 +363,10 @@ export function CRUDTable<T extends object>({
                                             maxWidth: columnWidths[colIdx] || 150,
                                         }}
                                         className={`overflow-hidden text-ellipsis whitespace-nowrap border-b border-border-theme py-3 ${
-                                            col.pin ? 'bg-surface z-10 group-hover/row:bg-surface-accent shadow-[inset_-1px_0_0_0_rgba(0,0,0,0.1)]' : ''
+                                            col.pin ? 'bg-surface z-10 group-hover/row:bg-surface-accent' : ''
+                                        } ${
+                                            col.pin === 'left' ? 'shadow-[inset_-1px_0_0_0_rgba(0,0,0,0.1)]' : 
+                                            col.pin === 'right' ? 'shadow-[inset_1px_0_0_0_rgba(0,0,0,0.1)]' : ''
                                         } ${col.className || ''}`}
                                     >
                                         {col.cell ? col.cell(item) : (col.accessorKey ? (item[col.accessorKey as keyof T] as React.ReactNode) : null)}

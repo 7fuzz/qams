@@ -193,11 +193,20 @@ export const TestManagementGrid = ({ moduleId }: TestManagementGridProps) => {
       const json: ExcelRow[] = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
 
       let lastScenario = '';
+      let lastModule = '';
       const testCases = json.map(row => {
         const obj: ExcelRow = {};
         Object.keys(row).forEach(key => {
           obj[key.trim().toLowerCase()] = row[key];
         });
+
+        // Module fill-down logic
+        const currentModule = (obj.module || obj.module_name) as string | undefined;
+        if (currentModule && currentModule.trim() !== "") {
+          lastModule = currentModule.trim();
+        } else {
+          obj.module = lastModule;
+        }
 
         if (obj.scenario && typeof obj.scenario === 'string' && obj.scenario.trim() !== "") {
           lastScenario = obj.scenario.trim();
